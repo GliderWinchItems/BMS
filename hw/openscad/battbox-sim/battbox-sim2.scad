@@ -1,8 +1,8 @@
-/* File: battbox-sim.scad
+/* File: battbox-sim2.scad
  * Battery Box for small LipPo bms simulation of big box for winch
- * Multi-piece bottom and ends
+ * One piece bottom and ends
  * Author: deh
- * Latest edit: 20200429
+ * Latest edit: 20200503
  */
  $fn = 30;
  
@@ -109,10 +109,10 @@ module batrack(hole_dia,h)
         }
     }
 }
-cp_thick = 3;   // Thickness of wall
+cp_thick = 5;   // Thickness of wall
 cp_inrad = rad; // Inside radius
 cp_outrad = cp_inrad+cp_thick; // Outsid radius
-cp_ht = 56;
+cp_ht = 56+3;
 cp_ldgw = 1;
 cp_ldgz1 = cp_ldgw;
 cp_ldgz2 = cp_ht/2;
@@ -137,8 +137,8 @@ h6 = cp_ht;
     polygon(points=[
     [r2, 0],
     [r1,h1],
-    [r2,h1],
-    [r2,h2],
+    [r1,h1],
+    [r1,h2],
     [r1,h3],
     [r2,h3],
     [r2,h4],
@@ -236,7 +236,7 @@ cp_w = (batnum_y + 1)*bat_spc + (batnum_y * bat_dia)-rad;
             translate([30,-cp_w/2,0])
              rotate([0,0,-90])
                 corner_side(cp_l/2+cp_flat);
-               
+
         }
         union()
         {
@@ -246,27 +246,26 @@ cp_w = (batnum_y + 1)*bat_spc + (batnum_y * bat_dia)-rad;
             
             translate([0,0,35])            
              rotate([90,0,90])            
-                rounded_rectangle(25,50,50,4);    
+                rounded_rectangle(25,50,50,4); 
 
-            // Holes for screws into side of battery rack plates
+           // Holes for screws into side of battery rack plates
        phd = 3.5; // Pillar hole dialmeter
             phof = phd*.5;
-            angle_hole([cp_l*.5,-cp_w*.5,cp_ldgz1+phof], 45,phd,12);
+//          angle_hole([cp_l*.5,-cp_w*.5,cp_ldgz1+phof], 45,phd,12);
             angle_hole([cp_l*.5,-cp_w*.5,cp_ldgz2+phof], 45,phd,12);
             angle_hole([cp_l*.5,-cp_w*.5,cp_ldgz3+phof], 45,phd,12);
 
             k = 7;        
-            angle_hole([cp_l*.5+k, cp_w*.5+k,cp_ldgz1+phof],-45,phd,12);
+//          angle_hole([cp_l*.5+k, cp_w*.5+k,cp_ldgz1+phof],-45,phd,12);
             angle_hole([cp_l*.5+k, cp_w*.5+k,cp_ldgz2+phof],-45,phd,12);
             angle_hole([cp_l*.5+k, cp_w*.5+k,cp_ldgz3+phof],-45,phd,12);
 
             // Holes in top if cover attached
-            s = cp_l*.5-2;
-            t = cp_w*.5 +4.5;
+            s = cp_l*.5-1.5;
+            t = cp_w*.5 +5.5;
             translate([s, t,cp_ht-2])cylinder(d=2.7,h=15,center=true);
             translate([s,-t,cp_ht-2])cylinder(d=2.7,h=15,center=true);
-            
-
+                        
         }
     }
 }
@@ -280,6 +279,15 @@ module angle_hole(a,r,dia,len)
            cylinder(d=dia,h=len,center=false);
     }
 }
+/*  BOTTOM INTERCONNECTS
+x = negative end; o = positive end
+
+  IN    x   o   x   o   x   o OUT
+        |   |   |   |   |   |
+        o   x   o   x   o   x
+                             
+        x---o   x---o   x---o
+*/
 /* Bottom "rack" (plate) for batteries. */
 bot_hole_dia = 2.8;
 module bat_rack_bottom()
@@ -299,18 +307,57 @@ u = bot_hole_dia;
         }
         union()
         {
-            // Corner holes for screws
-            angle_hole([ l*.5,-w/2,batrack_thick*.5], 45,u,12);
-            angle_hole([-l*.5,-w/2,batrack_thick*.5],-45,u,12);
-            angle_hole([ m*.5, n/2,batrack_thick*.5],-45,u,12);
-            angle_hole([-m*.5, n/2,batrack_thick*.5], 45,u,12);
-            
-            // Side holes 
-            angle_hole([0,   n/2,batrack_thick*.5], 0,u,12);
-            angle_hole([0,-w/2+3,batrack_thick*.5], 0,u,12);
+                    /* interconnect wells */
+         zz = batrack_thick+ic_z*.5 -batrack_thick ; 
+         xof = ic_y*0.5;
+         yof = -ic_y*0.5;
+         v = bat_dia+bat_spc;
+            ic_well([xof-3*v,yof+1*v,zz],true);
+            ic_well([xof-2*v,yof+1*v,zz],true);
+            ic_well([xof-1*v,yof+1*v,zz],true);
+            ic_well([xof-0*v,yof+1*v,zz],true);
+            ic_well([xof+1*v,yof+1*v,zz],true);
+            ic_well([xof+2*v,yof+1*v,zz],true);
+
+            ic_well([-2*v,-1*v,zz],false);
+            ic_well([ 0*v,-1*v,zz],false);
+            ic_well([ 2*v,-1*v,zz],false);
+
         }
     }
 }
+ic_x = 5;
+ic_y = bat_spc+bat_dia;
+ic_z = batrack_thick;
+ic_depth = 2;
+
+module ic_well(a,j)
+{
+    
+    translate(a)
+    {
+        if (j)
+        {
+              cube([ic_x,ic_y,ic_z],center=true);
+
+        }
+        else
+        {
+           rotate([0,0,90])
+            cube([ic_x,ic_y,ic_z],center=true);
+        }
+    }
+}
+/*
+    TOP Interconnects
+x = negative end; o = positive end
+
+  IN    x   o---x   o---x   o OUT
+
+        o   x   o   x   o   x
+        |   |   |   |   |   |
+        x   o   x   o   x   o
+*/
 module bat_rack_top()
 {
 l = (batnum_x + 1)*bat_spc + (batnum_x * bat_dia)-9;
@@ -324,18 +371,25 @@ u = bot_hole_dia;
         union()
         { 
             translate([0,0,0]) batrack(bat_dia,batrack_thick);
+            
         }
         union()
         {
-            // Corner holes for screws
-            angle_hole([ l*.5,-w/2,batrack_thick*.5], 45,u,12);
-            angle_hole([-l*.5,-w/2,batrack_thick*.5],-45,u,12);
-            angle_hole([ m*.5, n/2,batrack_thick*.5],-45,u,12);
-            angle_hole([-m*.5, n/2,batrack_thick*.5], 45,u,12);
-            
-            // Side holes 
-            angle_hole([0,   n/2,batrack_thick*.5], 0,u,12);
-            angle_hole([0,-w/2+3,batrack_thick*.5], 0,u,12);
+            /* interconnect wells */
+         zz = batrack_thick+ic_z*.5 - batrack_thick; 
+         xof = ic_y*0.5;
+         yof = ic_y*0.5;
+         v = bat_dia+bat_spc;
+            ic_well([xof-3*v,yof-1*v,zz],true);
+            ic_well([xof-2*v,yof-1*v,zz],true);
+            ic_well([xof-1*v,yof-1*v,zz],true);
+            ic_well([xof-0*v,yof-1*v,zz],true);
+            ic_well([xof+1*v,yof-1*v,zz],true);
+            ic_well([xof+2*v,yof-1*v,zz],true);
+
+            ic_well([ 1*v, 1*v,zz],false);
+            ic_well([-1*v, 1*v,zz],false);
+
         }
     }
     
@@ -402,6 +456,7 @@ difference()
     shortendpiece();
     union()
     {
+/*        
        wj = (batnum_y + 1)*bat_spc + (batnum_y * bat_dia);
         translate([-30, -wj*.5-rad, 0])
           cube([55,10,30],center=false);            
@@ -412,6 +467,7 @@ difference()
         translate([0,0,4])
          rotate([90,0,0])
           cylinder(d=dovehole,h=200,center=true);
+*/        
     }   
 }
 }
@@ -423,6 +479,7 @@ module longenddove()
         longendpiece();
         union()
         {
+/*            
             wj = (batnum_y + 1)*bat_spc + (batnum_y * bat_dia);
             translate([-30, -wj*.5-10-rad, 0])
                 cube([55,10,30],center=false);            
@@ -433,12 +490,20 @@ module longenddove()
 
          rotate([90,0,0])
           cylinder(d=dovehole,h=200,center=true);  
+*/            
         }
     }
 }
+
+module baseassembly()
+{
 translate([0,0,0]) longenddove();
-translate([90,0,0]) shortenddove();
-//translate([0,0,0]) shortenddove();
-//translate([0,0,cp_ldgz1]) bat_rack_bottom(); // Bottom
+translate([0,0,0]) shortenddove();
+translate([0,0,0]) bat_rack_bottom(); // Bottom
+}
+baseassembly();
+
 //translate([0,0,cp_ldgz2]) bat_rack_star(); // Mid-level
-//translate([0,0,cp_ldgz3]) bat_rack_top(); // Top
+
+translate([0,0,cp_ldgz3]) bat_rack_top(); // Top
+
