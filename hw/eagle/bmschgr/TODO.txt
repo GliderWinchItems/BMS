@@ -1,0 +1,52 @@
+TODO.txt
+Items for f405longskinny board layout
+09/02/2018
+
+1.  TE Connectivity connector outline
+    Either turn off silkscreen outlines or
+    Revise connector so it doesn't extend board
+
+2.  Mount holes
+    CAN bus end may need space, i.e. lengthen board
+
+3.  Names layers silkscreen
+    Position names associated with parts
+
+4.  Revise LM2596 dc-dc footpring
+    Make part to handle the two module sizes
+
+5.  CAN bus connector
+    Current 2x5 has unused pins and shrouded header
+      1x4 header with side strain relief holes?
+      Lengthen board and have in/out DE9?
+		Retain 2x5 and double up some pins?
+      Subboard with DE9 and 2x5 for ribbon to bms board?
+      
+6.  PCB Dimension cleanup
+
+7.  JIC pads on STM32
+    Where space permits add pads for other uses.
+    
+8.  Review--
+
+    a) STM32 power pins
+       Review power pins and by-passing for
+       f103,f405, and f446 options
+    b) Current limits on 5->9v module and regulators
+
+9.  SIP + SMD 5V-9V module types
+    Allow for both footprints
+
+10. Connector connection sequence
+    
+    1st half top, etc. rather than 1,2,3, etc.
+
+11.  Attach point compensation
+    Resistance of interconnects not equal.
+    Calibration table?
+
+12. Thermistors
+    - wiring different from nodes
+    - number allowed for
+
+

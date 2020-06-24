@@ -90,7 +90,7 @@ module batrack(hole_dia,h)
                 for (y=[-b : 1 : b-1] )
                 {
                     translate([del*x+off,del*y+off,0])
-                     cylinder(d=hole_dia,h=100,center=true);
+                     cylinder(d=hole_dia+1,h=100,center=true);
                 }
             }
             /*
@@ -389,6 +389,15 @@ u = bot_hole_dia;
 
             ic_well([ 1*v, 1*v,zz],false);
             ic_well([-1*v, 1*v,zz],false);
+            
+            w = (batnum_y + 1)*bat_spc + (batnum_y * bat_dia)-9;
+m = (batnum_x + 1)*bat_spc + (batnum_x * bat_dia)+9;
+n = (batnum_y + 1)*bat_spc + (batnum_y * bat_dia)+9;
+u = bot_hole_dia;// Corner holes for screws
+            angle_hole([ l*.5,-w/2,batrack_thick*.5], 45,u,12);
+            angle_hole([-l*.5,-w/2,batrack_thick*.5],-45,u,12);
+            angle_hole([ m*.5, n/2,batrack_thick*.5],-45,u,12);
+            angle_hole([-m*.5, n/2,batrack_thick*.5], 45,u,12);
 
         }
     }
@@ -501,7 +510,7 @@ translate([0,0,0]) longenddove();
 translate([0,0,0]) shortenddove();
 translate([0,0,0]) bat_rack_bottom(); // Bottom
 }
-baseassembly();
+//baseassembly();
 
 //translate([0,0,cp_ldgz2]) bat_rack_star(); // Mid-level
 
