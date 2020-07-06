@@ -1,12 +1,7 @@
-rEAGLE Version 4.13 Copyright (c) 1988-2004 CadSoft
+EAGLE Version 4.13 Copyright (c) 1988-2004 CadSoft
 
-Electrical Rule Check for /mnt/home/deh/GliderWinchCommons/embed/bms/hw/trunk/eagle/f405Rlongskinny/RxT6.sch at  9/01/2018 16:23:27 
+Electrical Rule Check for /mnt/home/deh/GliderWinchItems/BMS/hw/eagle/bmsbmsR/bms.sch at  7/05/2020 13:20:48 
 
-WARNING: Sheet 1/1: SUPPLY Pin VI overwritten with +9V
-WARNING: Sheet 1/1: SUPPLY Pin VO overwritten with VREG
-WARNING: Sheet 1/1: POWER Pin U$2 GND2 connected to GNDA
-WARNING: Sheet 1/1: POWER Pin U$2 VCC1 connected to +3V3
-WARNING: Sheet 1/1: POWER Pin U$2 GND1 connected to GND
 WARNING: Sheet 1/1: POWER Pin U1POWER VDD_1 connected to VCC
 WARNING: Sheet 1/1: POWER Pin U1POWER VDD_2 connected to VCC
 WARNING: Sheet 1/1: POWER Pin U1POWER VDD_3 connected to VCC
@@ -16,33 +11,19 @@ WARNING: Sheet 1/1: POWER Pin U1POWER VSS_4 connected to GND
 WARNING: Sheet 1/1: POWER Pin U1AN_POWER VBAT connected to VCC
 WARNING: Sheet 1/1: POWER Pin U1AN_POWER VSSA connected to GND
 WARNING: Sheet 1/1: POWER Pin U1AN_POWER VDDA connected to VCC
-WARNING: Sheet 1/1: NC Pin U$8 VOUT- connected to GND
-ERROR: Sheet 1/1: no SUPPLY for POWER Pin U$3G$4 DRIVE
-ERROR: Sheet 1/1: unconnected INPUT Pin: U$3G$4 ICMP
-ERROR: Sheet 1/1: unconnected INPUT Pin: U$3G$4 IBIAS
 WARNING: Sheet 1/1: POWER Pin U$3G$6 V- connected to GND
 WARNING: Sheet 1/1: POWER Pin U$3G$6 V-** connected to GND
-WARNING: Sheet 1/1: POWER Pin U$3G$6 V+ connected to X18
+WARNING: Sheet 1/1: POWER Pin U$3G$6 V+ connected to C18
 WARNING: Sheet 1/1: POWER Pin U$3G$6 VPAD connected to GND
 WARNING: Sheet 1/1: POWER Pin U$3G$8 SDO connected to SP1_MISO-SDO
 WARNING: Sheet 1/1: POWER Pin U$3G$8 SDI connected to SPI1_MOSI-SDI
 WARNING: Sheet 1/1: POWER Pin U$3G$8 DTEN connected to VREG
-ERROR: Sheet 1/1: unconnected INPUT Pin: U$3G$8 IPB
-ERROR: Sheet 1/1: unconnected INPUT Pin: U$3G$8 IMB
-WARNING: Sheet 1/1: POWER Pin U$1 GND connected to GNDA
-WARNING: Sheet 1/1: POWER Pin U$1 VDD connected to +15V
-WARNING: Sheet 1/1: POWER Pin U$13 GND connected to GNDA
-WARNING: Sheet 1/1: POWER Pin U$13 VDD connected to +15V
-WARNING: Only 1 Pin on net G3
-WARNING: Only 1 Pin on net G4
-WARNING: Only 1 Pin on net G5
 WARNING: Only 1 Pin on net G6
 WARNING: Only 1 Pin on net G7
 WARNING: Only 1 Pin on net G8
 WARNING: Only 1 Pin on net G9
-WARNING: Only 1 Pin on net X0
 
 Board and schematic are consistent
 
-    5 errors
-   34 warnings
+    0 errors
+   20 warnings

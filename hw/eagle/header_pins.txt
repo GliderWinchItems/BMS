@@ -1,0 +1,129 @@
+header_pin.txt
+
+Header pins assignments for board pair:
+repo GliderWinchItems/BMS
+ directories 
+hw/eagle/bmschgrR
+hw/eagle/bmsbmsR
+
+
+BETWEEN BOARDS: 1x30 top edge (of eagle layout view)
+BMSCHGR: JP1  BOTTOMSIDE  BMSBMS: JP1 TOPSIDE
+Pin #1 located a left side (of eagle layout view)
+01  +15v isolated dc-dc output
+02  +7v  15v switched to 7v
+03  PA12 CAN TX
+04  PA11 CAN RX
+05  PA8  TIM1CH1   FAN FET gate drive 
+06  PC11 I/O       LED1  
+07  PC10 I/O       LED2
+08  PB6  TIM4CH1   MCP1416-IN (HV fet driver input)
+09  PA9  USART1-TX FTDI TX
+10  PA10 USART1-RX FTDI RX
+11  PC0  IN-10     15v divided for ADC
+12  PC1  IN-11     Battery divided for ADC
+13  C18   C'n' = LTC6813-1 cell voltage sense pin
+14  S18   S'n' = LTC6813-1 cell discharge drive pin
+15  C17
+16  S17
+17  C16
+18  S16
+19  C15
+20  S15
+21  C14
+22  S14
+23  C13
+24  S13
+25  C12
+26  S12
+27  C11
+28  S11
+29  C10
+30  S10
+
+BETWEEN BOARDS: 1x30 bottom edge (of eagle layout view)
+BMSCHGR: JP2 BOTTOMSIDE   BMSBMS: JP2 TOPSIDE
+Pin #1 located at left side (of eagle layout view)
+01  C9
+02  S9
+03  C8
+04  S8
+05  C7
+06  S7
+07  C6
+08  S6
+09  C5
+10  S5
+11  C4
+12  S4
+13  C3
+14  S3
+15  C2
+16  S2
+17  C1
+18  S1
+19  GND
+20  G5 'G'n' = LTC6813-1 gpio pin (aux adc)
+21  G4
+22  G3
+23  G2
+24  NC
+25  +5v
+26  NC
+27  PB1 - TIM3CH4  H11L1 opto-isolator 12v fan tach
+28  PA14  JTCK SWDIO
+29  PA13  JTMS SWCLK
+30  NC
+
+LCD (or bi-color LED)
+BMSBMS JP3: UNDERSIDE: 1X4
+1 GND
+2 +5V
+3 PB11  I2C2-SDA
+4 PB10  I2C2-SCL
+
+Thermistors
+BMSCHGR: JP3: 2x3 TOPSIDE
+1 Thermistor #3:bms gpio G4
+2 GND
+3 Thermistor #2:bms gpio G3
+4 GND
+5 Thermistor #1:bms gpio G2
+6 GND
+
+FTDI connector
+BMSCHGR: JP4: 1x6 TOPSIDE
+1 GND
+2 NC
+3 NC
+4 UART-RX
+5 UART-TX
+6 NC
+
+SWD debugger
+BMSCHGR: JP5: 1x4 TOPSIDE
+1 GND
+2 SWCLK
+3 SWDIO
+4 NC (3.3v)
+
+FAN Drive
+BMSCHGR: JP6: 1x2 TOPSIDE
+1 Gnd (black)
+2 +12v (red)
+3 Drive signal (FET Q1 drain, w flyback diode) (blue)
+4 Fan tach signal (yellow)
+
+Hall-effect sensor
+BMSCHGR: JP7: 1x3 TOPSIDE
+1 GND
+2 HE signal:bms gpio G5
+3 +5v
+
+Bi-color LED drive
+BMSCHGR: JP8: 1x3 TOPSIDE
+1 +5v
+2 FET Q2 Drain resistor: LED1 (also on-board LED)
+3 FET Q3 Drain resistor: LED2
+
+
