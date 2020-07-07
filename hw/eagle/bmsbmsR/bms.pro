@@ -2,12 +2,12 @@ EAGLE AutoRouter Statistics:
 
 Job           : /mnt/home/deh/GliderWinchItems/BMS/hw/eagle/bmsbmsR/bms.brd
 
-Start at      :   13:35:59  ( 7/05/2020)
-End at        :   13:36:01  ( 7/05/2020)
+Start at      :   23:25:37  ( 7/06/2020)
+End at        :   23:25:39  ( 7/06/2020)
 Elapsed time  :   00:00:02
 
 Signals       :   103   RoutingGrid: 3.93701 mil  Layers: 2
-Connections   :   238   predefined:  237 ( 98 Vias )
+Connections   :   242   predefined:  242 ( 99 Vias )
 
 Router memory :   4502160
 
@@ -18,7 +18,7 @@ Number of Ripups  :         0         0         0         0         0
 max. Level        :         0         0         0         0         0
 max. Total        :         0         0         0         0         0
 
-Routed            :         1         1         1         1         1
+Routed            :         0         0         0         0         0
 Vias              :         0         0         0         0         0
 Resolution        :   100.0 %   100.0 %   100.0 %   100.0 %   100.0 %
 

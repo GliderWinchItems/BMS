@@ -6,6 +6,33 @@ repo GliderWinchItems/BMS
 hw/eagle/bmschgrR
 hw/eagle/bmsbmsR
 
+Battery cable
+BSMCHGR: 2x10 KEYED TOPSIDE
+ t = top group
+ b = bottom group
+pin func . color
+01  GND    black
+02  C2   t white
+03  C4   t grey
+04  C6   t purple
+05  C8   t blue
+06  C10  t green
+07  C12  t yellow
+08  C14  t orange
+09  C16  t red
+10  C18  t brown
+11  C1   b black
+12  C3   b white
+13  C5   b grey
+14  C7   b purple
+15  C9   b blue
+16  C11  b green
+17  C13  b yellow
+18  C15  b orange
+19  C17  b red
+20  gnd    brown
+
+
 
 BETWEEN BOARDS: 1x30 top edge (of eagle layout view)
 BMSCHGR: JP1  BOTTOMSIDE  BMSBMS: JP1 TOPSIDE

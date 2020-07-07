@@ -1,16 +1,14 @@
 EAGLE Version 4.13 Copyright (c) 1988-2004 CadSoft
 
-Electrical Rule Check for /mnt/home/deh/GliderWinchItems/BMS/hw/eagle/bmschgrR/chgr.sch at  7/05/2020 21:11:33 
+Electrical Rule Check for /mnt/home/deh/GliderWinchItems/BMS/hw/eagle/bmschgrR/chgr.sch at  7/07/2020 00:12:24 
 
 WARNING: Sheet 1/1: POWER Pin 1401|1416 VDD connected to +15V
 WARNING: Sheet 1/1: POWER Pin U$9 GND2 connected to GNDA
 WARNING: Sheet 1/1: POWER Pin U$9 VCC1 connected to +5VB
 WARNING: Sheet 1/1: POWER Pin U$9 GND1 connected to GND
-WARNING: Sheet 1/1: POWER Pin U$3 GND connected to GNDA
-WARNING: Sheet 1/1: POWER Pin U$3 VCC connected to +12V
 WARNING: No Pins on net N$11
 
 Board and schematic are consistent
 
     0 errors
-    7 warnings
+    5 warnings
