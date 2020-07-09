@@ -110,7 +110,7 @@ BMSBMS JP3: UNDERSIDE: 1X4
 4 PB10  I2C2-SCL
 
 Thermistors
-BMSCHGR: JP3: 2x3 TOPSIDE
+BMSCHGR: JP10: 2x3 TOPSIDE
 1 Thermistor #3:bms gpio G4
 2 GND
 3 Thermistor #2:bms gpio G3
