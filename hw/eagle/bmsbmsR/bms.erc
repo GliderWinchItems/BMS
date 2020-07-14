@@ -1,6 +1,6 @@
 EAGLE Version 4.13 Copyright (c) 1988-2004 CadSoft
 
-Electrical Rule Check for /mnt/home/deh/GliderWinchItems/BMS/hw/eagle/bmsbmsR/bms.sch at  7/06/2020 23:25:21 
+Electrical Rule Check for /mnt/home/deh/GliderWinchItems/BMS/hw/eagle/bmsbmsR/bms.sch at  7/13/2020 21:42:53 
 
 WARNING: Sheet 1/1: POWER Pin U1POWER VDD_1 connected to VCC
 WARNING: Sheet 1/1: POWER Pin U1POWER VDD_2 connected to VCC
@@ -8,7 +8,6 @@ WARNING: Sheet 1/1: POWER Pin U1POWER VDD_3 connected to VCC
 WARNING: Sheet 1/1: POWER Pin U1POWER VSS_3 connected to GND
 WARNING: Sheet 1/1: POWER Pin U1POWER VDD_4 connected to VCC
 WARNING: Sheet 1/1: POWER Pin U1POWER VSS_4 connected to GND
-WARNING: Sheet 1/1: POWER Pin U1AN_POWER VBAT connected to VCC
 WARNING: Sheet 1/1: POWER Pin U1AN_POWER VSSA connected to GND
 WARNING: Sheet 1/1: POWER Pin U1AN_POWER VDDA connected to VCC
 WARNING: Sheet 1/1: POWER Pin U$3G$6 V- connected to GND
@@ -22,4 +21,4 @@ WARNING: Sheet 1/1: POWER Pin U$3G$8 DTEN connected to VREG
 Board and schematic are consistent
 
     0 errors
-   16 warnings
+   15 warnings

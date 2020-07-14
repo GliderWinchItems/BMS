@@ -1,13 +1,24 @@
 EAGLE Version 4.13 Copyright (c) 1988-2004 CadSoft
 
-Electrical Rule Check for /mnt/home/deh/GliderWinchItems/BMS/hw/eagle/bmschgrR/chgr.sch at  7/07/2020 21:45:14 
+Electrical Rule Check for /mnt/home/deh/GliderWinchItems/BMS/hw/eagle/bmschgrR/chgr.sch at  7/14/2020 12:08:48 
 
 WARNING: Sheet 1/1: POWER Pin 1401|1416 VDD connected to +15V
 WARNING: Sheet 1/1: POWER Pin U$9 GND2 connected to GNDA
 WARNING: Sheet 1/1: POWER Pin U$9 VCC1 connected to +5VB
 WARNING: Sheet 1/1: POWER Pin U$9 GND1 connected to GND
+WARNING: Sheet 1/1, Net S15: wire overlaps pin at (6.825 7.425)
+WARNING: Sheet 1/1, Net S14: wire overlaps pin at (7.825 7.45)
+WARNING: Sheet 1/1, Net S13: wire overlaps pin at (8.825 7.425)
+WARNING: Sheet 1/1, Net S9: wire overlaps pin at (6.825 6.4)
+WARNING: Sheet 1/1, Net S8: wire overlaps pin at (7.825 6.375)
+WARNING: Sheet 1/1, Net S2: wire overlaps pin at (7.85 5.325)
+WARNING: Sheet 1/1, Net S16: wire overlaps pin at (5.825 7.45)
+WARNING: Sheet 1/1, Net S12: wire overlaps pin at (3.825 6.425)
+WARNING: Sheet 1/1, Net S11: wire overlaps pin at (4.825 6.4)
+WARNING: Sheet 1/1, Net S6: wire overlaps pin at (3.85 5.325)
+WARNING: Sheet 1/1, Net S4: wire overlaps pin at (5.85 5.325)
 
 Board and schematic are consistent
 
     0 errors
-    4 warnings
+   15 warnings
