@@ -44,7 +44,7 @@ Pin #1 located a left side (of eagle layout view)
 05  PA8  TIM1CH1   FAN FET gate drive 
 06  PC11 I/O       LED1  
 07  PC10 I/O       LED2
-08  PB6  TIM4CH1   MCP1416-IN (HV fet driver input)
+08  PB8  TIM4CH1   MCP1416-IN (HV fet driver input)
 09  PA9  USART1-TX FTDI TX
 10  PA10 USART1-RX FTDI RX
 11  PC0  IN-10     15v divided for ADC
@@ -102,7 +102,7 @@ Pin #1 located at left side (of eagle layout view)
 29  PA13  JTMS SWCLK
 30  NC
 
-LCD (or bi-color LED)
+I2C bus (e.g. LCD or bi-color LED)
 BMSBMS JP3: UNDERSIDE: 1X4
 1 GND
 2 +5V
@@ -153,4 +153,50 @@ BMSCHGR: JP8: 1x3 TOPSIDE
 2 FET Q2 Drain resistor: LED1 (also on-board LED)
 3 FET Q3 Drain resistor: LED2
 
+External subboard possibility
+BMSBMS: JP10: 1x4 BOTTOMSIDE
+1 GND
+2 PB2 PB0
+3 PC4 (vis resistor) (ADC12-IN14)
+4 5V
 
+Pushbutton wake-up (closure pulls up)
+BMSBMS: JP11
+1 10K to gnd
+2 VCC
+
+External battery dump provision
+BMSBMS: JP12
+1 PA3-1 ohm to gnd, and FET drain
+2 FET drain, or resistor
+
+
+
+
+THRU-HOLE SOLDER PADs (0.028" hole)
+BMSBMS
+U$1  LTC6813 GPIO6 
+U$8  LTC6813 GPIO7
+U$9  LTC6813 GPIO8
+U$10 LTC6813 GPIO9
+
+U$13 BATT-SELECT: P-FET source, select Battery tap
+U$14 CL4: Battery tap - four cells
+U$15 CL3: Battery tap - three cells
+
+U$19 PB12 SPI2-NSS
+U$20 PB13 SPI2-SCK
+U$21 PB14 SPI2-MISO
+U$22 PB15 SPI2-MOSI
+
+U$23 PB7  I2C1 SDA:TIM4CH2
+
+U$17 PB6 CAN2-TX:TIM4CH1
+U$18 PB5 CAN2-RX:TIM3CH2
+
+U$27 PC8  SDIO-D0:TIM3CH3
+U$24 PC9  SDIO-D1:TIM3CH4:TIM8CH4
+BOTTOM HEADER 7 PC10 LED2: SDIO-D2:USART3-TX
+BOTTOM HEADER 6 PC11 LED1: SDIO-D3:USART3-RX:UART4-TX
+U$25 PC12 SDIO-CK: UART5-TX
+U$26 PD2  SDIO-CMD:UART5-RX
