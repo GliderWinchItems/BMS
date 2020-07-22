@@ -90,17 +90,17 @@ Pin #1 located at left side (of eagle layout view)
 17  C1
 18  S1
 19  GND
-20  G5 'G'n' = LTC6813-1 gpio pin (aux adc)
-21  G4
-22  G3
-23  G2
-24  NC
-25  +5v
-26  NC
+20  G5  Hall-effect signal ['G'n' = LTC6813-1 gpio pin (aux adc)]
+21  G4  spare
+22  G3  spare
+23  G2  spare
+24  VREG - 5V LTC6813 regulator output
+25  +5v  - 5V LM78L05 bmsbms board output
+26  MASTTER-RESET-PROC - Isolated CAN cable reset
 27  PB1 - TIM3CH4  H11L1 opto-isolator 12v fan tach
 28  PA14  JTCK SWDIO
 29  PA13  JTMS SWCLK
-30  NC
+30  GND
 
 I2C bus (e.g. LCD or bi-color LED)
 BMSBMS JP3: UNDERSIDE: 1X4
@@ -166,12 +166,11 @@ BMSBMS: JP11
 2 VCC
 
 External battery dump provision
-BMSBMS: JP12
-1 PA3-1 ohm to gnd, and FET drain
-2 FET drain, or resistor
-
-
-
+BMSBMS: JP4
+1 gnd
+2 FET drain, ...
+3 FET source, ...
+4 +15V
 
 THRU-HOLE SOLDER PADs (0.028" hole)
 BMSBMS
