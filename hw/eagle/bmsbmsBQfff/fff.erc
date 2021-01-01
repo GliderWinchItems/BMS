@@ -1,0 +1,53 @@
+EAGLE Version 4.13 Copyright (c) 1988-2004 CadSoft
+
+Electrical Rule Check for /mnt/home/deh/GliderWinchItems/BMSry/hw/eagle/bms1brd-EC2/bmsEC2.sch at 12/21/2020 13:41:34 
+
+WARNING: Sheet 1/1: unconnected Pin: RYC12G$1 -
+WARNING: Sheet 1/1: POWER Pin IC1P VCC connected to +5V
+WARNING: Sheet 1/1: POWER Pin IC4P VCC connected to +5V
+WARNING: Sheet 1/1: POWER Pin IC5P VCC connected to +5V
+WARNING: Sheet 1/1: POWER Pin IC7P VCC connected to +5V
+WARNING: Sheet 1/1: POWER Pin IC9P VCC connected to +5V
+WARNING: Sheet 1/1: POWER Pin IC10P VCC connected to +5V
+WARNING: Sheet 1/1: POWER Pin U$28G$2 VCC+ connected to +5V
+WARNING: Sheet 1/1: POWER Pin U$28G$2 VCC- connected to AGND
+WARNING: Sheet 1/1: POWER Pin IC103 VSS connected to GND
+WARNING: Sheet 1/1: POWER Pin U1POWER VDD_1 connected to VCC
+WARNING: Sheet 1/1: POWER Pin U1POWER VDD_2 connected to VCC
+WARNING: Sheet 1/1: POWER Pin U1POWER VDD_3 connected to VCC
+WARNING: Sheet 1/1: POWER Pin U1POWER VSS_1 connected to VSS_1-VCAP_1
+WARNING: Sheet 1/1: POWER Pin U1POWER VSS_2 connected to VSS_3
+WARNING: Sheet 1/1: POWER Pin U1POWER VSS_3 connected to GND
+WARNING: Sheet 1/1: POWER Pin U1POWER VDD_4 connected to VCC
+WARNING: Sheet 1/1: POWER Pin U1POWER VSS_4 connected to GND
+WARNING: Sheet 1/1: POWER Pin U1AN_POWER VBAT connected to VCC
+WARNING: Sheet 1/1: POWER Pin U1AN_POWER VSSA connected to GND
+WARNING: Sheet 1/1: POWER Pin U1AN_POWER VDDA connected to VCC
+WARNING: No Pins on net C0
+WARNING: No Pins on net C20
+ERROR: Only INPUT Pins on net CANRX
+WARNING: Only 1 Pin on net CANRX
+WARNING: Only 1 Pin on net CANTX
+ERROR: Only INPUT Pins on net MOSI-FROM-PROC
+WARNING: Only 1 Pin on net MOSI-FROM-PROC
+WARNING: No Pins on net N$15
+WARNING: No Pins on net N$37
+WARNING: No Pins on net N$76
+ERROR: Only INPUT Pins on net N$104
+WARNING: Only 1 Pin on net N$104
+ERROR: Only INPUT Pins on net NSS-RCLK
+WARNING: Only 1 Pin on net PA9_USART1_TX
+WARNING: Only 1 Pin on net PA10_USART1_RX
+WARNING: Only 1 Pin on net PB11-I2C2-SDA|VCAP1
+ERROR: Only INPUT Pins on net SCK
+WARNING: Sheet 1/1, Net NSS-RCLK: missing Junction at (-1.9 -0.8)
+WARNING: Sheet 1/1: Nets +5V and SCK too close at (2.45 7.25)
+WARNING: Sheet 1/1: Nets +5V and MOSI-FROM-PROC too close at (2.25 7.25)
+WARNING: Sheet 1/1, Net +5V: wire overlaps pin at (2.45 7.25)
+WARNING: Sheet 1/1, Net +5V: wire overlaps pin at (2.25 7.25)
+WARNING: Sheet 1/1: pins overlap at (1.5 9.925)
+
+Board and schematic are consistent
+
+    5 errors
+   39 warnings
