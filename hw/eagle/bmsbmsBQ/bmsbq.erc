@@ -1,13 +1,38 @@
 EAGLE Version 4.13 Copyright (c) 1988-2004 CadSoft
 
-Electrical Rule Check for /mnt/home/deh/GliderWinchItems/BMS/hw/eagle/bmschgrR/chgr.sch at  7/19/2020 15:13:20 
+Electrical Rule Check for /mnt/home/deh/GliderWinchItems/BMS/hw/eagle/bmsbmsBQ/bmsbq.sch at  1/04/2021 23:32:32 
 
+WARNING: Sheet 1/1: unconnected Pin: R3 2
+WARNING: Sheet 1/1: SUPPLY Pin VI overwritten with +15V
+WARNING: Sheet 1/1: SUPPLY Pin VO overwritten with DC-DC-3.3V
 WARNING: Sheet 1/1: POWER Pin 1401|1416 VDD connected to +15V
 WARNING: Sheet 1/1: POWER Pin U$9 GND2 connected to GNDA
-WARNING: Sheet 1/1: POWER Pin U$9 VCC1 connected to +5VB
+WARNING: Sheet 1/1: POWER Pin U$9 VCC1 connected to +5V/1
 WARNING: Sheet 1/1: POWER Pin U$9 GND1 connected to GND
+WARNING: Sheet 1/1: POWER Pin 1401|1 VDD connected to +12V
+WARNING: Sheet 1/1: POWER Pin 1401|1 GND connected to GNDA
+WARNING: Sheet 1/1: POWER Pin U1POWER VDD_1 connected to VCC
+WARNING: Sheet 1/1: POWER Pin U1POWER VDD_2 connected to VCC
+WARNING: Sheet 1/1: POWER Pin U1POWER VDD_3 connected to VCC
+WARNING: Sheet 1/1: POWER Pin U1POWER VSS_1 connected to VSS_1-VCAP_1
+WARNING: Sheet 1/1: POWER Pin U1POWER VSS_2 connected to VSS_3
+WARNING: Sheet 1/1: POWER Pin U1POWER VSS_3 connected to GND
+WARNING: Sheet 1/1: POWER Pin U1POWER VDD_4 connected to VCC
+WARNING: Sheet 1/1: POWER Pin U1POWER VSS_4 connected to GND
+WARNING: Sheet 1/1: POWER Pin U1AN_POWER VSSA connected to GND
+WARNING: Sheet 1/1: POWER Pin U1AN_POWER VDDA connected to VDDA1
+WARNING: Sheet 1/1: POWER Pin U$28G$2 VCC+ connected to VCC
+WARNING: Sheet 1/1: POWER Pin U$28G$2 VCC- connected to GND
+WARNING: Only 1 Pin on net C17
+WARNING: Only 1 Pin on net C18
+WARNING: No Pins on net FLYCAP-OPAMP-OUT
+WARNING: Only 1 Pin on net TS3
+WARNING: Sheet 1/1, Net +5V/1: missing Junction at (-0.6 3.725)
+WARNING: Sheet 1/1, Net +5V/1: missing Junction at (1.975 1.95)
+WARNING: Sheet 1/1: Nets C13 and C0 too close at (15.475 4.125)
+WARNING: Sheet 1/1, Net NRST: wire overlaps pin at (13.325 0.7)
 
 Board and schematic are consistent
 
     0 errors
-    4 warnings
+   29 warnings
