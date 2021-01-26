@@ -1,15 +1,8 @@
 EAGLE Version 4.13 Copyright (c) 1988-2004 CadSoft
 
-Electrical Rule Check for /mnt/home/deh/GliderWinchItems/BMS/hw/eagle/bmsbmsBQ/bmsbq.sch at  1/11/2021 21:36:08 
+Electrical Rule Check for /mnt/home/deh/GliderWinchItems/BMS/hw/eagle/bmsbmsBQ/bmsbq.sch at  1/20/2021 21:24:22 
 
-WARNING: Sheet 1/1: SUPPLY Pin VI overwritten with VI-ORED
-WARNING: Sheet 1/1: SUPPLY Pin VO overwritten with VCC
 WARNING: Sheet 1/1: POWER Pin 1401|1416 VDD connected to +15V
-WARNING: Sheet 1/1: POWER Pin U$9 GND2 connected to GNDA
-WARNING: Sheet 1/1: POWER Pin U$9 VCC1 connected to +5V/1
-WARNING: Sheet 1/1: POWER Pin U$9 GND1 connected to GND
-WARNING: Sheet 1/1: POWER Pin 1401|1 VDD connected to +12V
-WARNING: Sheet 1/1: POWER Pin 1401|1 GND connected to GNDA
 WARNING: Sheet 1/1: POWER Pin U1POWER VDD_1 connected to VCC
 WARNING: Sheet 1/1: POWER Pin U1POWER VDD_2 connected to VCC
 WARNING: Sheet 1/1: POWER Pin U1POWER VDD_3 connected to VCC
@@ -24,10 +17,15 @@ WARNING: Sheet 1/1: POWER Pin U1AN_POWER VDDA connected to VDDA1
 WARNING: Sheet 1/1: POWER Pin U$28G$2 VCC+ connected to VCC
 WARNING: Sheet 1/1: POWER Pin U$28G$2 VCC- connected to GND
 WARNING: Sheet 1/1: POWER Pin IC3P VCC connected to +5V/1
+WARNING: Sheet 1/1: POWER Pin U$9 GND2 connected to GNDA
+WARNING: Sheet 1/1: POWER Pin U$9 VCC1 connected to +5V/1
+WARNING: Sheet 1/1: POWER Pin U$9 GND1 connected to GND
+WARNING: Sheet 1/1: POWER Pin U$14G$2 GND connected to GNDA
+WARNING: Sheet 1/1: POWER Pin U$14G$2 VCC connected to +5V/2
 WARNING: Only 1 Pin on net C18
 WARNING: Only 1 Pin on net TS3
 
 Board and schematic are consistent
 
     0 errors
-   24 warnings
+   22 warnings
