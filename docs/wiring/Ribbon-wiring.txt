@@ -1,5 +1,5 @@
 Ribbon-wiring.txt
-01/29/2021
+01/31/2021
 
 NOTE: This revises the battery module
 ribbon cable wiring and pin assignments
@@ -16,7 +16,7 @@ col 3: bms pin/cell number
 col 4: additional description
 
 ---------TOP SPLIT-------------
- 1 BLK - VSS (PACK MINUS)
+ 1 BLK - VSS (BATTERY MODULE MINUS)
  2 WHT - SRN (CURRENT SENSE NEG)
  3 GRY - SRP (CURRENT SENSE POS)
  4 PUR - C0 (CELL #1 MINUS)
@@ -27,7 +27,7 @@ col 4: additional description
  9 RED - 10
 10 BRN - 12
 11 BLK - 14
-12 WHT - 16 (PACK PLUS)
+12 WHT - 16 (BATTERY MODULE PLUS)
 ----------BOTTOM SPLIT ---------
 13 GRY - C1
 14 PUR - C3
