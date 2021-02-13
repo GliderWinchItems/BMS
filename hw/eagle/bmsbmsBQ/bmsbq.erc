@@ -1,24 +1,24 @@
 EAGLE Version 4.13 Copyright (c) 1988-2004 CadSoft
 
-Electrical Rule Check for /mnt/home/deh/GliderWinchItems/BMS/hw/eagle/bmsbmsBQ/bmsbq.sch at  2/10/2021 21:36:39 
+Electrical Rule Check for /mnt/home/deh/GliderWinchItems/BMS/hw/eagle/bmsbmsBQ/bmsbq.sch at  2/13/2021 13:03:48 
 
-WARNING: Sheet 1/1: POWER Pin IC6 VDD connected to +15V
-WARNING: Sheet 1/1: POWER Pin U1POWER VDD_1 connected to VCC
-WARNING: Sheet 1/1: POWER Pin U1POWER VDD_2 connected to VCC
-WARNING: Sheet 1/1: POWER Pin U1POWER VDD_3 connected to VCC
-WARNING: Sheet 1/1: POWER Pin U1POWER VSS_1 connected to VSS_1-VCAP_1
-WARNING: Sheet 1/1: POWER Pin U1POWER VSS_2 connected to VSS_3
-WARNING: Sheet 1/1: POWER Pin U1POWER VSS_3 connected to GND
-WARNING: Sheet 1/1: POWER Pin U1POWER VDD_4 connected to VCC
-WARNING: Sheet 1/1: POWER Pin U1POWER VSS_4 connected to GND
-WARNING: Sheet 1/1: POWER Pin U1AN_POWER VBAT connected to V+
-WARNING: Sheet 1/1: POWER Pin U1AN_POWER VSSA connected to GND
-WARNING: Sheet 1/1: POWER Pin U1AN_POWER VDDA connected to VDDA1
-WARNING: Sheet 1/1: POWER Pin IC5G$2 VCC+ connected to VCC
-WARNING: Sheet 1/1: POWER Pin IC5G$2 VCC- connected to GND
-WARNING: Sheet 1/1: POWER Pin IC7P VCC connected to +5V/1
-WARNING: Sheet 1/1: POWER Pin IC4G$2 GND connected to GNDA
-WARNING: Sheet 1/1: POWER Pin IC4G$2 VCC connected to +5V/2
+WARNING: Sheet 1/1: POWER Pin IC102 VDD connected to +15V
+WARNING: Sheet 1/1: POWER Pin U2POWER VDD_1 connected to VCC
+WARNING: Sheet 1/1: POWER Pin U2POWER VDD_2 connected to VCC
+WARNING: Sheet 1/1: POWER Pin U2POWER VDD_3 connected to VCC
+WARNING: Sheet 1/1: POWER Pin U2POWER VSS_1 connected to VSS_1-VCAP_1
+WARNING: Sheet 1/1: POWER Pin U2POWER VSS_2 connected to VSS_3
+WARNING: Sheet 1/1: POWER Pin U2POWER VSS_3 connected to GND
+WARNING: Sheet 1/1: POWER Pin U2POWER VDD_4 connected to VCC
+WARNING: Sheet 1/1: POWER Pin U2POWER VSS_4 connected to GND
+WARNING: Sheet 1/1: POWER Pin U2AN_POWER VBAT connected to V+
+WARNING: Sheet 1/1: POWER Pin U2AN_POWER VSSA connected to GND
+WARNING: Sheet 1/1: POWER Pin U2AN_POWER VDDA connected to VDDA1
+WARNING: Sheet 1/1: POWER Pin IC101G$2 VCC+ connected to VCC
+WARNING: Sheet 1/1: POWER Pin IC101G$2 VCC- connected to GND
+WARNING: Sheet 1/1: POWER Pin IC1P VCC connected to +5V/1
+WARNING: Sheet 1/1: POWER Pin IC100G$2 GND connected to GNDA
+WARNING: Sheet 1/1: POWER Pin IC100G$2 VCC connected to +5V/2
 WARNING: Sheet 1/1: POWER Pin IC2A GND21 connected to GNDA
 WARNING: Sheet 1/1: POWER Pin IC2A VCC1 connected to +5V/1
 WARNING: Sheet 1/1: POWER Pin IC2A GND12 connected to GND
