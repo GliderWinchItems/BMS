@@ -1,0 +1,39 @@
+Ribbon-wiring.txt
+02/01/2021
+
+NOTE: This revises the battery module
+ribbon cable wiring and pin assignments
+for the shift from 18S to 16S when changing
+from the LTC6813-1 (not available) to the
+BQ76952.
+
+
+
+
+col 1: 2x10 header pin number
+col 2: 20 pin ribbon color
+col 3: module cell number
+col 4: additional description
+
+---------TOP SPLIT-------------
+ 1 BLK - PGND/SRN (BATTERY MODULE MINUS)
+ 2 WHT - SRP (CURRENT SENSE POS)
+ 3 GRY - VSS (CURRENT SENSE NEG)P
+ 4 PUR - C0 (CELL #1 MINUS)
+ 5 BLU - C2 (CELL #2 PLUS)
+ 6 GRN - C4
+ 7 YEL - C6
+ 8 ORG - C8
+ 9 RED - C10
+10 BRN - C12
+11 BLK - C14
+12 WHT - C16 (CELL #16 PLUS) (BATTERY MODULE PLUS)
+----------BOTTOM SPLIT ---------
+13 GRY - C1 (CELL #1 PLUS)
+14 PUR - C3
+15 BLU - C5
+16 GRN - C7
+17 YEL - C9
+18 ORG - C11
+19 RED - C13
+20 BRN - C15
