@@ -1,7 +1,0 @@
-http://vi.raptor.ebaydesc.com/ws/eBayISAPI.dll?ViewItemDescV4&item=263060255903&category=182015&pm=1&ds=0&t=1577271801000&ver=0
-
-https://www.amazon.com/Pc-Accessories-Connectors-Sockets-10P-20cm-2PK/dp/B01DP13EDA/ref=pd_lpo_328_t_1/147-2388776-7886062?_encoding=UTF8&pd_rd_i=B01DP13EDA&pd_rd_r=767f0122-64bd-481a-bb29-cca256964020&pd_rd_w=Qtnzh&pd_rd_wg=7pVYc&pf_rd_p=7b36d496-f366-4631-94d3-61b87b52511b&pf_rd_r=0EZ98WX62D89JFV0R281&psc=1&refRID=0EZ98WX62D89JFV0R281
-
-http://www.interfacebus.com/Can_Bus_Connector_Pinout.html
-
-
