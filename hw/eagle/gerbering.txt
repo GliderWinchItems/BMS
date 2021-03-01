@@ -1,0 +1,98 @@
+gerbering.txt
+02/21/2021
+Notes on generating Gerber files
+
+www guide for generating Gerber files from eagle--
+https://www.pcbway.com/helpcenter/technical_support/Generate_Gerber_files_in_Eagle.html
+
+Gerber online viewer--
+https://www.gerber-viewer.com/
+
+
+1. The output file appears to default into the directory of the original .brd file and not the .brd
+filel current in.
+
+2. Script for cleaning old gerber files
+
+
+deh@ASUS:~/GliderWinchItems/BMS/hw/eagle/bmsbmsBQ$ cat clean-gerber
+rm *.gpi
+rm *.sts
+rm *.stc
+rm *.plc
+rm *.sol
+rm *.cmp
+rm *.pls
+rm *.drd
+rm *.drl
+
+3. Script for zipping gerber files
+
+deh@ASUS:~/GliderWinchItems/BMS/hw/eagle/bmsbmsBQ$ cat zip-gerber
+zip $1.zip $1.sts $1.stc $1.plc $1.sol $1.cmp $1.pls $1.drd $1.drl
+
+.drl file likely not needed.
+
+4. Don't forget bottom layer silk screen
+
+- Click: Add
+- Click: Layers 20, 22, 26
+- Set extension on output file to .pls
+
+BUT--you might not want layers 22 and 21 on as they will have the silk screen
+show the outlines of the parts and with the density of smd parts that
+clutters up the silk screen.
+
+5. Steps to generate the gerber files summarized--
+
+- optional: .drl
+   File-
+      Run ULP
+          Select drillcfg.ulp
+             Select "mm" if layout is in mm.
+
+- Required gerbers:
+
+  .drd
+  File
+    CAM Processor
+      File
+         Open
+           Job
+             Select excellon.cam
+               Open
+                 Process Job
+
+
+  .cmp, .sol, .stc, stl, plc, pls, 
+  File
+    CAM Processor
+      File
+         Open
+           Job
+             Select gerber274x.cam
+               Open
+  Make modifications--
+
+  Add bottom silk screen file
+   Add
+     Change name to silk screen solder
+     Change file extension to .pls
+   Layers 
+     20 Dimension
+     26 bNames
+
+   Edit top  silk screen file
+   Layers
+     20 Dimension
+     25 tNames
+
+   Process Job
+
+6. Zip files for sending to pcb mfgr
+
+   ./zip-gerber <name>
+
+
+     
+
