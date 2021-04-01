@@ -1,6 +1,6 @@
 EAGLE Version 4.13 Copyright (c) 1988-2004 CadSoft
 
-Electrical Rule Check for /mnt/home/deh/GliderWinchItems/BMS/hw/eagle/bmsbmsBQ/bmsbq.sch at  2/18/2021 16:51:48 
+Electrical Rule Check for /mnt/home/deh/GliderWinchItems/BMS/hw/eagle/bmsbmsBQ/bmsbq.sch at  3/31/2021 20:45:19 
 
 WARNING: Sheet 1/1: POWER Pin IC102 VDD connected to +15V
 WARNING: Sheet 1/1: POWER Pin U2POWER VDD_1 connected to VCC
@@ -25,9 +25,8 @@ WARNING: Sheet 1/1: POWER Pin IC2A GND12 connected to GND
 WARNING: Sheet 1/1: POWER Pin IC2B GND2 connected to GNDA
 WARNING: Sheet 1/1: POWER Pin IC2B VCC1 connected to VCC
 WARNING: Sheet 1/1: POWER Pin IC2B GND1 connected to GND
-WARNING: Sheet 1/1, Net GND: wire overlaps pin at (19.15 7.25)
 
 Board and schematic are consistent
 
     0 errors
-   24 warnings
+   23 warnings
