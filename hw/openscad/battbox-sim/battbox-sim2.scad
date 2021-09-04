@@ -81,6 +81,8 @@ module batrack(hole_dia,h)
         }
         union()
         {
+if (hole_dia > 0)
+{    
             del = bat_dia + bat_spc;
             a = batnum_x*.5;
             b = batnum_y*.5;
@@ -93,6 +95,7 @@ module batrack(hole_dia,h)
                      cylinder(d=hole_dia+1,h=100,center=true);
                 }
             }
+}
             /*
             c = 2;//batnum_x*.5;
             d = 2;//batnum_y*.5;
@@ -504,6 +507,76 @@ module longenddove()
     }
 }
 
+module outsideframe()
+{
+    l = (batnum_x + 1+5)*bat_spc + (batnum_x * bat_dia);
+    w = (batnum_y + 1+5)*bat_spc + (batnum_y * bat_dia);
+    h = 6;
+    difference()
+    {
+        union()
+        {
+            rounded_rectangle(l,w,6,rad);
+            translate([50,-42/2,0]) cube([8,42,36],center=false);
+            
+            translate([10,-38,0]) cube([20,6,60],center=false);
+        }
+        union()
+        {
+            translate([0,0,-0.01]) batrack(0,25);
+            translate([50,-26/2,35]) cube([8,26,35-1],center=false);
+            
+            translate([50+4,-17,25])cylinder(d=2.9,h=15,center=false);
+            translate([50+4, 17,25])cylinder(d=2.9,h=15,center=false);
+            
+            translate([37,-42/2,0]) cube([8,42,36],center=false);
+            
+            translate([16.5,-39,58]) cube([6,78,60],center=false);
+
+            translate([26,-35,50])cylinder(d=2.9,h=15,center=false);
+            translate([13,-35,50])cylinder(d=2.9,h=15,center=false);
+            
+            kk = 46; jj = 26.5; 
+            translate([-kk,-jj,-0.01])cylinder(d=3.5,h=15,center=false);
+            translate([ kk,-jj,-0.01])cylinder(d=3.5,h=15,center=false);
+            translate([-kk, jj,-0.01])cylinder(d=3.5,h=15,center=false);
+            translate([ kk, jj,-0.01])cylinder(d=3.5,h=15,center=false);
+            
+        }
+    }
+}
+
+module ribbonclamp()
+{
+    difference()
+    {
+        union()
+        {
+            translate([80,-42/2,0]) cube([8,42,4],center=false);
+        }
+        union()
+        {
+            translate([80+4,-17,-0.01])cylinder(d=3.5,h=15,center=false);
+            translate([80+4, 17,-0.01])cylinder(d=3.5,h=15,center=false);
+        }
+    }
+}
+
+module powerwireclamp()
+{
+    difference()
+    {
+        union()
+        {
+            translate([10,-50,0]) cube([20,6,5],center=false);
+        }
+        union()
+        {
+           translate([26,-47,0])cylinder(d=3.5,h=15,center=false);
+           translate([13,-47,0])cylinder(d=3.5,h=15,center=false);            
+        }
+    }
+}
 module baseassembly()
 {
 translate([0,0,0]) longenddove();
@@ -512,7 +585,14 @@ translate([0,0,0]) bat_rack_bottom(); // Bottom
 }
 //baseassembly();
 
+
+outsideframe();
+
+ribbonclamp();
+
+powerwireclamp();
+
 //translate([0,0,cp_ldgz2]) bat_rack_star(); // Mid-level
 
-translate([0,0,cp_ldgz3]) bat_rack_top(); // Top
+//translate([0,0,cp_ldgz3]) bat_rack_top(); // Top
 
