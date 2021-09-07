@@ -19,12 +19,15 @@ Add smd pads
 Convert current holes to a 2 pin header
 
 4. Add 18M pads across 32 KHz xtal
+  
+   No. See test problem below. 18M hung 'init'.
 
 5. C112 (1u, 100v smd) too close to FET
 -move away from FET case
 
-6. D6 Zener leads hole should be larger
-- barely force them thru.
+6. D6 Zener leads hole should be larger for 5W size
+- 1N5375BG: barely force them thru.
+- OK for 83v DO-3 size
 
 7. R5 0.1 current sense: change to 2 pin header
 - header with jumper
@@ -94,5 +97,73 @@ Across 10 ohm - 341.3mv
 Voltage - 13.23
 current = 34.13 ma
 power   = 451 mw
+
+18. LED resistor size change
+         P/N           Digikey
+RED - 150060RS75000 - 732-4978-1-ND 0603
+GRN - 150060GS75000 - 732-4971-1-ND -6-3
+
+Red led less output than Grn
+GRN - R15 - 6.8K - 8.2K
+RED - R16 - 2.2K - 3.3K
+
+
+=========== TEST & CHECKOUT ============
+09/05/2021
+
+1. LEDs
+
+- resistor change to equalize light output
+- RED led replaced. Low output. May have been
+  damaged probing and applying 3.3v to it.
+
+2. Clocking
+
+- 8 MHz xtal works
+
+- 32 KHz was hanging 'init'
+  Removed 18M feedback resistor and it
+  started to work.
+
+  Switch 'MX back to LSI jic xtal doesn't
+  start, since 32 KHz timer not currently
+  needed.
+
+3. morse.c
+
+- Revise to allow selecting RED, GRN, BOTH
+
+- 'morse_trap' does BOTH
+
+- Speed based on 16MHz clock
+
+4. Tactile Reset PB works
+
+5. FET Dump, Dump2, & Heater: on/off
+
+- fetonoff.c: deals with i/o pin set/reset
+
+- On/Off program control works as far as
+  applying gate voltage to the fets.
+
+- DUMP & HEATER FETs driven from Gate IC1:
+  5V/3 comes from BQ Reguator so if it is
+  missing the FET drive is about 2.5v which
+  comes via the processor I/O pins.
+
+  Without the BQ Regulator on this is not
+  enough drive. However, if there is battery
+  voltage the BQ will be able to run the 5V/3
+  regulator output.
+
+- Increase R102 for DUMP FET100 
+  If FET doesn't turn full-on the 1 ohm allows
+  too much current and the FET quickly overheats.
+  Make it 10K; the same as FET101 (DUMP2)
+
+  
+
+
+
 
 
