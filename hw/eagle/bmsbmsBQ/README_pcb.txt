@@ -161,6 +161,28 @@ RED - R16 - 2.2K - 3.3K
   too much current and the FET quickly overheats.
   Make it 10K; the same as FET101 (DUMP2)
 
+6. BAT-CP1
+
+This needs to be powered from C16 (though maybe
+it could be a lower cell).
+
+================= BQ powering
+
+The external NPN BJT used for the REGIN preregulator can be configured with its collector routed either to
+the cell battery stack or the middle of the protection FETs.
+A diode is recommended in the drain circuit of the external NPN BJT, which avoids reverse current flow from
+the BREG pin through the BJT base to collector in the event of a pack short circuit. This diode can be a
+Schottky diode if low voltage pack operation is needed, or a conventional diode can be used otherwise.
+A series diode is recommended at the BAT pin, together with a capacitor from the pin to VSS. These
+components allow the device to continue operating for a short time when a pack short circuit occurs, which
+may cause the PACK+ and top-of-stack voltages to drop to approximately 0 V. In this case, the diode
+prevents the BAT pin from being pulled low with the stack, and the device will continue to operate, drawing
+current from the capacitor. Generally operation is only required for a short time, until the device detects the
+short circuit event and disables the DSG FET. A Schottky diode can be used if low voltage pack operation is
+needed, or a conventional diode can be used otherwise.
+The diode in the BAT connection and the diode in the BJT collector should not be shared, since then the
+REG0 circuit might discharge the capacitor on BAT too quickly during a short circuit event.
+
   
 
 
