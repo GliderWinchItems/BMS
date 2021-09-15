@@ -1,0 +1,19 @@
+Hi Raimo,
+
+Something doesn't look right in this sequence. For example, if you want to set REG1 to 3.3V, you should be writing this:
+
+10 3E 90 00  (Enter CONFIG_UPDATE mode)
+
+10 3E 37 92 01   (Write REG0 Config address 0x9237 with data of 0x01)
+
+10 60 35 05   (checksum and length)
+
+10 3E 36 92 0D  (Write REG1 Config address 0x9236 with data of 0xD)
+
+10 60 2A 05   (checksum and length)37 95
+
+10 3E 92 00 (Exit CONFIG_UPDATE mode)
+
+Best regards,
+
+Matt
