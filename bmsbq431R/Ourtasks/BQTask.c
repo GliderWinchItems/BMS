@@ -18,15 +18,21 @@
 extern I2C_HandleTypeDef hi2c1;
 
 static uint8_t bqconfig(void);
-static uint8_t subcmdcom(uint8_t* pr, uint8_t nr, uint16_t cmd, uint16_t data, uint8_t nd);
+static uint8_t subcmdcomW(uint16_t cmd, uint16_t data, uint8_t nd, uint8_t config);
+static uint8_t subcmdcomR(uint8_t* pr, uint8_t nr, uint16_t cmd);
 static uint8_t cmdcom(uint8_t* pr, uint8_t nr, uint8_t cmd);
 static void morse_sos(void);
 static uint8_t readblock_cmd(uint8_t* pr, uint8_t nr, uint8_t cmd);
 static uint8_t getcellv(void);
 
+
+
+
 uint8_t bqchksum(uint8_t* ptr, uint8_t len);
 
 struct BQFUNCTION bqfunction;
+
+
 
 TaskHandle_t BQTaskHandle = NULL;
 
@@ -64,12 +70,20 @@ union BQFIELD4
  uint8_t cvidx = 0;
  uint32_t cvflag = 0;
 
+/* Readings */ 
 uint16_t device_number_u16;
+uint16_t fw_version_u16[3];
+uint16_t hw_version_u16;
 uint16_t battery_status;
 uint16_t reg0_config_u16;
 uint16_t ddsgp_config_u16;
+uint16_t blk_0x62_u16[14];
 
-I2C_HandleTypeDef hi2c1;
+uint8_t fw_version_6[6];
+uint8_t blk_0x9231_12[12];
+uint8_t blk_0x92fa_11[11];
+
+uint8_t bq_initflag = 0;
 
 /* *************************************************************************
  * static void brake_init(struct BQFUNCTION* p);
@@ -77,10 +91,75 @@ I2C_HandleTypeDef hi2c1;
  * *************************************************************************/
 static void bq_init(void)
 {
-	/* Checks if target device is ready for communication. */
-	/* 3 is number of trials, 1000ms is timeout */
-//	if (HAL_I2C_IsDeviceReady(&hi2c1, 0x11, 3, 1000) != HAL_OK) 
-//		morse_trap(331);
+		uint8_t ret;
+
+	/* Enter configuration mode. */
+		ret = subcmdcomW(SET_CFGUPDATE, 0x0, 0, 0);
+		if (ret != 0) morse_string("HI",GPIO_PIN_1);
+
+			/* Enable REG0. */
+		//       (uint16_t cmd, uint16_t data, uint8_t nd, uint8_t config);
+		ret = subcmdcomW(REG0Config, 0x1, 1, 0);
+		if (ret != 0) morse_string("S",GPIO_PIN_1);
+
+		/* Enable REG12. */
+		//       (uint16_t cmd, uint16_t data, uint8_t nd, uint8_t config);
+		ret = subcmdcomW(REG12Config, 0xF1, 1, 0);
+		if (ret != 0) morse_string("S",GPIO_PIN_1);
+
+		/* Set no communications shutdown duration: minutes. */
+		//       (uint16_t cmd, uint16_t data, uint8_t nd, uint8_t config);
+		ret = subcmdcomW(CommIdleTime, 0x1, 1, 0);
+		if (ret != 0) morse_string("H",GPIO_PIN_1);
+
+				/* Enter configuration mode. */
+		ret = subcmdcomW(EXIT_CFGUPDATE, 0x0, 0, 0);
+		if (ret != 0) morse_string("HI",GPIO_PIN_1);
+
+/* Thermistor mode. */
+				//       (uint16_t cmd, uint16_t data, uint8_t nd, uint8_t config);
+		ret = subcmdcomW(CFETOFFPinConfig,  0x3, 1, 0); // Therm 5
+		if (ret != 0) morse_string("A",GPIO_PIN_1);
+		ret = subcmdcomW(DFETOFFPinConfig,  0x3, 1, 0); // Therm 4
+		if (ret != 0) morse_string("B",GPIO_PIN_1);
+		ret = subcmdcomW(TS1Config,         0x3, 1, 0); // Therm 1
+		if (ret != 0) morse_string("D",GPIO_PIN_1);
+		ret = subcmdcomW(TS3Config,         0x3, 1, 0); // Therm 2
+		if (ret != 0) morse_string("B",GPIO_PIN_1);
+		ret = subcmdcomW(DCHGPinConfig,     0x3, 1, 0); // Therm 3
+		if (ret != 0) morse_string("U",GPIO_PIN_1);
+
+		/* GPIO. */
+// $$$$ 0x09 uses REG18 for active hi! Just for test		
+		ret = subcmdcomW(DDSGPinConfig,    0x09, 1, 1); // REG18 pullup, active hi
+		if (ret != 0) morse_string("U",GPIO_PIN_1);
+
+		/* Alert inputs to L431. Active low; Alert mode. */
+		ret = subcmdcomW(ALERTPinConfig,   0x82, 1, 1); 
+		if (ret != 0) morse_string("N",GPIO_PIN_1);
+
+
+		/* Read battery status byte. */
+		ret = cmdcom((uint8_t *)&battery_status, 2, BatteryStatus);
+		if (ret != 0) morse_string("E",GPIO_PIN_1);
+
+		/* Read device number. */
+		//                       (uint8_t* pr, uint8_t nr, uint16_t cmd)
+		ret = subcmdcomR((uint8_t*)&device_number_u16, 2, DEVICE_NUMBER);
+		if (ret != 0) morse_string("I",GPIO_PIN_1);
+
+		ret = subcmdcomR((uint8_t*)&fw_version_6, 6, FW_VERSION);
+		if (ret != 0) morse_string("I",GPIO_PIN_1);
+		// Convert to Big Endian
+		fw_version_u16[0] = fw_version_6[0] << 8 | fw_version_6[1];
+		fw_version_u16[1] = fw_version_6[2] << 8 | fw_version_6[3];
+		fw_version_u16[2] = fw_version_6[4] << 8 | fw_version_6[5];
+
+
+		ret = subcmdcomR((uint8_t*)&hw_version_u16, 2, HW_VERSION);
+		if (ret != 0) morse_string("I",GPIO_PIN_1);
+
+	bq_initflag = 0; // Reset flag
 	
 	return;
 }
@@ -88,78 +167,69 @@ static void bq_init(void)
  * void StartBQTask(void const * argument);
  *	@brief	: Task startup
  * *************************************************************************/
+
 void StartBQTask(void* argument)
 {
-	osDelay(250); // Wait for BQ to initialize/reset
+uint8_t ddsgalt = 0;
 
-//	bq_init();
+	uint8_t ret;
 
+	/* Wake up BQ if it is SHUTDOWN mode. */
+	HAL_GPIO_WritePin(GPIOD,GPIO_PIN_2,GPIO_PIN_RESET);
+	osDelay(300); // Wait for BQ to initialize/reset
+	HAL_GPIO_WritePin(GPIOD,GPIO_PIN_2,GPIO_PIN_SET);
+	osDelay(300);
+	HAL_GPIO_WritePin(GPIOD,GPIO_PIN_2,GPIO_PIN_RESET);
+
+	bq_init();
+
+	
 //	while (bqconfig() != 0) 
-//	bqconfig();
-//	{
-//		morse_sos();
-//	}
+	ret = bqconfig();
+	if (ret != 0)
+	{
+		morse_sos();
+		osDelay(50);
+	}
+uint8_t ddsgctr = 0;
+
 
 	for (;;)
 	{
 	//	HAL_GPIO_WritePin(GPIOB,GPIO_PIN_1,GPIO_PIN_RESET); // RED LED ON
 	//	osDelay(50);
 	//	HAL_GPIO_WritePin(GPIOB,GPIO_PIN_1,GPIO_PIN_SET); // RED LED OFF
-		osDelay(1000);
+		osDelay(500);
 
-HAL_GPIO_WritePin(GPIOB,GPIO_PIN_5, GPIO_PIN_SET); // RST
-HAL_GPIO_WritePin(GPIOB,GPIO_PIN_12,GPIO_PIN_SET); // PADxx
-HAL_GPIO_WritePin(GPIOB,GPIO_PIN_15,GPIO_PIN_SET); // PAD7
+		if (bq_initflag != 0) bq_init();
 
-HAL_GPIO_WritePin(GPIOC,GPIO_PIN_6,GPIO_PIN_SET);   // Dump2
+		/* Read block with lots of stuff. */
+		ret = subcmdcomR((uint8_t*)&blk_0x9231_12, 12, 0x9231);
+		if (ret != 0) morse_string("T",GPIO_PIN_1);	
 
-HAL_GPIO_WritePin(GPIOC,GPIO_PIN_8,GPIO_PIN_RESET); // Not Dump
-HAL_GPIO_WritePin(GPIOC,GPIO_PIN_10,GPIO_PIN_SET);  // Dump
+		/* Read block with lots of stuff. */
+		ret = subcmdcomR((uint8_t*)&blk_0x92fa_11, 11, 0x92fa);
+		if (ret != 0) morse_string("M",GPIO_PIN_1);	
 
-HAL_GPIO_WritePin(GPIOC,GPIO_PIN_11,GPIO_PIN_SET);   // Heater
-HAL_GPIO_WritePin(GPIOC,GPIO_PIN_12,GPIO_PIN_RESET); // Not heater
+		
+		ret = readblock_cmd((uint8_t*)&blk_0x62_u16[0], 14*2, 0x62);
+		if (ret != 0) morse_string("W",GPIO_PIN_1);		
 
-HAL_GPIO_WritePin(GPIOD,GPIO_PIN_0, GPIO_PIN_SET);
-
-HAL_GPIO_WritePin(GPIOB,GPIO_PIN_6,GPIO_PIN_SET); // PAD7
-HAL_GPIO_WritePin(GPIOB,GPIO_PIN_7,GPIO_PIN_SET); // PAD7
-
-
-
-	osDelay(1000);
-
-HAL_GPIO_TogglePin(GPIOB,GPIO_PIN_5); // RST
-HAL_GPIO_TogglePin(GPIOB,GPIO_PIN_12); // PADxx
-HAL_GPIO_TogglePin(GPIOB,GPIO_PIN_15); // PAD7
-
-HAL_GPIO_TogglePin(GPIOC,GPIO_PIN_6);   // Dump2
-
-HAL_GPIO_TogglePin(GPIOC,GPIO_PIN_8); // Not Dump
-HAL_GPIO_TogglePin(GPIOC,GPIO_PIN_10);  // Dump
-
-HAL_GPIO_TogglePin(GPIOC,GPIO_PIN_11);   // Heater
-HAL_GPIO_TogglePin(GPIOC,GPIO_PIN_12); // Not heater
-
-HAL_GPIO_TogglePin(GPIOD,GPIO_PIN_0);
-
-HAL_GPIO_TogglePin(GPIOB,GPIO_PIN_6); // RST
-HAL_GPIO_TogglePin(GPIOB,GPIO_PIN_7); // RST
-
-
-//		while(cmdcom((uint8_t *)&battery_status, 2, BatteryStatus) != 0)
-//		{
-			morse_sos();
-//			osDelay(10);
-//		}
-
-//		getcellv();
-//		if (bqflag != 0)
-//		{ /* Reconfigure if communication failed. */
-//			while (bqconfig() != 0) 
-//			{
-//				morse_sos();
-//				osDelay(10);
-//		}
+#define AAS1 // Test jic BQ gpio on/off working
+#ifdef AAS1
+ddsgctr += 1;
+if (ddsgctr >= 4)	
+{
+	ddsgctr = 0;
+	if ((ddsgalt & 1) == 0)
+		subcmdcomW(DDSG_HI, 0x0, 0, 0);
+	else
+		subcmdcomW(DDSG_LO, 0x0, 0, 0);
+	ddsgalt ^= 1;
+}
+#endif
+		/* Read cell voltages, plus extras */
+		getcellv();
 	}
 }
 /* *************************************************************************
@@ -198,7 +268,6 @@ static uint8_t getcellv(void)
 
 	/* Read 16: Cell voltages starting with Cell #1 at 0x14. */
 	ret = readblock_cmd((uint8_t*)prcv, 16*2, 0x14);
-
 	if (ret != 0) return (ret + 100);
 
 	/* Read 4:  Stack Pack LD CC2 starting at 0x34. */
@@ -220,72 +289,136 @@ static uint8_t bqconfig(void)
 {
 	uint8_t ret;
 
- 	ret = subcmdcom((uint8_t*)&device_number_u16, 2, DEVICE_NUMBER, 0x0, 0 );
- 	if (ret != 0) return ret;
+ 		/* Read battery status byte. */
+		ret = cmdcom((uint8_t *)&battery_status, 2, BatteryStatus);
+		if (ret != 0) morse_string("E",GPIO_PIN_1);
 
- 	ret = subcmdcom((uint8_t*)&reg0_config_u16, 0, REG0Config, 0x0, 0 );
- 	if (ret != 0) return ret;
+		/* Read device number. */
+		//                       (uint8_t* pr, uint8_t nr, uint16_t cmd)
+		ret = subcmdcomR((uint8_t*)&device_number_u16, 2, DEVICE_NUMBER);
+		if (ret != 0) morse_string("I",GPIO_PIN_1);
 
- 	ret = subcmdcom((uint8_t*)&ddsgp_config_u16, 1, DDSGPinConfig, 0x0, 0 );
- 	if (ret != 0) return ret;
+		/* Enable REG0. */
+		//       (uint16_t cmd, uint16_t data, uint8_t nd, uint8_t config);
+		ret = subcmdcomW(REG0Config, 0x1, 1, 1);
+		if (ret != 0) morse_string("S",GPIO_PIN_1);
+
 	return 0;
 }
 /* *************************************************************************
- * static uint8_t subcmdcom(uint8_t* pr, uint8_t nr, uint16_t cmd, uint16_t data, uint8_t nd);
- * @brief	: Execute a subcommand
- * @param   : pr = pointer to buffer to receive data 
- * @param   : nr = number of receive bytes to be read from BQ
+ * static uint8_t subcmdcomW(uint16_t cmd, uint16_t data, uint8_t nd, uint8_t config);
+ * @brief	: Execute a subcommand that writes and/or requires going into confiure mode.
  * @param   : cmd = subcommand code
- * @param   : data = subcommand data to be sent to BQ
+ * @param   : data = subcommand data to be sent to BQ (two bytes little Endian in uin16_t)
  * @pararm  : nd = number of data bytes (0-2)
+ * @param   : config = 1, enter/exit UpdateConfig mode
  * @return  : 0 = success;  > 0 is failure
  * *************************************************************************/
-static uint8_t subcmdcom(uint8_t* pr, uint8_t nr, uint16_t cmd, uint16_t data, uint8_t nd)
+uint8_t dbA[16];
+static uint8_t subcmdcomW(uint16_t cmd, uint16_t data, uint8_t nd, uint8_t config)
 {
 	uint8_t ret;
 	uint8_t bufchk[4];
 	uint8_t bufx[6];
-//	uint8_t A40 = 0x40; // Beginning of BQ transfer buffer memory address
+	uint8_t bufc[3]; // Configuration
 
 	bufx[0] = 0x3E;     // Subcommand command code
 	bufx[1] = cmd;		// Low ord sub command address
 	bufx[2] = cmd >> 8; // Hi ord  sub command address
 	bufx[3] = data;     // Low ord data
-	bufx[4] = data >> 8; // Hi ord data
+	bufx[4] = data >> 8; // Hi ord data (if used)
+
+	/* Enter Update_Config mode, */
+	if (config == 1)
+	{ // Update requested
+		bufc[0] = 0x3E;
+		bufc[1] = SET_CFGUPDATE;
+		bufc[2] = SET_CFGUPDATE >> 8;
+		ret = HAL_I2C_Master_Transmit(&hi2c1, 0x10, bufc, 3, 5000);
+		if ( ret != HAL_OK ) return 31;
+		osDelay(10);
+	}
 
 	/* Send  command. */
 	ret = HAL_I2C_Master_Transmit(&hi2c1, 0x10, bufx, nd+3, 5000);
-	if ( ret != HAL_OK ) return 1;
+	if ( ret != HAL_OK ) return 32;
+dbA[0]=bufx[0];	
+dbA[1]=bufx[1];	
+dbA[2]=bufx[2];
+dbA[3]=bufx[3];
 
 	if (nd > 0)
 	{ // Here, command has one or two data bytes
 
 		bufchk[0] = 0x60;  // Checksum address
-		bufchk[1] = bqchksum(bufx,nd+3);
-		bufchk[2] = nd+2; // Length for checksum
+		bufchk[1] = bqchksum(&bufx[1],nd+2);
+		bufchk[2] = nd+4; // Length for checksum
+dbA[4]=bufchk[0];	
+dbA[5]=bufchk[1];	
+dbA[6]=bufchk[2];	
 		osDelay(3);
 		ret = HAL_I2C_Master_Transmit(&hi2c1, 0x10, bufchk, 3, 5000);
-		if ( ret != HAL_OK ) return 4;
+		if ( ret != HAL_OK ) return 33;
+		osDelay(300);
 	}
+
+	if (config == 1)
+	{ // Update requested
+		bufc[0] = 0x3E;
+		bufc[1] = EXIT_CFGUPDATE;
+		bufc[2] = EXIT_CFGUPDATE >> 8;
+		ret = HAL_I2C_Master_Transmit(&hi2c1, 0x10, bufc, 3, 5000);
+		if ( ret != HAL_OK ) return 31;
+		osDelay(10);
+	}
+
+	osDelay(3);
  
+    return 0;
+}
+/* *************************************************************************
+ * static uint8_t subcmdcomR(uint8_t* pr, uint8_t nr, uint16_t cmd);
+ * @brief	: Execute a subcommand that reads
+ * @param   : pr = pointer to buffer to receive data 
+ * @param   : nr = number of receive bytes to be read from BQ (0-32)
+ * @param   : cmd = subcommand code
+ * @return  : 0 = success;  > 0 is failure
+ * *************************************************************************/
+static uint8_t subcmdcomR(uint8_t* pr, uint8_t nr, uint16_t cmd)
+{
+	uint8_t ret;
+	uint8_t bufx[6];
+	uint8_t A40 = 0x40; // Beginning of BQ transfer buffer memory address
+
+	bufx[0] = 0x3E;     // Subcommand command code
+	bufx[1] = cmd;		// Low ord sub command address
+	bufx[2] = cmd >> 8; // Hi ord  sub command address
+
+	/* Send  subcommand. */
+	ret = HAL_I2C_Master_Transmit(&hi2c1, 0x10, bufx, 3, 5000);
+	if ( ret != HAL_OK ) return 21;
+	osDelay(3);
+
    	if (nr > 0)
     { // Here, one or more received bytes expected 
    		/* Read results */
-//   		osDelay(100);
- //  		ret = HAL_I2C_Master_Transmit(&hi2c1, 0x10, &A40, 1, 5000);
-		osDelay(50);
+   		osDelay(100);
+  		ret = HAL_I2C_Master_Transmit(&hi2c1, 0x10, &A40, 1, 5000);
+		osDelay(5);
 		ret = HAL_I2C_Master_Receive(&hi2c1, 0x10, pr, nr, 5000);
-   		if ( ret != HAL_OK ) return 3;
+   		if ( ret != HAL_OK ) return 22;
+   		osDelay(3);
     }	
     return 0;
 }
 
+
 /* *************************************************************************
  * static uint8_t cmdcom(uint8_t* pr, uint8_t nr, uint8 cmd);
- * @brief	: Execute a subcommand
+ * @brief	: Execute a one byte command
  * @param   : pr = pointer to buffer to receive data 
  * @param   : nr = number of receive bytes to be read from BQ
- * @param   : cmd = subcommand code
+ * @param   : cmd = one byte command code
  * @return  : 0 = success;  > 0 is failure
  * *************************************************************************/
 static uint8_t cmdcom(uint8_t* pr, uint8_t nr, uint8_t cmd)
@@ -300,7 +433,7 @@ static uint8_t cmdcom(uint8_t* pr, uint8_t nr, uint8_t cmd)
    	if (nr > 0)
     { // Here, one or more bytes expected 
    		/* Read results */
-		osDelay(20);
+		osDelay(10);
 		ret |= HAL_I2C_Master_Receive(&hi2c1, 0x10, pr, nr, 5000);
    		if ( ret != HAL_OK ) return 3;
     }	
@@ -366,5 +499,6 @@ static uint8_t readblock_cmd(uint8_t* pr, uint8_t nr, uint8_t cmd)
    	{
    		*pr = 0xff; *(pr+1) = 0xff;
    	}
+   	osDelay(3);
    	return ret;
  }

@@ -105,6 +105,7 @@ C_SOURCES += Ourwares/morse.c
 #C_SOURCES += Ourtasks/stackwatermark.c
 C_SOURCES += Ourtasks/fetonoff.c
 C_SOURCES += Ourtasks/BQTask.c
+C_SOURCES += Ourtasks/bqview.c
 
 
 # /* USER CODE END */ 

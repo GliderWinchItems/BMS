@@ -183,6 +183,38 @@ needed, or a conventional diode can be used otherwise.
 The diode in the BAT connection and the diode in the BJT collector should not be shared, since then the
 REG0 circuit might discharge the capacitor on BAT too quickly during a short circuit event.
 
+7. PD2 LD does not appear appropriate!
+
+Remove and connect to 10K resistor to PACK.
+
+8. Cut 5V/3 (BQ REG1) and route to 5v/1 (linear reg)
+
+9. Pack pin  viq 10K to top-of-stack.
+
+See Datasheet 16.2 typical applications
+
+10. Rev-2: Beeper?
+
+Shutdown/wakeup once per minute. Beep if some cell is getting
+too low.
+
+11. Alert pin
+
+Needs pullup to 3.3v, unless REG1 is used for BQ internal pullup.
+
+OR--use L431 internal pullup.
+
+12. thermistor headers too close 
+
+The OTS cabled thermstors have a flange on the 
+2-pin connectors and need more spacing between headers.
+
+Work-around: use alternate connectors.
+
+
+
+
+
   
 
 

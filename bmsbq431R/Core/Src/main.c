@@ -34,6 +34,7 @@
 #include "yprintf.h"
 #include "DTW_counter.h"
 #include "BQTask.h"
+#include "bqview.h"
 
 #include "FreeRTOS.h"
 #include "semphr.h"
@@ -1140,6 +1141,9 @@ static void MX_GPIO_Init(void)
 void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
+
+#define TESTSHUTDOWN_VIA_COMMAND // Test processor commanded BQ shutdown
+
   uint32_t mctr = 0;
   uint8_t lctr = 0;
   int i;
@@ -1156,10 +1160,46 @@ extern uint32_t cvflag;
 
   yprintf(&pbuf1,"\n\n\rPROGRAM STARTS");
 
+#ifdef TESTSHUTDOWN_VIA_COMMAND
+  uint32_t ticksys = xTaskGetTickCount();
+  uint32_t tickstate = ticksys + 20000;
+  uint8_t shutstate = 0;
+  yprintf(&pbuf1,"\n\r\tProcessor commanded shut-down cycling");
+#endif  
+
   /* Infinite loop */
   for(;;)
   {
-//    yprintf(&pbuf1,"\n\r%5d: Hello BQing",mctr++);
+
+//extern uint8_t dbA[16];
+//yprintf(&pbuf1,"\n\rdbA");
+
+     bqview_blk_0x9231 (&pbuf1);
+     yprintf(&pbuf1,"\n\r");
+     bqview_blk_0x92fa (&pbuf1);
+     yprintf(&pbuf1,"\n\r");
+     bqview_blk_0x62 (&pbuf1);
+
+    /* Block includes REG12 */
+extern uint8_t blk_0x9231_12[12];
+    yprintf(&pbuf1,"\n\rblk_0x9231_12:");
+    for (i = 0; i < 12; i++) yprintf(&pbuf1," %02X",blk_0x9231_12[i]);
+
+extern uint8_t blk_0x92fa_11[11];
+    yprintf(&pbuf1,"\n\rblk_0x92fa_11:");
+    for (i = 0; i < 11; i++) yprintf(&pbuf1," %04X %02X:",(0x92FA + i),blk_0x92fa_11[i]);
+
+extern uint16_t device_number_u16;
+extern uint16_t fw_version_u16[3];
+extern uint16_t hw_version_u16;
+    yprintf(&pbuf1,"\n\rdevice_number:  0x%04X",device_number_u16);
+    yprintf(&pbuf1,"\tfw_version: 0x%04X 0x%04X 0x%04X",fw_version_u16[0],fw_version_u16[1],fw_version_u16[2]);
+    yprintf(&pbuf1,"\thw_version: 0x%04X",hw_version_u16);
+
+extern uint16_t battery_status;
+extern uint16_t reg0_config_u16;
+extern uint16_t ddsgp_config_u16;    
+    yprintf(&pbuf1,"\n\rbattery_status: 0x%04X", battery_status);
 
  //  osDelay(500);
   //  HAL_GPIO_WritePin(GPIOB,GPIO_PIN_1,GPIO_PIN_RESET); // RED LED
@@ -1179,10 +1219,45 @@ extern uint32_t cvflag;
     fetonoff(FETON_DUMP2, FETON_SETOFF);
     fetonoff(FETON_HEATER,FETON_SETOFF);
 
-extern uint16_t device_number_u16;
-extern uint16_t battery_status;
-extern uint16_t reg0_config_u16;
-extern uint16_t ddsgp_config_u16;
+
+
+#ifdef TESTSHUTDOWN_VIA_COMMAND
+extern uint8_t bq_initflag; // 1 = signal BQ to initialize
+
+  /* Shutdown testing. */
+    ticksys = xTaskGetTickCount();
+    switch (shutstate)
+    {
+      case 0: // Normal operation
+        if ((int32_t)(ticksys - tickstate) < 0) break;
+        HAL_GPIO_WritePin(GPIOB,GPIO_PIN_5,GPIO_PIN_SET); // Begin RST_SHUT
+        yprintf(&pbuf1,"\n\r\tRST_SHUT: set");
+        shutstate = 1;
+        tickstate = tickstate + 5000; // 3 sec
+        HAL_GPIO_WritePin(GPIOB,GPIO_PIN_1,GPIO_PIN_RESET); // RED LED ON
+
+      case 1: // Shutdown
+        if ((int32_t)(ticksys - tickstate) < 0) break;
+        HAL_GPIO_WritePin(GPIOB,GPIO_PIN_5,GPIO_PIN_RESET); // End RST_SHUT
+        yprintf(&pbuf1,"\n\r\tRST_SHUT: reset");
+        shutstate = 2;
+        tickstate = tickstate + 2000; // 2 sec
+
+      case 2:  // Wake-up
+        if ((int32_t)(ticksys - tickstate) < 0) break;
+        HAL_GPIO_WritePin(GPIOB,GPIO_PIN_1,GPIO_PIN_SET); // RED LED OFF
+        HAL_GPIO_WritePin(GPIOD,GPIO_PIN_2,GPIO_PIN_SET);   // LD
+        yprintf(&pbuf1,"\n\r\tLD: set");
+        osDelay(330);
+        HAL_GPIO_WritePin(GPIOD,GPIO_PIN_2,GPIO_PIN_RESET); // LD
+        osDelay(3);
+        bq_initflag = 1;
+        yprintf(&pbuf1,"\n\r\tLD: reset");
+        shutstate = 0;
+        tickstate = tickstate + 15000; // 105sec
+    }
+#endif
+
 
     if (bqflag == 0)
     {
@@ -1198,7 +1273,7 @@ extern uint16_t ddsgp_config_u16;
       if (lctr > 1)
       {
         lctr = 0;
-        yprintf(&pbuf1,"\n\r device number: %04X \tbattery_status: %04X", device_number_u16, battery_status);
+
         yprintf(&pbuf1,"\treg0_config: %02X\tddsgp_config_u16: %02X",reg0_config_u16,ddsgp_config_u16);
         yprintf(&pbuf1,"\n\n\r%2d ",mctr++);
         for (i = 1; i < 17; i++)
