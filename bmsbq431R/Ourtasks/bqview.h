@@ -3,7 +3,6 @@
 * Date First Issued  : 09/18/2021
 * Description        : BQ76952: yprintf BQ data
 *******************************************************************************/
-
 #ifndef __BQVIEW
 #define __BQVIEW
 
@@ -21,6 +20,18 @@ void bqview_blk_0x9231 (struct SERIALSENDTASKBCB** pp);
  /*	@brief	: display parameters
   * *************************************************************************/
 void bqview_blk_0x62 (struct SERIALSENDTASKBCB** pp);
+/*	@brief	: display parameters
+ * *************************************************************************/
+void bqview_blk_0x0083 (struct SERIALSENDTASKBCB** pp);
+/*	@brief	: display parameters
+ * *************************************************************************/
+void bqview_cuv_cov_snap_0x0080_0x0081 (struct SERIALSENDTASKBCB** pp);
+/*	@brief	: display parameters
+ * *************************************************************************/
+ void bqview_cb_status2_0x0086_0x0087 (struct SERIALSENDTASKBCB** pp);
+/*	@brief	: display parameters
+ * *************************************************************************/
+void bqview_blk_0x0075_s16 (struct SERIALSENDTASKBCB** pp);
 /*	@brief	: display parameters
  * *************************************************************************/
 

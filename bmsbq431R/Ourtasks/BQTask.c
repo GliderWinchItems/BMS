@@ -79,6 +79,16 @@ uint16_t reg0_config_u16;
 uint16_t ddsgp_config_u16;
 uint16_t blk_0x62_u16[14];
 
+int16_t blk_0x0075_s16[16];
+
+/* Cell balancing */
+uint16_t blk_0x0083_u16[3];
+int16_t cuv_snap_0x0080_s16[16];
+int16_t cov_snap_0x0081_s16[16];
+uint32_t cb_status2_0x0086_u32[16]; // Seconds active cell balancing: 1 - 9
+uint32_t cb_status3_0x0087_u32[16]; // Seconds active cell balancing: 9 - 16
+
+
 uint8_t fw_version_6[6];
 uint8_t blk_0x9231_12[12];
 uint8_t blk_0x92fa_11[11];
@@ -118,15 +128,15 @@ static void bq_init(void)
 
 /* Thermistor mode. */
 				//       (uint16_t cmd, uint16_t data, uint8_t nd, uint8_t config);
-		ret = subcmdcomW(CFETOFFPinConfig,  0x3, 1, 0); // Therm 5
+		ret = subcmdcomW(CFETOFFPinConfig,  0x2, 1, 0); // Therm 5
 		if (ret != 0) morse_string("A",GPIO_PIN_1);
-		ret = subcmdcomW(DFETOFFPinConfig,  0x3, 1, 0); // Therm 4
+		ret = subcmdcomW(DFETOFFPinConfig,  0x2, 1, 0); // Therm 4
 		if (ret != 0) morse_string("B",GPIO_PIN_1);
-		ret = subcmdcomW(TS1Config,         0x3, 1, 0); // Therm 1
+		ret = subcmdcomW(TS1Config,         0x2, 1, 0); // Therm 1
 		if (ret != 0) morse_string("D",GPIO_PIN_1);
-		ret = subcmdcomW(TS3Config,         0x3, 1, 0); // Therm 2
+		ret = subcmdcomW(TS3Config,         0x2, 1, 0); // Therm 2
 		if (ret != 0) morse_string("B",GPIO_PIN_1);
-		ret = subcmdcomW(DCHGPinConfig,     0x3, 1, 0); // Therm 3
+		ret = subcmdcomW(DCHGPinConfig,     0x2, 1, 0); // Therm 3
 		if (ret != 0) morse_string("U",GPIO_PIN_1);
 
 		/* GPIO. */
@@ -213,7 +223,28 @@ uint8_t ddsgctr = 0;
 
 		
 		ret = readblock_cmd((uint8_t*)&blk_0x62_u16[0], 14*2, 0x62);
-		if (ret != 0) morse_string("W",GPIO_PIN_1);		
+		if (ret != 0) morse_string("W",GPIO_PIN_1);	
+
+		/* Cell balancing data. */
+		ret = subcmdcomR((uint8_t*)&blk_0x0083_u16[0], 3*2, 0x0083);
+		if (ret != 0) morse_string("C3",GPIO_PIN_1);	
+
+		// Records the cell voltage measurement made just after the latest CUV event.
+		ret = subcmdcomR((uint8_t*)&cuv_snap_0x0080_s16[0], 16*2, 0x0080);
+		if (ret != 0) morse_string("CSP1",GPIO_PIN_1);
+
+		// Records the cell voltage measurement made just after the latest COV event
+		ret = subcmdcomR((uint8_t*)&cov_snap_0x0081_s16[0], 16*2, 0x0081);
+		if (ret != 0) morse_string("CSP2",GPIO_PIN_1);	
+
+		// Reports the cumulative number of seconds that balancing has been 
+		//   active on this cell since the last device reset.
+		ret = subcmdcomR((uint8_t*)&cb_status2_0x0086_u32[0], 8*4, 0x0086);
+		if (ret != 0) morse_string("CBT1",GPIO_PIN_1);	
+		ret = subcmdcomR((uint8_t*)&cb_status3_0x0087_u32[0], 8*4, 0x0087);
+		if (ret != 0) morse_string("CBT2",GPIO_PIN_1);	
+
+
 
 #define AAS1 // Test jic BQ gpio on/off working
 #ifdef AAS1

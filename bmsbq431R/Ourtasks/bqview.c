@@ -70,16 +70,114 @@ void bqview_blk_0x62 (struct SERIALSENDTASKBCB** pp)
 yprintf(pp,"\n\rAlarmStatus        0x62 0x%04X",blk_0x62_u16[ 0]); // Alarm Status: Latched signal used to assert the ALERT pin
 yprintf(pp,"\n\rAlarmRawStatus     0x64 0x%04X",blk_0x62_u16[ 1]); // Alarm Raw Status: Unlatched value of flags
 yprintf(pp,"\n\rAlarmEnable        0x66 0x%04X",blk_0x62_u16[ 2]); // Alarm Enable:Mask for Alarm Status
-yprintf(pp,"\n\rIntTemperature     0x68 0x%5d",(int16_t)blk_0x62_u16[ 3]-2732); // Int Temperature: most recent measured internal die temperature
-yprintf(pp,"\n\rCFETOFFTemperature 0x6A 0x%5d",(int16_t)blk_0x62_u16[ 4]     ); // Config: thermistor-most recent temp (0.1K); ADCIN-reading in mv
-yprintf(pp,"\n\rDFETOFFTemperature 0x6C 0x%5d",(int16_t)blk_0x62_u16[ 5]     ); // Config: thermistor-most recent temp (0.1K); ADCIN-reading in mv 
-yprintf(pp,"\n\rALERTTemperature   0x6E 0x%5d",(int16_t)blk_0x62_u16[ 6]     ); // Config: thermistor-most recent temp (0.1K); ADCIN-reading in mv
-yprintf(pp,"\n\rTS1Temperature     0x70 0x%5d",(int16_t)blk_0x62_u16[ 7]     ); // Config: thermistor-most recent temp (0.1K); ADCIN-reading in mv
-yprintf(pp,"\n\rTS2Temperature     0x72 0x%5d",(int16_t)blk_0x62_u16[ 8]     ); // Config: thermistor-most recent temp (0.1K); ADCIN-reading in mv
-yprintf(pp,"\n\rTS3Temperature     0x74 0x%5d",(int16_t)blk_0x62_u16[ 9]     ); // Config: thermistor-most recent temp (0.1K); ADCIN-reading in mv
-yprintf(pp,"\n\rHDQTemperature     0x76 0x%5d",(int16_t)blk_0x62_u16[10]     ); // Config: thermistor-most recent temp (0.1K); ADCIN-reading in mv
-yprintf(pp,"\n\rDCHGTemperature    0x78 0x%5d",(int16_t)blk_0x62_u16[11]     ); // Config: thermistor-most recent temp (0.1K); ADCIN-reading in mv
-yprintf(pp,"\n\rDDSGTemperature    0x7A 0x%5d",(int16_t)blk_0x62_u16[12]     ); // Config: thermistor-most recent temp (0.1K); ADCIN-reading in mv
+yprintf(pp,"\n\rIntTemperature     0x68   %5d",(int16_t)blk_0x62_u16[ 3]-2732); // Int Temperature: most recent measured internal die temperature
+yprintf(pp,"\n\rCFETOFFTemperature 0x6A   %5d",(int16_t)blk_0x62_u16[ 4]     ); // Config: thermistor-most recent temp (0.1K); ADCIN-reading in mv
+yprintf(pp,"\n\rDFETOFFTemperature 0x6C   %5d",(int16_t)blk_0x62_u16[ 5]     ); // Config: thermistor-most recent temp (0.1K); ADCIN-reading in mv 
+yprintf(pp,"\n\rALERTTemperature   0x6E   %5d",(int16_t)blk_0x62_u16[ 6]     ); // Config: thermistor-most recent temp (0.1K); ADCIN-reading in mv
+yprintf(pp,"\n\rTS1Temperature     0x70   %5d",(int16_t)blk_0x62_u16[ 7]     ); // Config: thermistor-most recent temp (0.1K); ADCIN-reading in mv
+yprintf(pp,"\n\rTS2Temperature     0x72   %5d",(int16_t)blk_0x62_u16[ 8]     ); // Config: thermistor-most recent temp (0.1K); ADCIN-reading in mv
+yprintf(pp,"\n\rTS3Temperature     0x74   %5d",(int16_t)blk_0x62_u16[ 9]     ); // Config: thermistor-most recent temp (0.1K); ADCIN-reading in mv
+yprintf(pp,"\n\rHDQTemperature     0x76   %5d",(int16_t)blk_0x62_u16[10]     ); // Config: thermistor-most recent temp (0.1K); ADCIN-reading in mv
+yprintf(pp,"\n\rDCHGTemperature    0x78   %5d",(int16_t)blk_0x62_u16[11]     ); // Config: thermistor-most recent temp (0.1K); ADCIN-reading in mv
+yprintf(pp,"\n\rDDSGTemperature    0x7A   %5d",(int16_t)blk_0x62_u16[12]     ); // Config: thermistor-most recent temp (0.1K); ADCIN-reading in mv
 yprintf(pp,"\n\rFETStatus          0x7F 0x%02X",blk_0x62_u16[13]); // FET Status: flags showing status of FETs and ALERT pin
 	return;
+}
+/* *************************************************************************
+ * void bqview_blk_0x0083 (struct SERIALSENDTASKBCB** pp);
+ *	@brief	: display parameters
+ * *************************************************************************/
+extern uint16_t blk_0x0083_u16[3];
+void bqview_blk_0x0083 (struct SERIALSENDTASKBCB** pp)
+{
+	int i;
+	char c;
+	uint16_t tmp = blk_0x0083_u16[0];
+
+// Cells actively being balanced
+	yprintf(pp,"\n\rCB_ACTIVE_CELLS 0x0083");
+	for (i = 1; i < 17; i++) yprintf(pp,"%4d", i); // Cell number header
+	yprintf(pp,"\n\r                      ");
+	for (i = 0; i < 16; i++)
+	{
+		if ((tmp & (1 << i)) == 0) 
+			c = '.';
+		else
+			c = '*';
+		yprintf(pp,"   %c", c);
+	}
+
+//Start balancing cells that are above the written voltage threshold.
+yprintf(pp,"\n\rCB_SET_LVL  0x0084: %5d mv",(int16_t)blk_0x0083_u16[1] );
+
+// Reports the number of seconds that balancing has been continuously active.
+yprintf(pp,"\n\rCBSTATUS1   0x0085: %5u sec",(uint16_t)blk_0x0083_u16[2] );
+		return;
+}
+/* *************************************************************************
+ * void bqview_cuv_cov_snap_0x0080_0x0081 (struct SERIALSENDTASKBCB** pp);
+ *	@brief	: display parameters
+ * *************************************************************************/
+extern int16_t cuv_snap_0x0080_s16[16];
+extern int16_t cov_snap_0x0081_s16[16];
+void bqview_cuv_cov_snap_0x0080_0x0081 (struct SERIALSENDTASKBCB** pp)
+{
+	int i;
+	yprintf(pp,"\n\rCUV_SNAPSHOT 0x0080 COV_SNAPSHOT 0X0081 (Under a& Over voltage snapshot)\n\r  ");
+	for (i = 1; i < 17; i++) yprintf(pp," %5d", i);
+	yprintf(pp,"\n\r  ");
+
+	for (i = 0; i < 16; i++)
+		yprintf(pp,"%6d",(int16_t)cuv_snap_0x0080_s16[i]);
+
+	yprintf(pp,"\n\r  ");
+	for (i = 0; i < 16; i++)
+		yprintf(pp,"%6d",(int16_t)cov_snap_0x0081_s16[i]);
+	return;
+}
+/* *************************************************************************
+ * void bqview_cb_status2_0x0086_0x0087 (struct SERIALSENDTASKBCB** pp);
+ *	@brief	: display parameters
+ * *************************************************************************/
+extern uint32_t cb_status2_0x0086_u32[16]; // Seconds active cell balancing: 1 - 9
+extern uint32_t cb_status3_0x0087_u32[16]; // Seconds active cell balancing: 9 - 16
+void bqview_cb_status2_0x0086_0x0087 (struct SERIALSENDTASKBCB** pp)
+{
+	int i;
+	yprintf(pp,"\n\rCBSTATUS2 0x0086 CBSTATUS3 0x0087 (Total balancing time (secs) )\n\r  ");
+	for (i = 1; i < 17; i++) yprintf(pp," %6d", i);
+	yprintf(pp,"\n\r  ");
+
+	for (i = 0; i < 8; i++)
+		yprintf(pp,"%7d",(uint32_t)cb_status2_0x0086_u32[i]);
+
+	for (i = 8; i < 16; i++)
+		yprintf(pp,"%7d",(uint32_t)cb_status3_0x0087_u32[i]);
+	return;
+
+}
+/* *************************************************************************
+ * void bqview_blk_0x0075_s16 (struct SERIALSENDTASKBCB** pp);
+ *	@brief	: display parameters
+ * *************************************************************************/
+extern int16_t blk_0x0075_s16[16];
+void bqview_blk_0x0075_s16 (struct SERIALSENDTASKBCB** pp)
+{
+yprintf(pp,"\n\rDASTATUS6 0x0076");
+yprintf(pp,"\n\r\t  0 VREG18 %5d adc_ct",blk_0x0075_s16[0]);
+yprintf(pp,"\n\r\t  2 VSS    %5d adc_ct",blk_0x0075_s16[1]);
+yprintf(pp,"\n\r\t  4 Max Cell Voltage %5d mv",blk_0x0075_s16[2]);
+yprintf(pp,"\n\r\t  6 Min Cell Voltage %5d mv",blk_0x0075_s16[3]);
+yprintf(pp,"\n\r\t  8 Battery sum      %5d userV",blk_0x0075_s16[4]);
+yprintf(pp,"\n\r\t 10 Cell temperature %5d 0.1K",blk_0x0075_s16[5]);
+yprintf(pp,"\n\r\t 12 FET  temperature %5d 0.1K",blk_0x0075_s16[6]);
+yprintf(pp,"\n\r\t 14 Max Cell temp    %5d 0.1K",blk_0x0075_s16[7]);
+yprintf(pp,"\n\r\t 16 Min Cell temp    %5d 0.1K",blk_0x0075_s16[8]);
+yprintf(pp,"\n\r\t 18 Ave Cell temp    %5d 0.1K",blk_0x0075_s16[9]);
+yprintf(pp,"\n\r\t 20 CC3 current      %5d userA",blk_0x0075_s16[10]);
+yprintf(pp,"\n\r\t 22 CC1 current      %5d userA",blk_0x0075_s16[11]);
+yprintf(pp,"\n\r\t 24 CC2 counts   %9d raw ct",(uint32_t)blk_0x0075_s16[12]);
+yprintf(pp,"\n\r\t 28 CC3 counts   %9d raw ct",(uint32_t)blk_0x0075_s16[14]);
+	return;
+
 }
