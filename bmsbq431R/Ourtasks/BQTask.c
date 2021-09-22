@@ -79,6 +79,16 @@ uint16_t reg0_config_u16;
 uint16_t ddsgp_config_u16;
 uint16_t blk_0x62_u16[14];
 
+
+
+union ADCCELLCOUNTS cellcts;
+
+// [x][0] = current, [x][1] = voltage, x = cell
+uint32_t blk_0x0071_u32[4][2]; // Cells 1-4
+uint32_t blk_0x0072_u32[4][2]; // Cells 5-8
+uint32_t blk_0x0073_u32[4][2]; // Cells 9-12
+uint32_t blk_0x0074_u32[4][2]; // Cells 13-16
+
 int16_t blk_0x0075_s16[16];
 
 /* Cell balancing */
@@ -180,8 +190,10 @@ static void bq_init(void)
 
 void StartBQTask(void* argument)
 {
+#ifdef DDSG_TEST	
 uint8_t ddsgalt = 0;
-
+uint8_t ddsgctr = 0;
+#endif
 	uint8_t ret;
 
 	/* Wake up BQ if it is SHUTDOWN mode. */
@@ -201,7 +213,6 @@ uint8_t ddsgalt = 0;
 		morse_sos();
 		osDelay(50);
 	}
-uint8_t ddsgctr = 0;
 
 
 	for (;;)
@@ -209,7 +220,6 @@ uint8_t ddsgctr = 0;
 	//	HAL_GPIO_WritePin(GPIOB,GPIO_PIN_1,GPIO_PIN_RESET); // RED LED ON
 	//	osDelay(50);
 	//	HAL_GPIO_WritePin(GPIOB,GPIO_PIN_1,GPIO_PIN_SET); // RED LED OFF
-		osDelay(500);
 
 		if (bq_initflag != 0) bq_init();
 
@@ -244,10 +254,19 @@ uint8_t ddsgctr = 0;
 		ret = subcmdcomR((uint8_t*)&cb_status3_0x0087_u32[0], 8*4, 0x0087);
 		if (ret != 0) morse_string("CBT2",GPIO_PIN_1);	
 
+		/* Read ADC counts for current and voltage for each cell. */
+		// ADC count for current measurement taken during the cell voltage measurement.
+		ret = subcmdcomR((uint8_t*)&cellcts.blk[0][0], 4*2*4, 0x0071);
+		if (ret != 0) morse_string("DS1",GPIO_PIN_1);	
+		ret = subcmdcomR((uint8_t*)&cellcts.blk[4][0], 4*2*4, 0x0072);
+		if (ret != 0) morse_string("DS1",GPIO_PIN_1);	
+		ret = subcmdcomR((uint8_t*)&cellcts.blk[8][0], 4*2*4, 0x0073);
+		if (ret != 0) morse_string("DS1",GPIO_PIN_1);	
+		ret = subcmdcomR((uint8_t*)&cellcts.blk[12][0], 4*2*4, 0x0074);
+		if (ret != 0) morse_string("DS1",GPIO_PIN_1);	
 
 
-#define AAS1 // Test jic BQ gpio on/off working
-#ifdef AAS1
+#ifdef DDSG_TEST // Test DDSG gpio on/off working
 ddsgctr += 1;
 if (ddsgctr >= 4)	
 {
@@ -261,6 +280,8 @@ if (ddsgctr >= 4)
 #endif
 		/* Read cell voltages, plus extras */
 		getcellv();
+
+		osDelay(300);
 	}
 }
 /* *************************************************************************

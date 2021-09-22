@@ -1,5 +1,5 @@
 /******************************************************************************
-* File Name          : BQTask.c
+* File Name          : BQTask.h
 * Date First Issued  : 09/08/2021
 * Description        : BQ76952 BMS w STM32CubeMX w FreeRTOS
 *******************************************************************************/
@@ -13,6 +13,20 @@
 #include "stm32l4xx_hal.h"
 
 #define BQVSIZE 20 // Readout loop size (16 cells plus others)
+
+
+/* Cell current voltage for last measurement. */
+struct VI
+{
+	uint32_t v;
+	uint32_t i;
+};
+union ADCCELLCOUNTS
+{
+	struct VI vi[16];
+// [x][0] = current, [x][1] = voltage, x = cell
+	uint32_t blk[16][2]; // Cells 1-16
+};
 
 struct BQPN
 {
@@ -35,6 +49,8 @@ TaskHandle_t xBQTaskCreate(uint32_t taskpriority);
 
  extern TaskHandle_t BQTaskHandle;
  extern struct BQFUNCTION bqfunction;
+
+ extern union ADCCELLCOUNTS cellcts;
 
 #endif
 

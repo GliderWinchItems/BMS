@@ -12,6 +12,7 @@
 #include "main.h"
 #include "morse.h"
 
+#include "BQTask.h"
 #include "bqview.h"
 #include "yprintf.h"
 #include "BQ769x2Header.h"
@@ -180,4 +181,47 @@ yprintf(pp,"\n\r\t 24 CC2 counts   %9d raw ct",(uint32_t)blk_0x0075_s16[12]);
 yprintf(pp,"\n\r\t 28 CC3 counts   %9d raw ct",(uint32_t)blk_0x0075_s16[14]);
 	return;
 
+}
+/* *************************************************************************
+ * void bqview_blk_0x0071_u32 (struct SERIALSENDTASKBCB** pp);
+ *	@brief	: display parameters: Cell current and voltages
+ * *************************************************************************/
+/* Cell current voltage for last measurment. */
+// [x][0] = current, [x][1] = voltage, x = cell
+extern uint32_t blk_0x0071_u32[4][2]; // Cells 1-4
+extern uint32_t blk_0x0072_u32[4][2]; // Cells 5-8
+extern uint32_t blk_0x0073_u32[4][2]; // Cells 9-12
+extern uint32_t blk_0x0074_u32[4][2]; // Cells 13-16
+void bqview_blk_0x0071_u32 (struct SERIALSENDTASKBCB** pp)
+{
+	int i;
+//	uint32_t* p;
+
+	yprintf(pp,"\n\rDSTATUS1-DSTATUS4 (0x0071-0x0074) current and voltage ADC COUNTS for each cell\n\r ");
+	for (i = 1; i < 17; i++) yprintf(pp," %8d", i); // Column header
+
+	yprintf(pp,"\n\rvoltage:");
+	for (i = 0; i < 16; i++) yprintf(pp,"%8d",cellcts.vi[i].v);
+
+//	p = &blk_0x0071_u32[0][0];
+//	for (i = 0; i < 4; i++) {yprintf(pp,"%8d",*p); p += 2;}
+//	p = &blk_0x0072_u32[0][0];
+//	for (i = 0; i < 4; i++) {yprintf(pp,"%8d",*p); p += 2;}
+//	p = &blk_0x0073_u32[0][0];
+//	for (i = 0; i < 4; i++) {yprintf(pp,"%8d",*p); p += 2;}
+//	p = &blk_0x0074_u32[0][0];
+//	for (i = 0; i < 4; i++) {yprintf(pp,"%8d",*p); p += 2;}
+
+	yprintf(pp,"\n\rcurrent:");
+	for (i = 0; i < 16; i++) yprintf(pp,"%8d",cellcts.vi[i].i);
+
+//	p = &blk_0x0071_u32[0][1];
+//	for (i = 0; i < 4; i++) {yprintf(pp,"%8d",*p); p += 2;}
+//	p = &blk_0x0072_u32[0][1];
+//	for (i = 0; i < 4; i++) {yprintf(pp,"%8d",*p); p += 2;}
+//	p = &blk_0x0073_u32[0][1];
+//	for (i = 0; i < 4; i++) {yprintf(pp,"%8d",*p); p += 2;}
+//	p = &blk_0x0074_u32[0][1];
+//	for (i = 0; i < 4; i++) {yprintf(pp,"%8d",*p); p += 2;}
+	return;
 }

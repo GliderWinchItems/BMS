@@ -185,11 +185,17 @@ REG0 circuit might discharge the capacitor on BAT too quickly during a short cir
 
 7. PD2 LD does not appear appropriate!
 
-Remove and connect to 10K resistor to PACK.
+Maybe it does, as it is used for BQ wakeup.
+
+(Remove and connect to 10K resistor to PACK.)
 
 8. Cut 5V/3 (BQ REG1) and route to 5v/1 (linear reg)
 
-9. Pack pin  viq 10K to top-of-stack.
+5v needed for heater and dump fets drive. FETs wouldn't
+be used without the processor running, (unless the BQ is set to
+run autonomously).
+
+9. Pack pin  via 10K to top-of-stack.
 
 See Datasheet 16.2 typical applications
 
@@ -210,6 +216,19 @@ The OTS cabled thermstors have a flange on the
 2-pin connectors and need more spacing between headers.
 
 Work-around: use alternate connectors.
+
+13. BAT voltage with no battery cable 
+
+Should there be a diode OR of battery voltage and voltage that goes
+to the 3.3v regulator? This would allow communication with the BQ
+when the battery cable is not plugged in.
+
+14. Header pads for battery cable connecting to discharger board
+
+Removing these adds board space, lengthwise.
+
+
+
 
 
 

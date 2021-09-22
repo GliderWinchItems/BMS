@@ -34,6 +34,9 @@ void bqview_cuv_cov_snap_0x0080_0x0081 (struct SERIALSENDTASKBCB** pp);
 void bqview_blk_0x0075_s16 (struct SERIALSENDTASKBCB** pp);
 /*	@brief	: display parameters
  * *************************************************************************/
+ void bqview_blk_0x0071_u32 (struct SERIALSENDTASKBCB** pp);
+/*	@brief	: display parameters: Cell current and voltages
+ * *************************************************************************/
 
 #endif
 

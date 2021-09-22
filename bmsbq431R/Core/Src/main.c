@@ -1181,6 +1181,7 @@ extern uint32_t cvflag;
     bqview_blk_0x0083 (&pbuf1);
     bqview_cuv_cov_snap_0x0080_0x0081 (&pbuf1);
     bqview_cb_status2_0x0086_0x0087 (&pbuf1);
+    bqview_blk_0x0071_u32 (&pbuf1);
 
     /* Block includes REG12 */
 extern uint8_t blk_0x9231_12[12];
