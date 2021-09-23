@@ -227,6 +227,17 @@ when the battery cable is not plugged in.
 
 Removing these adds board space, lengthwise.
 
+15. Thermistor by-pass should be about 4nf (10nf currently)
+
+16. SRP SRN max voltage (REG18 + 0.3)
+
+Zeners in case current sense goes open?
+
+17. I2C1 could be 5v 
+
+SDA SCL pins are max 5.5v
+
+
 
 
 

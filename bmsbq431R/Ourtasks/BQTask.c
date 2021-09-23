@@ -25,14 +25,7 @@ static void morse_sos(void);
 static uint8_t readblock_cmd(uint8_t* pr, uint8_t nr, uint8_t cmd);
 static uint8_t getcellv(void);
 
-
-
-
 uint8_t bqchksum(uint8_t* ptr, uint8_t len);
-
-struct BQFUNCTION bqfunction;
-
-
 
 TaskHandle_t BQTaskHandle = NULL;
 
@@ -40,31 +33,6 @@ TaskHandle_t BQTaskHandle = NULL;
  uint8_t bufrcv[4];
  uint8_t bqflag = 0;
  //uint8_t bqbuf[34];
-
-union BQFIELD2
-{
-	uint8_t   u8[2];
-	uint16_t u16;
-	int8_t    s8[2];
-	int16_t  s16;
-};
-
-
-union BQFIELD4
-{
-	uint8_t   u8[4];
-	uint16_t u16[2];
-	uint32_t u32;
-	int8_t    s8[4];
-	int16_t  s16[2];
-	int32_t  s32;
-};
-
- struct SUBCOMMAND
- {
- 	union BQFIELD4 cmd4; // Command to BQ
- 	union BQFIELD4 rcv4; // BQ response
- };
 
  int16_t cellv[2][BQVSIZE];
  uint8_t cvidx = 0;
@@ -79,15 +47,9 @@ uint16_t reg0_config_u16;
 uint16_t ddsgp_config_u16;
 uint16_t blk_0x62_u16[14];
 
-
-
+/* ADC counts for voltage and sync'd current */
 union ADCCELLCOUNTS cellcts;
 
-// [x][0] = current, [x][1] = voltage, x = cell
-uint32_t blk_0x0071_u32[4][2]; // Cells 1-4
-uint32_t blk_0x0072_u32[4][2]; // Cells 5-8
-uint32_t blk_0x0073_u32[4][2]; // Cells 9-12
-uint32_t blk_0x0074_u32[4][2]; // Cells 13-16
 
 int16_t blk_0x0075_s16[16];
 
@@ -102,6 +64,7 @@ uint32_t cb_status3_0x0087_u32[16]; // Seconds active cell balancing: 9 - 16
 uint8_t fw_version_6[6];
 uint8_t blk_0x9231_12[12];
 uint8_t blk_0x92fa_11[11];
+uint8_t blk_0x9335_14[14];
 
 uint8_t bq_initflag = 0;
 
@@ -158,7 +121,6 @@ static void bq_init(void)
 		ret = subcmdcomW(ALERTPinConfig,   0x82, 1, 1); 
 		if (ret != 0) morse_string("N",GPIO_PIN_1);
 
-
 		/* Read battery status byte. */
 		ret = cmdcom((uint8_t *)&battery_status, 2, BatteryStatus);
 		if (ret != 0) morse_string("E",GPIO_PIN_1);
@@ -168,12 +130,15 @@ static void bq_init(void)
 		ret = subcmdcomR((uint8_t*)&device_number_u16, 2, DEVICE_NUMBER);
 		if (ret != 0) morse_string("I",GPIO_PIN_1);
 
+		// Device, Firmwave
 		ret = subcmdcomR((uint8_t*)&fw_version_6, 6, FW_VERSION);
 		if (ret != 0) morse_string("I",GPIO_PIN_1);
 		// Convert to Big Endian
 		fw_version_u16[0] = fw_version_6[0] << 8 | fw_version_6[1];
 		fw_version_u16[1] = fw_version_6[2] << 8 | fw_version_6[3];
 		fw_version_u16[2] = fw_version_6[4] << 8 | fw_version_6[5];
+
+
 
 
 		ret = subcmdcomR((uint8_t*)&hw_version_u16, 2, HW_VERSION);
@@ -190,6 +155,7 @@ static void bq_init(void)
 
 void StartBQTask(void* argument)
 {
+#define DDSG_TEST
 #ifdef DDSG_TEST	
 uint8_t ddsgalt = 0;
 uint8_t ddsgctr = 0;
@@ -264,6 +230,22 @@ uint8_t ddsgctr = 0;
 		if (ret != 0) morse_string("DS1",GPIO_PIN_1);	
 		ret = subcmdcomR((uint8_t*)&cellcts.blk[12][0], 4*2*4, 0x0074);
 		if (ret != 0) morse_string("DS1",GPIO_PIN_1);	
+
+		/* Misc ADC counts, VREG18 - CC3. */
+		ret = subcmdcomR((uint8_t*)&blk_0x0075_s16[0], 16*2, 0x0075);
+		if (ret != 0) morse_string("DS5",GPIO_PIN_1);	
+
+/* Cell balancing  */
+// uint8_t subcmdcomW(uint16_t cmd, uint16_t data, uint8_t nd, uint8_t config)
+//ret = subcmdcomW(CB_ACTIVE_CELLS,(uint8_t)0x0000, 2, 0); // Active cells balancing
+//if (ret != 0) morse_string("BA",GPIO_PIN_1);	
+//ret = subcmdcomW(CB_SET_LVL,(uint8_t)0x0005, 2, 0); // Set balance level
+//if (ret != 0) morse_string("BA1",GPIO_PIN_1);	
+
+		/* Cell balancing parameters. */
+		ret = subcmdcomR((uint8_t*)&blk_0x9335_14, 14, BalancingConfiguration);
+		if (ret != 0) morse_string("CB3",GPIO_PIN_1);	
+
 
 
 #ifdef DDSG_TEST // Test DDSG gpio on/off working

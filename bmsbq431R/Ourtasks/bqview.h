@@ -37,6 +37,9 @@ void bqview_blk_0x0075_s16 (struct SERIALSENDTASKBCB** pp);
  void bqview_blk_0x0071_u32 (struct SERIALSENDTASKBCB** pp);
 /*	@brief	: display parameters: Cell current and voltages
  * *************************************************************************/
+ void bqview_blk_0x9335_14 (struct SERIALSENDTASKBCB** pp);
+/*	@brief	: display parameters: Balancing items
+ * *************************************************************************/
 
 #endif
 

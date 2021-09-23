@@ -104,7 +104,7 @@ void bqview_blk_0x0083 (struct SERIALSENDTASKBCB** pp)
 		if ((tmp & (1 << i)) == 0) 
 			c = '.';
 		else
-			c = '*';
+			c = '#';
 		yprintf(pp,"   %c", c);
 	}
 
@@ -164,7 +164,7 @@ void bqview_cb_status2_0x0086_0x0087 (struct SERIALSENDTASKBCB** pp)
 extern int16_t blk_0x0075_s16[16];
 void bqview_blk_0x0075_s16 (struct SERIALSENDTASKBCB** pp)
 {
-yprintf(pp,"\n\rDASTATUS6 0x0076");
+yprintf(pp,"\n\rDASTATUS5 0x0075");
 yprintf(pp,"\n\r\t  0 VREG18 %5d adc_ct",blk_0x0075_s16[0]);
 yprintf(pp,"\n\r\t  2 VSS    %5d adc_ct",blk_0x0075_s16[1]);
 yprintf(pp,"\n\r\t  4 Max Cell Voltage %5d mv",blk_0x0075_s16[2]);
@@ -180,22 +180,14 @@ yprintf(pp,"\n\r\t 22 CC1 current      %5d userA",blk_0x0075_s16[11]);
 yprintf(pp,"\n\r\t 24 CC2 counts   %9d raw ct",(uint32_t)blk_0x0075_s16[12]);
 yprintf(pp,"\n\r\t 28 CC3 counts   %9d raw ct",(uint32_t)blk_0x0075_s16[14]);
 	return;
-
 }
 /* *************************************************************************
  * void bqview_blk_0x0071_u32 (struct SERIALSENDTASKBCB** pp);
- *	@brief	: display parameters: Cell current and voltages
+ *	@brief	: display parameters: Cell current and voltage counts
  * *************************************************************************/
-/* Cell current voltage for last measurment. */
-// [x][0] = current, [x][1] = voltage, x = cell
-extern uint32_t blk_0x0071_u32[4][2]; // Cells 1-4
-extern uint32_t blk_0x0072_u32[4][2]; // Cells 5-8
-extern uint32_t blk_0x0073_u32[4][2]; // Cells 9-12
-extern uint32_t blk_0x0074_u32[4][2]; // Cells 13-16
 void bqview_blk_0x0071_u32 (struct SERIALSENDTASKBCB** pp)
 {
 	int i;
-//	uint32_t* p;
 
 	yprintf(pp,"\n\rDSTATUS1-DSTATUS4 (0x0071-0x0074) current and voltage ADC COUNTS for each cell\n\r ");
 	for (i = 1; i < 17; i++) yprintf(pp," %8d", i); // Column header
@@ -203,25 +195,30 @@ void bqview_blk_0x0071_u32 (struct SERIALSENDTASKBCB** pp)
 	yprintf(pp,"\n\rvoltage:");
 	for (i = 0; i < 16; i++) yprintf(pp,"%8d",cellcts.vi[i].v);
 
-//	p = &blk_0x0071_u32[0][0];
-//	for (i = 0; i < 4; i++) {yprintf(pp,"%8d",*p); p += 2;}
-//	p = &blk_0x0072_u32[0][0];
-//	for (i = 0; i < 4; i++) {yprintf(pp,"%8d",*p); p += 2;}
-//	p = &blk_0x0073_u32[0][0];
-//	for (i = 0; i < 4; i++) {yprintf(pp,"%8d",*p); p += 2;}
-//	p = &blk_0x0074_u32[0][0];
-//	for (i = 0; i < 4; i++) {yprintf(pp,"%8d",*p); p += 2;}
-
 	yprintf(pp,"\n\rcurrent:");
 	for (i = 0; i < 16; i++) yprintf(pp,"%8d",cellcts.vi[i].i);
 
-//	p = &blk_0x0071_u32[0][1];
-//	for (i = 0; i < 4; i++) {yprintf(pp,"%8d",*p); p += 2;}
-//	p = &blk_0x0072_u32[0][1];
-//	for (i = 0; i < 4; i++) {yprintf(pp,"%8d",*p); p += 2;}
-//	p = &blk_0x0073_u32[0][1];
-//	for (i = 0; i < 4; i++) {yprintf(pp,"%8d",*p); p += 2;}
-//	p = &blk_0x0074_u32[0][1];
-//	for (i = 0; i < 4; i++) {yprintf(pp,"%8d",*p); p += 2;}
+	return;
+}
+/* *************************************************************************
+ * void bqview_blk_0x9335_14 (struct SERIALSENDTASKBCB** pp);
+ *	@brief	: display parameters: Balancing items
+ * *************************************************************************/
+uint8_t blk_0x9335_14[14];
+void bqview_blk_0x9335_14 (struct SERIALSENDTASKBCB** pp)
+{
+yprintf(pp,"\n\rBalancing Configuration - Cell Balance Stop Delta (Relax) (0x9335 - 0x9342) \n\r ");
+yprintf(pp,"\n\r\tBalancingConfiguration     0x9335   %02X",           blk_0x9335_14[0]); //Settings:Cell Balancing Config:Balancing Configuration			
+yprintf(pp,"\n\r\tMinCellTemp                0x9336 %4d degC",( int8_t)blk_0x9335_14[1]); //Settings:Cell Balancing Config:Min Cell Temp			
+yprintf(pp,"\n\r\tMaxCellTemp                0x9337 %4d degC",( int8_t)blk_0x9335_14[2]); //Settings:Cell Balancing Config:Max Cell Temp			
+yprintf(pp,"\n\r\tMaxInternalTemp            0x9338 %4d degC",( int8_t)blk_0x9335_14[3]); //Settings:Cell Balancing Config:Max Internal Temp			
+yprintf(pp,"\n\r\tCellBalanceInterval        0x9339 %4u sec", (uint8_t)blk_0x9335_14[4]); //Settings:Cell Balancing Config:Cell Balance Interval			
+yprintf(pp,"\n\r\tCellBalanceMaxCells        0x933A %4u number",(uint8_t)blk_0x9335_14[5]); //Settings:Cell Balancing Config:Cell Balance Max Cells			
+yprintf(pp,"\n\r\tCellBalanceMinCellVCharge  0x933B%5d mv",blk_0x9335_14[6] | blk_0x9335_14[7] << 8); //Settings:Cell Balancing Config:Cell Balance Min Cell V (Charge)			
+yprintf(pp,"\n\r\tCellBalanceMinDeltaCharge  0x933D %4u mv",(uint8_t)blk_0x9335_14[8]); //Settings:Cell Balancing Config:Cell Balance Min Delta (Charge)			
+yprintf(pp,"\n\r\tCellBalanceStopDeltaCharge 0x933E %4u mv",(uint8_t)blk_0x9335_14[9]); //Settings:Cell Balancing Config:Cell Balance Stop Delta (Charge)			
+yprintf(pp,"\n\r\tCellBalanceMinCellVRelax   0x933F%5d mv", blk_0x9335_14[10] | blk_0x9335_14[11] << 8);//Settings:Cell Balancing Config:Cell Balance Min Cell V (Relax)			
+yprintf(pp,"\n\r\tCellBalanceMinDeltaRelax   0x9341 %4u mv", blk_0x9335_14[12]); //Settings:Cell Balancing Config:Cell Balance Min Delta (Relax)			
+yprintf(pp,"\n\r\tCellBalanceStopDeltaRelax  0x9342 %4u mv", blk_0x9335_14[13]); //Settings:Cell Balancing Config:Cell Balance Stop Delta (Relax)		
 	return;
 }
