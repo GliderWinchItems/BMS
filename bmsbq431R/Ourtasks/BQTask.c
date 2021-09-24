@@ -76,7 +76,7 @@ static void bq_init(void)
 {
 		uint8_t ret;
 
-	/* Enter configuration mode. */
+		/* ENTER configuration mode. */
 		ret = subcmdcomW(SET_CFGUPDATE, 0x0, 0, 0);
 		if (ret != 0) morse_string("HI",GPIO_PIN_1);
 
@@ -95,7 +95,10 @@ static void bq_init(void)
 		ret = subcmdcomW(CommIdleTime, 0x1, 1, 0);
 		if (ret != 0) morse_string("H",GPIO_PIN_1);
 
-				/* Enter configuration mode. */
+		ret = subcmdcomW(CellBalanceMaxCells, 0x4, 1, 0);
+		if (ret != 0) morse_string("H",GPIO_PIN_1);
+
+		/* EXIT configuration mode. */
 		ret = subcmdcomW(EXIT_CFGUPDATE, 0x0, 0, 0);
 		if (ret != 0) morse_string("HI",GPIO_PIN_1);
 
@@ -235,10 +238,11 @@ uint8_t ddsgctr = 0;
 		ret = subcmdcomR((uint8_t*)&blk_0x0075_s16[0], 16*2, 0x0075);
 		if (ret != 0) morse_string("DS5",GPIO_PIN_1);	
 
-/* Cell balancing  */
+		/* Cell balancing  */
 // uint8_t subcmdcomW(uint16_t cmd, uint16_t data, uint8_t nd, uint8_t config)
-//ret = subcmdcomW(CB_ACTIVE_CELLS,(uint8_t)0x0000, 2, 0); // Active cells balancing
-//if (ret != 0) morse_string("BA",GPIO_PIN_1);	
+ret = subcmdcomW(CB_ACTIVE_CELLS,(uint16_t)0x0011, 2, 0); // Active cells balancing
+if (ret != 0) morse_string("BA",GPIO_PIN_1);	
+
 //ret = subcmdcomW(CB_SET_LVL,(uint8_t)0x0005, 2, 0); // Set balance level
 //if (ret != 0) morse_string("BA1",GPIO_PIN_1);	
 
@@ -297,7 +301,7 @@ TaskHandle_t *pxCreatedTask );
  * *************************************************************************/
 static uint8_t getcellv(void)
 {
-	int16_t* prcv = &cellv[(cvidx ^ 1)][0];
+	int16_t* prcv = &cellv[(cvidx)][0];
 	uint32_t ret;
 
 	/* Read 16: Cell voltages starting with Cell #1 at 0x14. */
@@ -305,7 +309,7 @@ static uint8_t getcellv(void)
 	if (ret != 0) return (ret + 100);
 
 	/* Read 4:  Stack Pack LD CC2 starting at 0x34. */
-	prcv = &cellv[(cvidx ^ 1)][16];
+	prcv = &cellv[(cvidx)][16];
 	ret = readblock_cmd((uint8_t*)prcv, 4*2, 0x34);
 	if (ret != 0) return (ret + 200);
 
@@ -362,7 +366,7 @@ static uint8_t subcmdcomW(uint16_t cmd, uint16_t data, uint8_t nd, uint8_t confi
 	bufx[3] = data;     // Low ord data
 	bufx[4] = data >> 8; // Hi ord data (if used)
 
-	/* Enter Update_Config mode, */
+	/* Enter Update_Config mode, if requested. */
 	if (config == 1)
 	{ // Update requested
 		bufc[0] = 0x3E;

@@ -40,6 +40,15 @@ void bqview_blk_0x0075_s16 (struct SERIALSENDTASKBCB** pp);
  void bqview_blk_0x9335_14 (struct SERIALSENDTASKBCB** pp);
 /*	@brief	: display parameters: Balancing items
  * *************************************************************************/
+void bqview_blk_0x14_u16 (struct SERIALSENDTASKBCB** pp);
+/*	@brief	: display parameters: Cell voltages
+ * *************************************************************************/
+void bqview_balance1 (struct SERIALSENDTASKBCB** pp);
+/* @brief    : display parameters: Cell deviation around average
+ * *************************************************************************/
+void bqview_balance_misc (struct SERIALSENDTASKBCB** pp);
+/* @brief    : display parameters: Max, min, etc.
+ * *************************************************************************/
 
 #endif
 

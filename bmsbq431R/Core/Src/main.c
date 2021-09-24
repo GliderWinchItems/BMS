@@ -35,6 +35,7 @@
 #include "DTW_counter.h"
 #include "BQTask.h"
 #include "bqview.h"
+#include "bqcellbal.h"
 
 #include "FreeRTOS.h"
 #include "semphr.h"
@@ -1178,10 +1179,17 @@ extern uint32_t cvflag;
 //    bqview_blk_0x9231 (&pbuf1);  yprintf(&pbuf1,"\n\r");
 //    bqview_blk_0x92fa (&pbuf1);  yprintf(&pbuf1,"\n\r");
     bqview_blk_0x62 (&pbuf1);
-    bqview_blk_0x0083 (&pbuf1);
 //    bqview_cuv_cov_snap_0x0080_0x0081 (&pbuf1);
     bqview_cb_status2_0x0086_0x0087 (&pbuf1);
-    bqview_blk_0x0071_u32 (&pbuf1);
+
+    /* Consolidation of cell-by-cell lines. */
+    bqview_blk_0x0071_u32 (&pbuf1); // ADC counts: voltage w current
+    bqview_blk_0x14_u16   (&pbuf1); // BQ reported cell voltages
+    bqview_blk_0x0083 (&pbuf1);
+    bqview_balance1 (&pbuf1);
+    bqview_balance_misc (&pbuf1);
+
+
     bqview_blk_0x0075_s16 (&pbuf1);
     bqview_blk_0x9335_14  (&pbuf1);
 
@@ -1300,7 +1308,7 @@ extern uint8_t bq_initflag; // 1 = signal BQ to initialize
       for (i = 0; i < 16; i++) csum += *pv++;
       yprintf (&pbuf1,"%7d", csum);
 
-      cvidx ^= 1; // Alternate buffers for readin/readout
+ //     cvidx ^= 1; // Alternate buffers for readin/readout
     }
     else
     { // Here, not getting valid I2C transfers from BQ

@@ -237,6 +237,14 @@ Zeners in case current sense goes open?
 
 SDA SCL pins are max 5.5v
 
+18. Alert pin to 'L431 is not usable
+
+Alert pin v max is REG18V.
+L431 min: 1.88v
+
+Remove from L431.
+
+
 
 
 

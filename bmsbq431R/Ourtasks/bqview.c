@@ -14,6 +14,7 @@
 
 #include "BQTask.h"
 #include "bqview.h"
+#include "bqcellbal.h"
 #include "yprintf.h"
 #include "BQ769x2Header.h"
 
@@ -96,23 +97,18 @@ void bqview_blk_0x0083 (struct SERIALSENDTASKBCB** pp)
 	uint16_t tmp = blk_0x0083_u16[0];
 
 // Cells actively being balanced
-	yprintf(pp,"\n\rCB_ACTIVE_CELLS 0x0083");
-	for (i = 1; i < 17; i++) yprintf(pp,"%4d", i); // Cell number header
-	yprintf(pp,"\n\r                      ");
+//	yprintf(pp,"\n\rCB_ACTIVE_CELLS 0x0083");
+//	for (i = 1; i < 17; i++) yprintf(pp,"%4d", i); // Cell number header
+	yprintf(pp,"\n\r        ");
 	for (i = 0; i < 16; i++)
 	{
 		if ((tmp & (1 << i)) == 0) 
 			c = '.';
 		else
 			c = '#';
-		yprintf(pp,"   %c", c);
+		yprintf(pp,"       %c", c);
 	}
 
-//Start balancing cells that are above the written voltage threshold.
-yprintf(pp,"\n\rCB_SET_LVL  0x0084: %5d mv",(int16_t)blk_0x0083_u16[1] );
-
-// Reports the number of seconds that balancing has been continuously active.
-yprintf(pp,"\n\rCBSTATUS1   0x0085: %5u sec",(uint16_t)blk_0x0083_u16[2] );
 		return;
 }
 /* *************************************************************************
@@ -145,15 +141,15 @@ extern uint32_t cb_status3_0x0087_u32[16]; // Seconds active cell balancing: 9 -
 void bqview_cb_status2_0x0086_0x0087 (struct SERIALSENDTASKBCB** pp)
 {
 	int i;
-	yprintf(pp,"\n\rCBSTATUS2 0x0086 CBSTATUS3 0x0087 (Total balancing time (secs) )\n\r  ");
-	for (i = 1; i < 17; i++) yprintf(pp," %6d", i);
-	yprintf(pp,"\n\r  ");
+	yprintf(pp,"\n\rCBSTATUS2 -CBSTATUS3 (0x0086 - 0x0087) (Total balancing time (secs) )\n\r        ");
+	for (i = 1; i < 17; i++) yprintf(pp,"%8d", i);
+	yprintf(pp,"\n\r        ");
 
 	for (i = 0; i < 8; i++)
-		yprintf(pp,"%7d",(uint32_t)cb_status2_0x0086_u32[i]);
+		yprintf(pp,"%8d",(uint32_t)cb_status2_0x0086_u32[i]);
 
 	for (i = 8; i < 16; i++)
-		yprintf(pp,"%7d",(uint32_t)cb_status3_0x0087_u32[i]);
+		yprintf(pp,"%8d",(uint32_t)cb_status3_0x0087_u32[i]);
 	return;
 
 }
@@ -189,8 +185,8 @@ void bqview_blk_0x0071_u32 (struct SERIALSENDTASKBCB** pp)
 {
 	int i;
 
-	yprintf(pp,"\n\rDSTATUS1-DSTATUS4 (0x0071-0x0074) current and voltage ADC COUNTS for each cell\n\r ");
-	for (i = 1; i < 17; i++) yprintf(pp," %8d", i); // Column header
+	yprintf(pp,"\n\rDSTATUS1-DSTATUS4 (0x0071-0x0074) current and voltage ADC COUNTS for each cell\n\r        ");
+	for (i = 1; i < 17; i++) yprintf(pp,"%8d", i); // Column header
 
 	yprintf(pp,"\n\rvoltage:");
 	for (i = 0; i < 16; i++) yprintf(pp,"%8d",cellcts.vi[i].v);
@@ -220,5 +216,50 @@ yprintf(pp,"\n\r\tCellBalanceStopDeltaCharge 0x933E %4u mv",(uint8_t)blk_0x9335_
 yprintf(pp,"\n\r\tCellBalanceMinCellVRelax   0x933F%5d mv", blk_0x9335_14[10] | blk_0x9335_14[11] << 8);//Settings:Cell Balancing Config:Cell Balance Min Cell V (Relax)			
 yprintf(pp,"\n\r\tCellBalanceMinDeltaRelax   0x9341 %4u mv", blk_0x9335_14[12]); //Settings:Cell Balancing Config:Cell Balance Min Delta (Relax)			
 yprintf(pp,"\n\r\tCellBalanceStopDeltaRelax  0x9342 %4u mv", blk_0x9335_14[13]); //Settings:Cell Balancing Config:Cell Balance Stop Delta (Relax)		
+	return;
+}
+/* *************************************************************************
+ * void bqview_blk_0x14_u16 (struct SERIALSENDTASKBCB** pp);
+ * @brief	: display parameters: Cell voltages
+ * *************************************************************************/
+extern int16_t cellv[2][BQVSIZE];
+extern uint8_t cvidx;
+void bqview_blk_0x14_u16 (struct SERIALSENDTASKBCB** pp)
+{
+	int i;
+	int16_t* pv = &cellv[cvidx][0];
+    yprintf(pp,"\n\r        ");
+    for (i = 0; i < 16; i++) yprintf(pp,"%8d",*pv++);
+
+    return;
+}
+/* *************************************************************************
+ * void bqview_balance1 (struct SERIALSENDTASKBCB** pp);
+ * @brief    : display parameters: Cell deviation around average
+ * *************************************************************************/
+void bqview_balance1 (struct SERIALSENDTASKBCB** pp)
+{
+	int i;
+	int16_t* p = &celldev[0];
+
+	bqcellbal_data ();
+	yprintf(pp,"\n\rabs dev ");
+	for (i = 0; i < 16; i++) yprintf(pp,"%8d",*p++);
+	return;
+}
+/* *************************************************************************
+ * void bqview_balance_misc (struct SERIALSENDTASKBCB** pp);
+ * @brief    : display parameters: Max, min, etc.
+ * *************************************************************************/
+void bqview_balance_misc (struct SERIALSENDTASKBCB** pp)
+{
+	yprintf(pp,"\n\rAve:%5d Max%5d cell%3d: Min%5d cell%3d:",cellave,cellmax,cellmaxidx+1,cellmin,cellminidx+1);
+	yprintf(pp,"Abs%5d cell%3d:",cellabs,cellabsidx+1);
+
+	//Start balancing cells that are above the written voltage threshold.
+yprintf(pp,"\n\rCB_SET_LVL  0x0084: %5d mv",(int16_t)blk_0x0083_u16[1] );
+
+// Reports the number of seconds that balancing has been continuously active.
+yprintf(pp,"\n\rCBSTATUS1   0x0085: %5u sec",(uint16_t)blk_0x0083_u16[2] );
 	return;
 }
