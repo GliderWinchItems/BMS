@@ -11,8 +11,11 @@
 #include "FreeRTOS.h"
 #include "cmsis_os.h"
 #include "stm32l4xx_hal.h"
+#include "bq_idx_v_struct.h"
 
 #define BQVSIZE 20 // Readout loop size (16 cells plus others)
+
+#define NUMCANMSGS 16 // 
 
 
 /* Cell current voltage for last measurement. */
@@ -34,11 +37,44 @@ struct BQPN
 	uint8_t  n;
 };
 
+/* Working struct for BQ function. */
 struct BQFUNCTION
 {
-	uint32_t x;
+   // Parameter loaded either by high-flash copy, or hard-coded subroutine
+	struct BQLC lc; // Fixed parameters, (lc = Local Copy)
+
+//	struct ADCFUNCTION* padc; // Pointer to ADC working struct
+
+	/* Timings in milliseconds. Converted later to timer ticks. */
+	uint32_t ka_k;        // Gevcu polling timer
+	uint32_t keepalive_k;
+
+	uint32_t hbct_k;      // Heartbeat ct: ticks between sending
+
+	uint8_t chargeflag;  // 0 = No charging; not zero = charging
+	uint8_t dumpflag;    // 0 = Dump FET OFF; not zero = dump fet ON
+	uint8_t extchgrflag; // 0 = Dump2 (external charger) OFF; not zero = ON
+	uint8_t cellv_ok;    // 0 = voltage readings not valid; not zero = OK
+
+	uint16_t tim1_ccr1;  // Present CCR1 (PWM count)
+
+	uint32_t cellv_latest[16];
+
+	/* Pointers to incoming CAN msg mailboxes. */
+//	struct MAILBOXCAN* pmbx_cid_gps_sync;        // CANID_HB_TIMESYNC:  U8 : GPS_1: U8 GPS time sync distribution msg-GPS time sync msg
+//	struct MAILBOXCAN* pmbx_cid_drum_tst_stepcmd;// CANID_TST_STEPCMD: U8_FF DRUM1: U8: Enable,Direction, FF: CL position: E4600000
+
+
+	uint8_t state;      // main state
+	uint8_t substateA;  // 
+	uint8_t substateB;  // spare substate 
+
+	/* CAN msgs */
+//	struct CANTXQMSG canmsg[NUMCANMSGS];
+
 
 };
+
 
 /* *************************************************************************/
 TaskHandle_t xBQTaskCreate(uint32_t taskpriority);

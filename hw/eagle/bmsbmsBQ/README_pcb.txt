@@ -244,6 +244,31 @@ L431 min: 1.88v
 
 Remove from L431.
 
+19. R119 (hv divider)
+
+3.3K|270K
+47K|4M
+
+20. Charger test config (09/26/2021)
+
+R128 open
+R110 zero
+R115 3.3K hv div
+R119 270K hv div
+R117 open
+R118 15 FET drive gate series
+R120 1 output current sense
+R6   FET source current sense
+R23  open
+R9   PA0-OP current sense rc
+TLV521 no
+PMEG diode yes
+
+
+
+
+
+
 
 
 

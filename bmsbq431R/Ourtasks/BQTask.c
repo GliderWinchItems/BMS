@@ -14,6 +14,8 @@
 
 #include "BQTask.h"
 #include "BQ769x2Header.h"
+#include "bq_idx_v_struct.h"
+#include "bq_func_init.h"
 
 extern I2C_HandleTypeDef hi2c1;
 
@@ -24,6 +26,8 @@ static uint8_t cmdcom(uint8_t* pr, uint8_t nr, uint8_t cmd);
 static void morse_sos(void);
 static uint8_t readblock_cmd(uint8_t* pr, uint8_t nr, uint8_t cmd);
 static uint8_t getcellv(void);
+
+struct BQFUNCTION bqfunction;
 
 uint8_t bqchksum(uint8_t* ptr, uint8_t len);
 
@@ -158,6 +162,10 @@ static void bq_init(void)
 
 void StartBQTask(void* argument)
 {
+//while(1==1) osDelay(100); // Temp nix BQ'ing
+	struct BQFUNCTION* p;
+	int i;
+
 #define DDSG_TEST
 #ifdef DDSG_TEST	
 uint8_t ddsgalt = 0;
@@ -240,7 +248,7 @@ uint8_t ddsgctr = 0;
 
 		/* Cell balancing  */
 // uint8_t subcmdcomW(uint16_t cmd, uint16_t data, uint8_t nd, uint8_t config)
-ret = subcmdcomW(CB_ACTIVE_CELLS,(uint16_t)0x0011, 2, 0); // Active cells balancing
+ret = subcmdcomW(CB_ACTIVE_CELLS,(uint16_t)0x0000, 2, 0); // Active cells balancing
 if (ret != 0) morse_string("BA",GPIO_PIN_1);	
 
 //ret = subcmdcomW(CB_SET_LVL,(uint8_t)0x0005, 2, 0); // Set balance level
@@ -266,6 +274,9 @@ if (ddsgctr >= 4)
 #endif
 		/* Read cell voltages, plus extras */
 		getcellv();
+
+
+
 
 		osDelay(300);
 	}
