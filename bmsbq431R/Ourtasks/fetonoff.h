@@ -7,18 +7,8 @@
 #ifndef __FETONOFF
 #define __FETONOFF
 
-/* FET numbering. */
-#define FETON_DUMP    1  // Battery module discharge "dump"
-#define FETON_DUMP2   2  // Spare for relays, etc.
-#define FETON_HEATER  3  // Battery module warmup heater
-
-/* Bit ON = FET I/O Pins set for FET to be ON. */
-#define FETON_DUMP_STATUS   (1<<0)
-#define FETON_DUMP2_STATUS  (1<<1) 
-#define FETON_HEATER_STATUS (1<<2)
-
-#define FETON_SETOFF  0  // Turn FET off
-#define FETON_SETON   1  // Turn FET on
+#define FET_SETOFF  0  // Turn FET off
+#define FET_SETON   1  // Turn FET on
 
 /* *************************************************************************/
 uint8_t fetonoff(uint8_t fetnum, uint8_t fetcommand);
@@ -27,11 +17,10 @@ uint8_t fetonoff(uint8_t fetnum, uint8_t fetcommand);
  * @param	: fetcommand: 1 = on; not 1 = off
  * @return  : byte with bits set/reset for each FET 
  * *************************************************************************/
-uint8_t fetonoff_status(void);
-/* @brief	: Return status
- * @return  : byte with bits set/reset for each FET 
+void fetonoff_status_set(uint8_t status);
+/* @brief	: Set FETs according to status byte (see BQTask.h)
+ * @param   : status = status bits
  * *************************************************************************/
-
 
 #endif
 

@@ -37,8 +37,16 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
 
    p->dac1_hv_setting = 2900; // 65.2 volt limit
    p->dac2_ix_setting = 116;  //62;   // Current sense level setting
-   p->tim1_ccr1_ON    = 50;   // PWM ON count.
+   p->tim1_ccr1_on    = 50;   // PWM ON count.
    p->tim1_arr_init   = 79;   // At 16 MHz: count of 80 = 5 us PWM frame
+
+   p->cellv_max   = 4100;   // Max limit for charging any cell
+   p->cellv_min   = 3350;   // Min limit for any discharging
+   p->modulev_max = (16*3400); // Battery module max limit
+   p->modulev_min = (16*4150); // Battery module min limit
+
+   p->balnummax   = 4;  // Max number of cells to discharge at one time
+   p->cellbal_del = 8;  // Balance within lowest cellv + this delta (mv)
  
 
 // CAN ids levelwind sends

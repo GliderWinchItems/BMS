@@ -17,6 +17,15 @@
 
 #define NUMCANMSGS 16 // 
 
+#define BSTATUS_NOREADING (1 << 0)	// Exactly zero = no reading
+#define BSTATUS_OPENWIRE  (1 << 1)  // Negative or over 5v indicative of open wire
+#define BSTATUS_CELLTOOHI (1 << 2)  // One or more cells above max limit
+
+#define FET_DUMP    (1 << 0) // 1 = DUMP FET ON
+#define FET_HEATER  (1 << 1) // 1 = HEATER FET ON
+#define FET_DUMP2   (1 << 2) // 1 = DUMP2 FET ON
+#define FET_CHGR    (1 << 3) // 1 = Charger FET enabled
+
 
 /* Cell current voltage for last measurement. */
 struct VI
@@ -35,6 +44,13 @@ struct BQPN
 {
 	uint8_t* p;
 	uint8_t  n;
+};
+
+struct BQCELLV
+{
+	int16_t v; // Cell voltage reading (mv)
+	uint8_t i; // Cell array index (0 - 15)
+	uint8_t s; // Cell selection TBD (maybe not used)
 };
 
 /* Working struct for BQ function. */
@@ -58,7 +74,22 @@ struct BQFUNCTION
 
 	uint16_t tim1_ccr1;  // Present CCR1 (PWM count)
 
-	uint32_t cellv_latest[16];
+	struct BQCELLV cellv_bal[16]; // Working array for cell balancing
+	int16_t cellv_latest[16]; // Cell voltage readings (millivolts) (signed)
+	int32_t cellv_total;  // Some of cell voltages
+	int16_t cellv_high;   // Highest cellv millivolts
+	int16_t cellv_low;    // Lowest  cellv millivolts
+	uint8_t cellx_high;   // Highest cellv index (0-15)
+	uint8_t cellx_low;    // Lowest  cellv index (0-15)
+
+	uint16_t cellbal;  // Bits to activate cell balance fets
+	uint8_t active_ct; // Count of bits in cellbal
+	uint8_t battery_status; // Cell status Bits 
+	uint8_t fet_status;     // FET bits
+
+	/* balnumwrk might be adjusted based on chip temperature. */
+	uint8_t balnumwrk; // Max number of active cell bits (Working)
+
 
 	/* Pointers to incoming CAN msg mailboxes. */
 //	struct MAILBOXCAN* pmbx_cid_gps_sync;        // CANID_HB_TIMESYNC:  U8 : GPS_1: U8 GPS time sync distribution msg-GPS time sync msg

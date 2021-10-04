@@ -9,9 +9,7 @@
 #include "main.h"
 #include "fetonoff.h"
 #include "morse.h"
-
-/* Status of FETs in the bits of the byte. */
-static uint8_t fetonoffstatus = 0; 
+#include "BQTask.h"
 
 /* *************************************************************************
  * uint8_t fetonoff(uint8_t fetnum, unit8_t fetcommand);
@@ -22,25 +20,31 @@ static uint8_t fetonoffstatus = 0;
  * *************************************************************************/
 uint8_t fetonoff(uint8_t fetnum, uint8_t fetcommand)
 {
-	if (fetcommand == FETON_SETON)
+	struct BQFUNCTION* pbq = &bqfunction;
+
+	if (fetcommand == FET_SETON)
 	{ /* Set I/O pins to turn FET ON. */
 		switch (fetnum)
 		{
-		case FETON_DUMP:   // DUMP = Battery module discharge "dump"
+		case FET_DUMP:   // DUMP = Battery module discharge "dump"
 			HAL_GPIO_WritePin(DUMP_NOT_GPIO_Port,DUMP_NOT_Pin, GPIO_PIN_RESET);
 			HAL_GPIO_WritePin(DUMP_GPIO_Port,DUMP_Pin, GPIO_PIN_SET);
-			fetonoffstatus |= FETON_DUMP_STATUS;
+			pbq->fet_status |= FET_DUMP;
 			break;
 
-		case FETON_DUMP2:  // DUMP2 = Spare for relays, etc.
+		case FET_DUMP2:  // DUMP2 = Spare for relays, etc.
 			HAL_GPIO_WritePin(DUMP2_GPIO_Port,DUMP2_Pin, GPIO_PIN_SET);
-			fetonoffstatus |= FETON_DUMP2_STATUS;
+			pbq->fet_status |= FET_DUMP2;
 			break;
 
-		case FETON_HEATER: // Battery module warmup heater
+		case FET_HEATER: // Battery module warmup heater
 			HAL_GPIO_WritePin(HEATER_NOT_GPIO_Port, HEATER_NOT_Pin, GPIO_PIN_RESET);
 			HAL_GPIO_WritePin(HEATER_GPIO_Port,HEATER_Pin, GPIO_PIN_SET);
-			fetonoffstatus |= FETON_HEATER_STATUS;
+			pbq->fet_status |= FET_HEATER;
+
+		 case FET_CHGR:
+		 	TIM1->CCR1 = pbq->tim1_ccr1; // FET ON time
+			pbq->fet_status |= FET_CHGR;
 			break;
 
 		default: // Bogus FET designation
@@ -52,21 +56,26 @@ uint8_t fetonoff(uint8_t fetnum, uint8_t fetcommand)
 	{ /* Set I/O pins to turn FET OFF. */
 		switch (fetnum)
 		{
-		case FETON_DUMP:   // Battery module discharge "dump"
+		case FET_DUMP:   // Battery module discharge "dump"
 			HAL_GPIO_WritePin(DUMP_NOT_GPIO_Port,DUMP_NOT_Pin, GPIO_PIN_SET);
 			HAL_GPIO_WritePin(DUMP_GPIO_Port,DUMP_Pin, GPIO_PIN_RESET);
-			fetonoffstatus &= ~FETON_DUMP_STATUS;
+			pbq->fet_status &= ~FET_DUMP;
 			break;
 
-		case FETON_DUMP2:  // DUMP2 = Spare for relays, etc.
+		case FET_DUMP2:  // DUMP2 = Spare for relays, etc.
 			HAL_GPIO_WritePin(DUMP2_GPIO_Port,DUMP2_Pin, GPIO_PIN_RESET);
-			fetonoffstatus &= ~FETON_DUMP2_STATUS;
+			pbq->fet_status &= ~FET_DUMP2;
 			break;
 
-		case FETON_HEATER: // Battery module warmup heater
+		case FET_HEATER: // Battery module warmup heater
 			HAL_GPIO_WritePin(HEATER_NOT_GPIO_Port, HEATER_NOT_Pin, GPIO_PIN_SET);
 			HAL_GPIO_WritePin(HEATER_GPIO_Port,HEATER_Pin, GPIO_PIN_RESET);
-			fetonoffstatus &= ~FETON_HEATER_STATUS;
+			pbq->fet_status &= ~FET_HEATER;
+			break;
+
+		 case FET_CHGR:
+		 	TIM1->CCR1 = 0; // FET ON time
+			pbq->fet_status &= ~FET_CHGR;
 			break;
 
 		default: // Bogus FET bit designation
@@ -74,14 +83,34 @@ uint8_t fetonoff(uint8_t fetnum, uint8_t fetcommand)
 			break;
 		}
 	}
-	return fetonoffstatus;
+	return pbq->fet_status;
 }
 /* *************************************************************************
- * uint8_t fetonoff_status(void);
- * @brief	: Return status
- * @return  : byte with bits set/reset for each FET 
+ * void fetonoff_status_set(uint8_t status);
+ * @brief	: Set FETs according to status byte (see BQTask.h)
+ * @param   : status = status bits
  * *************************************************************************/
-uint8_t fetonoff_status(void)
+void fetonoff_status_set(uint8_t status)
 {
-	return fetonoffstatus;
+	if ((status & FET_DUMP)    == 0)  // External charger
+		fetonoff( FET_DUMP,   FET_SETOFF);
+	else
+		fetonoff( FET_DUMP,   FET_SETON);
+
+	if ((status & FET_DUMP2)   == 0)   // Module discharge
+		fetonoff( FET_DUMP2,  FET_SETOFF);
+	else
+		fetonoff( FET_DUMP2,  FET_SETON); 
+
+	if ((status & FET_HEATER) == 0) // Module heatger
+		fetonoff( FET_HEATER, FET_SETOFF);
+	else
+		fetonoff( FET_HEATER, FET_SETON);
+
+	if ((status & FET_CHGR)   == 0) // Charger switching FET
+		fetonoff( FET_CHGR,  FET_SETOFF);
+	else
+		fetonoff( FET_CHGR,  FET_SETON);
+
+	return;
 }

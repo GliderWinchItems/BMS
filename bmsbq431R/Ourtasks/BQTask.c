@@ -16,6 +16,8 @@
 #include "BQ769x2Header.h"
 #include "bq_idx_v_struct.h"
 #include "bq_func_init.h"
+#include "fetonoff.h"
+#include "bq_items.h"
 
 extern I2C_HandleTypeDef hi2c1;
 
@@ -26,6 +28,7 @@ static uint8_t cmdcom(uint8_t* pr, uint8_t nr, uint8_t cmd);
 static void morse_sos(void);
 static uint8_t readblock_cmd(uint8_t* pr, uint8_t nr, uint8_t cmd);
 static uint8_t getcellv(void);
+static void read_all(void);
 
 struct BQFUNCTION bqfunction;
 
@@ -120,7 +123,7 @@ static void bq_init(void)
 		if (ret != 0) morse_string("U",GPIO_PIN_1);
 
 		/* GPIO. */
-// $$$$ 0x09 uses REG18 for active hi! Just for test		
+// $$$$ 0x09 uses REG18 for GPIO voltage active high. Just for test		
 		ret = subcmdcomW(DDSGPinConfig,    0x09, 1, 1); // REG18 pullup, active hi
 		if (ret != 0) morse_string("U",GPIO_PIN_1);
 
@@ -137,16 +140,13 @@ static void bq_init(void)
 		ret = subcmdcomR((uint8_t*)&device_number_u16, 2, DEVICE_NUMBER);
 		if (ret != 0) morse_string("I",GPIO_PIN_1);
 
-		// Device, Firmwave
+		// Device, Firmware
 		ret = subcmdcomR((uint8_t*)&fw_version_6, 6, FW_VERSION);
 		if (ret != 0) morse_string("I",GPIO_PIN_1);
 		// Convert to Big Endian
 		fw_version_u16[0] = fw_version_6[0] << 8 | fw_version_6[1];
 		fw_version_u16[1] = fw_version_6[2] << 8 | fw_version_6[3];
 		fw_version_u16[2] = fw_version_6[4] << 8 | fw_version_6[5];
-
-
-
 
 		ret = subcmdcomR((uint8_t*)&hw_version_u16, 2, HW_VERSION);
 		if (ret != 0) morse_string("I",GPIO_PIN_1);
@@ -163,15 +163,21 @@ static void bq_init(void)
 void StartBQTask(void* argument)
 {
 //while(1==1) osDelay(100); // Temp nix BQ'ing
-	struct BQFUNCTION* p;
-	int i;
+//	struct BQFUNCTION* p;
+//	int i;
 
-#define DDSG_TEST
+//#define DDSG_TEST
 #ifdef DDSG_TEST	
 uint8_t ddsgalt = 0;
 uint8_t ddsgctr = 0;
+uint8_t bqstate = 0;
 #endif
+
+
+	struct BQFUNCTION* pbq = &bqfunction;
+	uint32_t osdelay = 500;
 	uint8_t ret;
+	uint8_t bqstate = 0;
 
 	/* Wake up BQ if it is SHUTDOWN mode. */
 	HAL_GPIO_WritePin(GPIOD,GPIO_PIN_2,GPIO_PIN_RESET);
@@ -182,8 +188,6 @@ uint8_t ddsgctr = 0;
 
 	bq_init();
 
-	
-//	while (bqconfig() != 0) 
 	ret = bqconfig();
 	if (ret != 0)
 	{
@@ -191,75 +195,54 @@ uint8_t ddsgctr = 0;
 		osDelay(50);
 	}
 
-
 	for (;;)
 	{
-	//	HAL_GPIO_WritePin(GPIOB,GPIO_PIN_1,GPIO_PIN_RESET); // RED LED ON
-	//	osDelay(50);
-	//	HAL_GPIO_WritePin(GPIOB,GPIO_PIN_1,GPIO_PIN_SET); // RED LED OFF
+		osDelay(osdelay);
 
 		if (bq_initflag != 0) bq_init();
 
-		/* Read block with lots of stuff. */
-		ret = subcmdcomR((uint8_t*)&blk_0x9231_12, 12, 0x9231);
-		if (ret != 0) morse_string("T",GPIO_PIN_1);	
+		switch (bqstate)
+		{
+		case 0: // Turn off charging & discharging
+			ret = subcmdcomW(CB_ACTIVE_CELLS,(uint16_t)0x0000, 2, 0); // Active cells balancing
+			if (ret != 0) morse_string("BA",GPIO_PIN_1);
 
-		/* Read block with lots of stuff. */
-		ret = subcmdcomR((uint8_t*)&blk_0x92fa_11, 11, 0x92fa);
-		if (ret != 0) morse_string("M",GPIO_PIN_1);	
+			/* Turn of all fets: charger(s), heater, etc. */
+			fetonoff_status_set(0);
 
-		
-		ret = readblock_cmd((uint8_t*)&blk_0x62_u16[0], 14*2, 0x62);
-		if (ret != 0) morse_string("W",GPIO_PIN_1);	
+			osDelay(300); // Wait for next complete BQ reading cycle
 
-		/* Cell balancing data. */
-		ret = subcmdcomR((uint8_t*)&blk_0x0083_u16[0], 3*2, 0x0083);
-		if (ret != 0) morse_string("C3",GPIO_PIN_1);	
+			/* Read cell voltages, plus extras */
+			getcellv();
 
-		// Records the cell voltage measurement made just after the latest CUV event.
-		ret = subcmdcomR((uint8_t*)&cuv_snap_0x0080_s16[0], 16*2, 0x0080);
-		if (ret != 0) morse_string("CSP1",GPIO_PIN_1);
+			/* Determine cells to balance. */
+			bq_items_seq(&cellv[(cvidx)][0]);
 
-		// Records the cell voltage measurement made just after the latest COV event
-		ret = subcmdcomR((uint8_t*)&cov_snap_0x0081_s16[0], 16*2, 0x0081);
-		if (ret != 0) morse_string("CSP2",GPIO_PIN_1);	
+			/* Set FETs accordingly. */
+			fetonoff_status_set(pbq->fet_status);
 
-		// Reports the cumulative number of seconds that balancing has been 
-		//   active on this cell since the last device reset.
-		ret = subcmdcomR((uint8_t*)&cb_status2_0x0086_u32[0], 8*4, 0x0086);
-		if (ret != 0) morse_string("CBT1",GPIO_PIN_1);	
-		ret = subcmdcomR((uint8_t*)&cb_status3_0x0087_u32[0], 8*4, 0x0087);
-		if (ret != 0) morse_string("CBT2",GPIO_PIN_1);	
+			/* Cell balancing  */
+			// uint8_t subcmdcomW(uint16_t cmd, uint16_t data, uint8_t nd, uint8_t config)
+			ret = subcmdcomW(CB_ACTIVE_CELLS,(uint16_t)pbq->cellbal, 2, 0); // Active cells balancing
+			if (ret != 0) morse_string("BA",GPIO_PIN_1);	
 
-		/* Read ADC counts for current and voltage for each cell. */
-		// ADC count for current measurement taken during the cell voltage measurement.
-		ret = subcmdcomR((uint8_t*)&cellcts.blk[0][0], 4*2*4, 0x0071);
-		if (ret != 0) morse_string("DS1",GPIO_PIN_1);	
-		ret = subcmdcomR((uint8_t*)&cellcts.blk[4][0], 4*2*4, 0x0072);
-		if (ret != 0) morse_string("DS1",GPIO_PIN_1);	
-		ret = subcmdcomR((uint8_t*)&cellcts.blk[8][0], 4*2*4, 0x0073);
-		if (ret != 0) morse_string("DS1",GPIO_PIN_1);	
-		ret = subcmdcomR((uint8_t*)&cellcts.blk[12][0], 4*2*4, 0x0074);
-		if (ret != 0) morse_string("DS1",GPIO_PIN_1);	
+			/* Cell balancing parameters. */
+			ret = subcmdcomR((uint8_t*)&blk_0x9335_14, 14, BalancingConfiguration);
+			if (ret != 0) morse_string("CB3",GPIO_PIN_1);	
 
-		/* Misc ADC counts, VREG18 - CC3. */
-		ret = subcmdcomR((uint8_t*)&blk_0x0075_s16[0], 16*2, 0x0075);
-		if (ret != 0) morse_string("DS5",GPIO_PIN_1);	
+			read_all(); // This takes (100 * 13) ms
+			osdelay = 10000-1300; // Wait another 10 secs
+			break;
 
-		/* Cell balancing  */
-// uint8_t subcmdcomW(uint16_t cmd, uint16_t data, uint8_t nd, uint8_t config)
-ret = subcmdcomW(CB_ACTIVE_CELLS,(uint16_t)0x0000, 2, 0); // Active cells balancing
-if (ret != 0) morse_string("BA",GPIO_PIN_1);	
+		case 1:
+			read_all();
+			getcellv();
+			osdelay = 700;
+			break;
+		}
+	}
 
-//ret = subcmdcomW(CB_SET_LVL,(uint8_t)0x0005, 2, 0); // Set balance level
-//if (ret != 0) morse_string("BA1",GPIO_PIN_1);	
-
-		/* Cell balancing parameters. */
-		ret = subcmdcomR((uint8_t*)&blk_0x9335_14, 14, BalancingConfiguration);
-		if (ret != 0) morse_string("CB3",GPIO_PIN_1);	
-
-
-
+// Save code for now
 #ifdef DDSG_TEST // Test DDSG gpio on/off working
 ddsgctr += 1;
 if (ddsgctr >= 4)	
@@ -272,14 +255,7 @@ if (ddsgctr >= 4)
 	ddsgalt ^= 1;
 }
 #endif
-		/* Read cell voltages, plus extras */
-		getcellv();
 
-
-
-
-		osDelay(300);
-	}
 }
 /* *************************************************************************
  * TaskHandle_t xBQTaskCreate(uint32_t taskpriority);
@@ -551,3 +527,58 @@ static uint8_t readblock_cmd(uint8_t* pr, uint8_t nr, uint8_t cmd)
    	osDelay(3);
    	return ret;
  }
+ /* *************************************************************************
+ * static void read_all(void);
+ * @brief	: Read bq data
+ * *************************************************************************/
+static void read_all(void)
+{
+		int ret;
+
+ 		/* Read block with lots of stuff. */
+		ret = subcmdcomR((uint8_t*)&blk_0x9231_12, 12, 0x9231);
+		if (ret != 0) morse_string("T",GPIO_PIN_1);	
+
+		/* Read block with lots of stuff. */
+		ret = subcmdcomR((uint8_t*)&blk_0x92fa_11, 11, 0x92fa);
+		if (ret != 0) morse_string("M",GPIO_PIN_1);	
+
+		
+		ret = readblock_cmd((uint8_t*)&blk_0x62_u16[0], 14*2, 0x62);
+		if (ret != 0) morse_string("W",GPIO_PIN_1);	
+
+		/* Cell balancing data. */
+		ret = subcmdcomR((uint8_t*)&blk_0x0083_u16[0], 3*2, 0x0083);
+		if (ret != 0) morse_string("C3",GPIO_PIN_1);	
+
+		// Records the cell voltage measurement made just after the latest CUV event.
+		ret = subcmdcomR((uint8_t*)&cuv_snap_0x0080_s16[0], 16*2, 0x0080);
+		if (ret != 0) morse_string("CSP1",GPIO_PIN_1);
+
+		// Records the cell voltage measurement made just after the latest COV event
+		ret = subcmdcomR((uint8_t*)&cov_snap_0x0081_s16[0], 16*2, 0x0081);
+		if (ret != 0) morse_string("CSP2",GPIO_PIN_1);	
+
+		// Reports the cumulative number of seconds that balancing has been 
+		//   active on this cell since the last device reset.
+		ret = subcmdcomR((uint8_t*)&cb_status2_0x0086_u32[0], 8*4, 0x0086);
+		if (ret != 0) morse_string("CBT1",GPIO_PIN_1);	
+		ret = subcmdcomR((uint8_t*)&cb_status3_0x0087_u32[0], 8*4, 0x0087);
+		if (ret != 0) morse_string("CBT2",GPIO_PIN_1);	
+
+		/* Read ADC counts for current and voltage for each cell. */
+		// ADC count for current measurement taken during the cell voltage measurement.
+		ret = subcmdcomR((uint8_t*)&cellcts.blk[0][0], 4*2*4, 0x0071);
+		if (ret != 0) morse_string("DS1",GPIO_PIN_1);	
+		ret = subcmdcomR((uint8_t*)&cellcts.blk[4][0], 4*2*4, 0x0072);
+		if (ret != 0) morse_string("DS1",GPIO_PIN_1);	
+		ret = subcmdcomR((uint8_t*)&cellcts.blk[8][0], 4*2*4, 0x0073);
+		if (ret != 0) morse_string("DS1",GPIO_PIN_1);	
+		ret = subcmdcomR((uint8_t*)&cellcts.blk[12][0], 4*2*4, 0x0074);
+		if (ret != 0) morse_string("DS1",GPIO_PIN_1);	
+
+		/* Misc ADC counts, VREG18 - CC3. */
+		ret = subcmdcomR((uint8_t*)&blk_0x0075_s16[0], 16*2, 0x0075);
+		if (ret != 0) morse_string("DS5",GPIO_PIN_1);
+	return;
+}	

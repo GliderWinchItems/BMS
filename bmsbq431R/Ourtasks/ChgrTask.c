@@ -64,6 +64,8 @@ void StartChgrTask(void* argument)
 
 	TIM1->CCR1 = p->tim1_ccr1; // FET ON time
 
+bqfunction.chargeflag = 0;
+bqfunction.tim1_ccr1 = bqfunction.lc.tim1_ccr1_on;
 	for (;;)
 	{
 		/* Short blink green led */
@@ -76,7 +78,7 @@ void StartChgrTask(void* argument)
 		/* Internal charger control. */
 		if (p->chargeflag != 0)
 		{ // Here, set charging 
-			TIM1->CCR1 = p->tim1_ccr1; // Set charge rate
+			TIM1->CCR1 = bqfunction.tim1_ccr1; // Set charge rate
 		}
 		else
 		{ // Here, stop charging
@@ -86,21 +88,21 @@ void StartChgrTask(void* argument)
 		/* DUMP controls module discharging FET. */
 		if (p->dumpflag != 0)
 		{ // Here, turn on FET for resistor discharge
-			fetonoff(FETON_DUMP,  FETON_SETON);
+			fetonoff(FET_DUMP,  FET_SETON);
 		}
 		else
 		{ // Here, turn off FET for resistor discharge
-			fetonoff(FETON_DUMP,  FETON_SETOFF);
+			fetonoff(FET_DUMP,  FET_SETOFF);
 		}
 
 		/* DUMP2 controls external charger. */
 		if ((p->extchgrflag != 0) && (p->chargeflag != 0))
 		{ // Here, turn on external module (or string?) charger
-			fetonoff(FETON_DUMP2,  FETON_SETON);
+			fetonoff(FET_DUMP2,  FET_SETON);
 		}
 		else
 		{ // Here, turn it off.
-			fetonoff(FETON_DUMP2,  FETON_SETOFF);
+			fetonoff(FET_DUMP2,  FET_SETOFF);
 		}
 	} 
 }

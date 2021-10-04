@@ -25,11 +25,21 @@ void bq_func_init(struct BQFUNCTION* p)
 	p->tim1_ccr1    = 0;  // Charger FET ON time initially set for no charging.
 	p->cellv_ok     = 0;  // Cell voltage readings (cellv_latest[16]) initially not valid
 
+	p->cellbal        = 0; // Bits to activate cell balance fets
+	p->battery_status = 0; // Cell status Bits 
+	p->fet_status     = 0; // FET bits
+
 	p->state      = 0;  // main state
 	p->substateA  = 0;  // 
 	p->substateB  = 0;  // spare substate 
 
-	for (i = 0; i < 16; i ++) p->cellv_latest[i] = 0;
+	for (i = 0; i < 16; i ++)
+	{
+		p->cellv_latest[i] = 0;
+	}
+
+	p->balnumwrk = p->lc.balnummax; // Working number of active cell balancing bits
+
 
 
 		/* Pointers to incoming CAN msg mailboxes. */

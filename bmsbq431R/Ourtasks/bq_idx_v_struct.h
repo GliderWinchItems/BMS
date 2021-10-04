@@ -29,8 +29,17 @@ struct BQLC
 
    uint16_t dac1_hv_setting; // 65.2 volt limit
    uint16_t dac2_ix_setting; //62;   // Current sense level setting
-   uint16_t tim1_ccr1_ON; // PWM ON count.
+   uint16_t tim1_ccr1_on; // PWM ON count.
    uint16_t tim1_arr_init;   // Initial ARR (PWM frame) count - 1
+
+   /* The following are measured at no-charging, no-load */
+   int16_t cellv_max;   // Max limit for charging any cell
+   int16_t cellv_min;   // Min limit for any discharging
+   uint32_t modulev_max; // Battery module max limit
+   uint32_t modulev_min; // Battery module min limit
+
+   uint8_t balnummax;    // Max number of cells to discharge at one time
+   int16_t cellbal_del;  // Balance within lowest cellv + this delta (mv)
 
  // CAN ids ...........................................................................
    //                                  CANID_NAME             CAN_MSG_FMT     DESCRIPTION

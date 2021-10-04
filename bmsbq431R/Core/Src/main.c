@@ -37,6 +37,7 @@
 #include "bqview.h"
 #include "bqcellbal.h"
 #include "ChgrTask.h"
+#include "bq_func_init.h"
 
 #include "FreeRTOS.h"
 #include "semphr.h"
@@ -1196,9 +1197,9 @@ extern uint16_t ddsgp_config_u16;
 #ifdef DUMPandHEATER_TEST
 //AL_GPIO_WritePin(DUMP_NOT_GPIO_Port,DUMP_NOT_Pin, GPIO_PIN_SET);    
 //HAL_GPIO_WritePin(HEATER_NOT_GPIO_Port, HEATER_NOT_Pin, GPIO_PIN_SET);
-    fetonoff(FETON_DUMP,  FETON_SETON);
-    fetonoff(FETON_DUMP2, FETON_SETON);
-   fetonoff(FETON_HEATER,FETON_SETON);
+    fetonoff(FET_DUMP,  FET_SETON);
+    fetonoff(FET_DUMP2, FET_SETON);
+   fetonoff(FET_HEATER,FET_SETON);
 #endif
  //   osDelay(500);
 //    HAL_GPIO_WritePin(GPIOB,GPIO_PIN_1,GPIO_PIN_SET); // RED LED
@@ -1207,9 +1208,9 @@ extern uint16_t ddsgp_config_u16;
 #ifdef DUMPandHEATER_TEST
 //   HAL_GPIO_WritePin(DUMP_NOT_GPIO_Port,DUMP_NOT_Pin, GPIO_PIN_RESET);
 //  HAL_GPIO_WritePin(HEATER_NOT_GPIO_Port, HEATER_NOT_Pin, GPIO_PIN_RESET);
-    fetonoff(FETON_DUMP,  FETON_SETOFF);
-    fetonoff(FETON_DUMP2, FETON_SETOFF);
-    fetonoff(FETON_HEATER,FETON_SETOFF);
+    fetonoff(FET_DUMP,  FET_SETOFF);
+    fetonoff(FET_DUMP2, FET_SETOFF);
+    fetonoff(FET_HEATER,FET_SETOFF);
 #endif
 
 

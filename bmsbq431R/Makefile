@@ -112,6 +112,8 @@ C_SOURCES += Ourtasks/bqcellbal.c
 C_SOURCES += Ourtasks/ChgrTask.c
 C_SOURCES += Ourtasks/bq_idx_v_struct.c
 C_SOURCES += Ourtasks/bq_func_init.c
+C_SOURCES += Ourtasks/LedTask.c
+C_SOURCES += Ourtasks/bq_items.c
 
 # /* USER CODE END */ 
 
