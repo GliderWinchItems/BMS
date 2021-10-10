@@ -263,3 +263,27 @@ yprintf(pp,"\n\rCB_SET_LVL  0x0084: %5d mv",(int16_t)blk_0x0083_u16[1] );
 yprintf(pp,"\n\rCBSTATUS1   0x0085: %5u sec",(uint16_t)blk_0x0083_u16[2] );
 	return;
 }
+/* *************************************************************************
+ * void bqview_our_params (struct SERIALSENDTASKBCB** pp);
+ * @brief    : display parameters
+ * *************************************************************************/
+void bqview_our_params (struct SERIALSENDTASKBCB** pp)
+{
+	struct BQFUNCTION* p = &bqfunction;
+
+	yprintf(pp,"\n\rcellbal: %04X fet_status: %02X battery_status: %02X cellv_high:%5d cellv_low:%5d",
+		p->cellbal, p->fet_status, p->battery_status,p->cellv_high,p->cellv_low);
+	return;
+}
+/* *************************************************************************
+ * void bqview_our_params_sortV (struct SERIALSENDTASKBCB** pp);
+ * @brief    : display parameters
+ * *************************************************************************/
+void bqview_our_params_sortV (struct SERIALSENDTASKBCB** pp)
+{
+	extern struct BQCELLV dbsort[NCELLMAX];
+	int i;
+	for (i = 0; i < 16; i++)
+		yprintf(pp,"\n\r%2d %5d %2d",i,dbsort[i].v,dbsort[i].idx);
+	return;
+}

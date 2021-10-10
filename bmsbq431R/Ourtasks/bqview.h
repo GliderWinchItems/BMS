@@ -49,6 +49,12 @@ void bqview_balance1 (struct SERIALSENDTASKBCB** pp);
 void bqview_balance_misc (struct SERIALSENDTASKBCB** pp);
 /* @brief    : display parameters: Max, min, etc.
  * *************************************************************************/
+void bqview_our_params (struct SERIALSENDTASKBCB** pp);
+/* @brief    : display parameters
+ * *************************************************************************/
+ void bqview_our_params_sortV (struct SERIALSENDTASKBCB** pp);
+/* @brief    : display parameters
+ * *************************************************************************/
 
 #endif
 

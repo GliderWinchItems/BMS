@@ -102,7 +102,7 @@ void fetonoff_status_set(uint8_t status)
 	else
 		fetonoff( FET_DUMP2,  FET_SETON); 
 
-	if ((status & FET_HEATER) == 0) // Module heatger
+	if ((status & FET_HEATER) == 0) // Module heater
 		fetonoff( FET_HEATER, FET_SETOFF);
 	else
 		fetonoff( FET_HEATER, FET_SETON);
@@ -111,6 +111,12 @@ void fetonoff_status_set(uint8_t status)
 		fetonoff( FET_CHGR,  FET_SETOFF);
 	else
 		fetonoff( FET_CHGR,  FET_SETON);
+
+	if ((status & (FET_DUMP2 | FET_CHGR)) != 0)
+		bqfunction.battery_status |= BSTATUS_CHARGING;
+	else
+		bqfunction.battery_status &= ~BSTATUS_CHARGING;
+
 
 	return;
 }

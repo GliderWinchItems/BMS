@@ -7,6 +7,7 @@
 
 #include "bq_idx_v_struct.h"
 #include "SerialTaskReceive.h"
+#include "morse.h"
 #include "../../../../GliderWinchCommons/embed/svn_common/trunk/db/gen_db.h"
 
 /* *************************************************************************
@@ -22,12 +23,6 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
 
 	/* Timings in milliseconds. Converted later to timer ticks. */
 
-/* GevcuTask counts 'sw1timer' ticks for various timeouts.
- We want the duration long, but good enough resolution(!)
- With systick at 512/sec, specifying 8 ms yields a 4 tick duration
- count = 4 -> 64/sec (if we want to approximate the logging rate)
- count = 64 -> 1/sec 
-*/ 
 	//    my drum should be associated with whole node and not just the
    //    level-wind function. need to figure out where the parameters for 
    //    the whole node should be placed       
@@ -35,20 +30,25 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->hbct_t       = 500;   // Heartbeat ct: milliseconds between sending 
    p->hbct         = 64;    // Number of swctr ticks between heartbeats
 
-   p->dac1_hv_setting = 2900; // 65.2 volt limit
-   p->dac2_ix_setting = 116;  //62;   // Current sense level setting
-   p->tim1_ccr1_on    = 50;   // PWM ON count.
-   p->tim1_arr_init   = 79;   // At 16 MHz: count of 80 = 5 us PWM frame
+   /* Arrays have been compile using NCELLMAX [18] */
+   p->ncell = 16; // Number of series cells in this module
+   if (p->ncell > NCELLMAX) morse_trap(8555); // Needs recompiling
 
-   p->cellv_max   = 4100;   // Max limit for charging any cell
-   p->cellv_min   = 3350;   // Min limit for any discharging
-   p->modulev_max = (16*3400); // Battery module max limit
-   p->modulev_min = (16*4150); // Battery module min limit
+   p->dac1_hv_setting  = 2900; // 65.2 volt limit
+   p->dac2_ix_setting  =  116; // Current sense level setting
+   p->tim1_ccr1_on     =   50; // PWM ON count: Normal charge rate
+   p->tim1_ccr1_on_vlc =    2; // PWM ON count: Very Low Charge rate required
+   p->tim1_arr_init    =   79; // At 16 MHz: count of 80 = 5 us PWM frame
 
-   p->balnummax   = 4;  // Max number of cells to discharge at one time
-   p->cellbal_del = 8;  // Balance within lowest cellv + this delta (mv)
+   p->cellv_max   = 4000;   // Max limit (mv) for charging any cell
+   p->cellv_min   = 3350;   // Min limit (mv) for any discharging
+   p->cellv_vlc   = 2900;   // Below this (mv) Very Low Charge (vlc)required
+   p->modulev_max = (16*3400); // Battery module max limit (mv)
+   p->modulev_min = (16*4150); // Battery module min limit (mv)
+
+   p->balnummax   =  6;  // Max number of cells to discharge at one time
+   p->cellbal_del = 10;  // Balance within lowest cellv + this delta (mv)
  
-
 // CAN ids levelwind sends
    //                      CANID_HEX      CANID_NAME             CAN_MSG_FMT     DESCRIPTION
    // Others receive

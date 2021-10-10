@@ -87,12 +87,12 @@ static void bq_init(void)
 		ret = subcmdcomW(SET_CFGUPDATE, 0x0, 0, 0);
 		if (ret != 0) morse_string("HI",GPIO_PIN_1);
 
-			/* Enable REG0. */
+		/* Enable REG0. */
 		//       (uint16_t cmd, uint16_t data, uint8_t nd, uint8_t config);
 		ret = subcmdcomW(REG0Config, 0x1, 1, 0);
 		if (ret != 0) morse_string("S",GPIO_PIN_1);
 
-		/* Enable REG12. */
+		/* Enable REG12. REG0: 1.8v, REG1: 5.0v (?) */
 		//       (uint16_t cmd, uint16_t data, uint8_t nd, uint8_t config);
 		ret = subcmdcomW(REG12Config, 0xF1, 1, 0);
 		if (ret != 0) morse_string("S",GPIO_PIN_1);
@@ -102,8 +102,24 @@ static void bq_init(void)
 		ret = subcmdcomW(CommIdleTime, 0x1, 1, 0);
 		if (ret != 0) morse_string("H",GPIO_PIN_1);
 
-		ret = subcmdcomW(CellBalanceMaxCells, 0x4, 1, 0);
+		ret = subcmdcomW(CellBalanceMaxCells, 0x6, 1, 0);
 		if (ret != 0) morse_string("H",GPIO_PIN_1);
+
+		/* Slow loop mode when balancing. */
+		ret = subcmdcomW(PowerConfig,(uint16_t)0x29B2, 1, 0);
+		if (ret != 0) morse_string("H",GPIO_PIN_1);
+
+		/* Alert inputs to L431. Active low; Alert mode. */
+		ret = subcmdcomW(ALERTPinConfig,   0x82, 1, 1); 
+		if (ret != 0) morse_string("N",GPIO_PIN_1);		
+
+		/* Alarm enable: measurement scan complete */
+		ret = subcmdcomW(AlarmEnable,   0x02, 1, 1); 
+		if (ret != 0) morse_string("AM",GPIO_PIN_1);	
+
+		/* Alarm enable: loads upon reset of exit config */
+		ret = subcmdcomW(DefaultAlarmMask, 0x02, 1, 1); 
+		if (ret != 0) morse_string("AD",GPIO_PIN_1);
 
 		/* EXIT configuration mode. */
 		ret = subcmdcomW(EXIT_CFGUPDATE, 0x0, 0, 0);
@@ -126,10 +142,6 @@ static void bq_init(void)
 // $$$$ 0x09 uses REG18 for GPIO voltage active high. Just for test		
 		ret = subcmdcomW(DDSGPinConfig,    0x09, 1, 1); // REG18 pullup, active hi
 		if (ret != 0) morse_string("U",GPIO_PIN_1);
-
-		/* Alert inputs to L431. Active low; Alert mode. */
-		ret = subcmdcomW(ALERTPinConfig,   0x82, 1, 1); 
-		if (ret != 0) morse_string("N",GPIO_PIN_1);
 
 		/* Read battery status byte. */
 		ret = cmdcom((uint8_t *)&battery_status, 2, BatteryStatus);
@@ -175,9 +187,10 @@ uint8_t bqstate = 0;
 
 
 	struct BQFUNCTION* pbq = &bqfunction;
-	uint32_t osdelay = 500;
-	uint8_t ret;
-	uint8_t bqstate = 0;
+	uint32_t osdelay = 500; // FOR loop delay
+	uint8_t ret;            // Error check return
+	uint8_t bqstate = 0;    // State machine
+	uint8_t bqloopctr;      // Number of readall between discharge check
 
 	/* Wake up BQ if it is SHUTDOWN mode. */
 	HAL_GPIO_WritePin(GPIOD,GPIO_PIN_2,GPIO_PIN_RESET);
@@ -199,29 +212,32 @@ uint8_t bqstate = 0;
 	{
 		osDelay(osdelay);
 
-		if (bq_initflag != 0) bq_init();
+		if (bq_initflag != 0) 
+			bq_init();
 
 		switch (bqstate)
 		{
 		case 0: // Turn off charging & discharging
+
 			ret = subcmdcomW(CB_ACTIVE_CELLS,(uint16_t)0x0000, 2, 0); // Active cells balancing
 			if (ret != 0) morse_string("BA",GPIO_PIN_1);
 
-			/* Turn of all fets: charger(s), heater, etc. */
+			/* Turn OFF all fets: charger(s), heater, etc. */
 			fetonoff_status_set(0);
 
 			osDelay(300); // Wait for next complete BQ reading cycle
 
-			/* Read cell voltages, plus extras */
-			getcellv();
+			/* Read cell voltages, plus the extras */
+			ret = getcellv();
+			if (ret != 0) morse_string("GET1",GPIO_PIN_1);
 
 			/* Determine cells to balance. */
 			bq_items_seq(&cellv[(cvidx)][0]);
 
 			/* Set FETs accordingly. */
 			fetonoff_status_set(pbq->fet_status);
-
-			/* Cell balancing  */
+pbq->cellbal = 0x0400;
+			/* Set cell balancing fets.  */
 			// uint8_t subcmdcomW(uint16_t cmd, uint16_t data, uint8_t nd, uint8_t config)
 			ret = subcmdcomW(CB_ACTIVE_CELLS,(uint16_t)pbq->cellbal, 2, 0); // Active cells balancing
 			if (ret != 0) morse_string("BA",GPIO_PIN_1);	
@@ -232,11 +248,22 @@ uint8_t bqstate = 0;
 
 			read_all(); // This takes (100 * 13) ms
 			osdelay = 10000-1300; // Wait another 10 secs
+
+			bqloopctr = 0;
+			bqstate = 1;
+
+		case 1:		
+			read_all(); // This takes (100 * 13) ms
+			bqloopctr += 1;
+			if (bqloopctr <= 8) break;
+			bqstate = 0;
 			break;
 
-		case 1:
+		case 2:
 			read_all();
-			getcellv();
+			ret = getcellv();
+			if (ret != 0) morse_string("GET2",GPIO_PIN_1);
+
 			osdelay = 700;
 			break;
 		}
@@ -265,15 +292,6 @@ if (ddsgctr >= 4)
  * *************************************************************************/
 TaskHandle_t xBQTaskCreate(uint32_t taskpriority)
 {
-
-/*
-BaseType_t xTaskCreate( TaskFunction_t pvTaskCode,
-const char * const pcName,
-unsigned short usStackDepth,
-void *pvParameters,
-UBaseType_t uxPriority,
-TaskHandle_t *pxCreatedTask );
-*/
 	BaseType_t ret = xTaskCreate(StartBQTask, "BQTask",\
      (128), NULL, taskpriority,\
      &BQTaskHandle);
@@ -303,8 +321,6 @@ static uint8_t getcellv(void)
 	cvflag += 1;	// Show main a new reading
 
 	return 0;
-
-
 }
 /* *************************************************************************
  * static void bqconfig(void);
@@ -436,8 +452,6 @@ static uint8_t subcmdcomR(uint8_t* pr, uint8_t nr, uint16_t cmd)
     }	
     return 0;
 }
-
-
 /* *************************************************************************
  * static uint8_t cmdcom(uint8_t* pr, uint8_t nr, uint8 cmd);
  * @brief	: Execute a one byte command
@@ -464,7 +478,6 @@ static uint8_t cmdcom(uint8_t* pr, uint8_t nr, uint8_t cmd)
     }	
     return 0;
 }
-
 /* *************************************************************************
  * static void morse_sos(void);
  * @brief	: 

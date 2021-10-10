@@ -20,11 +20,15 @@
 #define BSTATUS_NOREADING (1 << 0)	// Exactly zero = no reading
 #define BSTATUS_OPENWIRE  (1 << 1)  // Negative or over 5v indicative of open wire
 #define BSTATUS_CELLTOOHI (1 << 2)  // One or more cells above max limit
+#define BSTATUS_CELLTOOLO (1 << 3)  // One or more cells above max limit
+#define BSTATUS_CELLBAL   (1 << 4)  // Cell balancing in progress
+#define BSTATUS_CHARGING  (1 << 5)  // Charging in progress
 
-#define FET_DUMP    (1 << 0) // 1 = DUMP FET ON
-#define FET_HEATER  (1 << 1) // 1 = HEATER FET ON
-#define FET_DUMP2   (1 << 2) // 1 = DUMP2 FET ON
-#define FET_CHGR    (1 << 3) // 1 = Charger FET enabled
+#define FET_DUMP     (1 << 0) // 1 = DUMP FET ON
+#define FET_HEATER   (1 << 1) // 1 = HEATER FET ON
+#define FET_DUMP2    (1 << 2) // 1 = DUMP2 FET ON (external charger)
+#define FET_CHGR     (1 << 3) // 1 = Charger FET enabled: Normal charge rate
+#define FET_CHGR_VLC (1 << 4) // 1 = Charger FET enabled: Very Low Charge rate
 
 
 /* Cell current voltage for last measurement. */
@@ -49,7 +53,7 @@ struct BQPN
 struct BQCELLV
 {
 	int16_t v; // Cell voltage reading (mv)
-	uint8_t i; // Cell array index (0 - 15)
+	uint8_t idx; // Cell array index (0 - 15)
 	uint8_t s; // Cell selection TBD (maybe not used)
 };
 
@@ -67,25 +71,25 @@ struct BQFUNCTION
 
 	uint32_t hbct_k;      // Heartbeat ct: ticks between sending
 
-	uint8_t chargeflag;  // 0 = No charging; not zero = charging
-	uint8_t dumpflag;    // 0 = Dump FET OFF; not zero = dump fet ON
-	uint8_t extchgrflag; // 0 = Dump2 (external charger) OFF; not zero = ON
-	uint8_t cellv_ok;    // 0 = voltage readings not valid; not zero = OK
+//	uint8_t chargeflag;  // 0 = No charging; not zero = charging
+//	uint8_t dumpflag;    // 0 = Dump FET OFF; not zero = dump fet ON
+//	uint8_t extchgrflag; // 0 = Dump2 (external charger) OFF; not zero = ON
+//	uint8_t cellv_ok;    // 0 = voltage readings not valid; not zero = OK
 
 	uint16_t tim1_ccr1;  // Present CCR1 (PWM count)
 
-	struct BQCELLV cellv_bal[16]; // Working array for cell balancing
-	int16_t cellv_latest[16]; // Cell voltage readings (millivolts) (signed)
+	struct BQCELLV cellv_bal[NCELLMAX]; // Working array for cell balancing
+	int16_t cellv_latest[NCELLMAX]; // Cell voltage readings (millivolts) (signed)
 	int32_t cellv_total;  // Some of cell voltages
 	int16_t cellv_high;   // Highest cellv millivolts
 	int16_t cellv_low;    // Lowest  cellv millivolts
 	uint8_t cellx_high;   // Highest cellv index (0-15)
 	uint8_t cellx_low;    // Lowest  cellv index (0-15)
 
-	uint16_t cellbal;  // Bits to activate cell balance fets
-	uint8_t active_ct; // Count of bits in cellbal
-	uint8_t battery_status; // Cell status Bits 
-	uint8_t fet_status;     // FET bits
+	uint32_t cellbal;       // Bits to activate cell balance fets
+	uint8_t active_ct;      // Count of bits set in cellbal
+	uint8_t battery_status; // Cell status code bits 
+	uint8_t fet_status;     // This controls on/off of FETs
 
 	/* balnumwrk might be adjusted based on chip temperature. */
 	uint8_t balnumwrk; // Max number of active cell bits (Working)

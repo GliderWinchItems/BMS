@@ -1163,7 +1163,8 @@ extern uint32_t cvflag;
     bqview_blk_0x0083 (&pbuf1);
     bqview_balance1 (&pbuf1);
     bqview_balance_misc (&pbuf1);
-
+    bqview_our_params (&pbuf1); // Some params from BQTask.h
+    bqview_our_params_sortV (&pbuf1);
 
     bqview_blk_0x0075_s16 (&pbuf1);
     bqview_blk_0x9335_14  (&pbuf1);
@@ -1268,7 +1269,7 @@ extern uint8_t bq_initflag; // 1 = signal BQ to initialize
         lctr = 0;
 
         yprintf(&pbuf1,"\treg0_config: %02X\tddsgp_config_u16: %02X",reg0_config_u16,ddsgp_config_u16);
-        yprintf(&pbuf1,"\n\n\r%2d ",mctr++);
+        yprintf(&pbuf1,"\n\n\r%d",mctr++);
         for (i = 1; i < 17; i++)
           yprintf(&pbuf1,"%7d",i); // Cell number column heading
           yprintf(&pbuf1," TOPSTACK PACKPIN    LD  CC2"); //Additional 

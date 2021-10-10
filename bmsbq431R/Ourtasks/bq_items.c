@@ -15,56 +15,70 @@
 #include "LedTask.h"
 #include "bq_items.h"
 #include "BQTask.h"
-#include <stdlib.h> // for qsort
+
+#define USESORTCODE
+#ifdef  USESORTCODE
+	#include <stdlib.h> // for qsort
+	static int compare_v(const void *a, const void *b);
+	void bq_items_qsortV(struct BQCELLV* p);
+#endif
 
 /* *************************************************************************
  * void bq_items_seq(int16_t* p);
  * @brief	: Go thought a sequence of steps to determine balancing
- * @param   : p = pointer to 16 cell voltage array
+ * @param   : p = pointer to NCELL cell voltage array
  * *************************************************************************/
+struct BQCELLV dbsort[NCELLMAX];
+
 void bq_items_seq(int16_t* p)
 {
 	struct BQFUNCTION* pbq = &bqfunction; // Convenience pointer
-	struct BQCELLV*   pbal = &bqfunction.cellv_bal[0];
-	int i;
-	int16_t* pv = &pbq->cellv_latest[0];
+	struct BQCELLV* psort  = &pbq->cellv_bal[0]; // Working array for cell balancing
+	int16_t tmp; // Cell voltages above 'tmp' are candidates for discharging
+	int16_t i,j; // variable name selected in memory of FORTRAN
+
+	/* This saves recomputing these in the loop. */
+	uint8_t ncellm1 = pbq->lc.ncell - 1; // e.g. equals 15 for 16 cell module
+	uint8_t ncellm2 = ncellm1 - 1; // E.g. equals 14 for 16 cell module
 
 	pbq->battery_status = 0; // Reset status
-	pbq->cellv_ok       = 0; // Flag: assume readings NG
-	pbq->cellv_total    = 0;
-	pbq->cellv_high     = 0;
-	pbq->cellv_low      = 32767;
-
+	pbq->cellv_total    = 0; // Cell summation
+	pbq->cellv_high     = 0; // Highest cell voltage
+	pbq->cellv_low      = 32767; // Lowest cell voltage
 
 	/* Check each cell reading. */
-	for (i = 0; i < 16; i++)
+	for (i = 0; i < ncellm1; i++)
 	{
-		if (*pv == 0)
+		if (*p == 0)
 		{ // Here, no cell readings likely
 			pbq->battery_status |= BSTATUS_NOREADING;
 		}
-		if ((*pv < 0) || (*pv > 5000))
-		{ // Here, zero or negative likely open wires
-			pbq->battery_status |= BSTATUS_OPENWIRE;
+		else
+		{
+			if ((*p < 0) || (*p > 5000))
+			{ // Here, zero or negative likely open wires
+				pbq->battery_status |= BSTATUS_OPENWIRE;
+			}
+			else
+			{ // Here, cell reading looks valid
+				if (*p > pbq->cellv_high)
+				{ // Find max cell reading
+					pbq->cellv_high = *p; // Save voltage
+					pbq->cellx_high = i;  // Save cell index
+				} 
+				if (*p < pbq->cellv_low)
+				{ // Find lowest cell reading
+					pbq->cellv_low = *p; // Save voltage
+					pbq->cellx_low = i;  // Save cell index
+				} 
+			}
 		}
-		if (*pv > pbq->cellv_high)
-		{ // Find max cell reading
-			pbq->cellv_high = *pv; // Save voltage
-			pbq->cellx_high = i;   // Save cell index
-		} 
-		if (*pv < pbq->cellv_low)
-		{ // Find lowest cell reading
-			pbq->cellv_low = *pv; // Save voltage
-			pbq->cellx_low = i;   // Save cell index
-		} 
-		*pv = *p;  // Copy for possible(!) use
-		pbq->cellv_total += *pv; // Sum cell readings
 
-		// Copy and initialize for cell balancing selection
-		pbal->v = *p; pbal->i = i; pbal->s = 0;
-
-		p += 1; pv += 1; pbal += 1; // Up array pointers
+		pbq->cellv_total += *p; // Sum cell readings
+		psort->v = *p; psort->idx = i; psort += 1;
+		p += 1; // Next cell
 	}
+morse_string("EI",GPIO_PIN_1);
 
 	/* Unusual situation check. */
 	if (((pbq->battery_status & BSTATUS_NOREADING) != 0) ||
@@ -72,75 +86,99 @@ void bq_items_seq(int16_t* p)
 	{ // Here no charging, no discharging
 		pbq->fet_status &= ~(FET_DUMP|FET_HEATER|FET_DUMP2|FET_CHGR);
 		pbq->cellbal = 0; // All cell balancing FETS off
+		return;
+	}
+	// Here it looks like we have a normal situation with good readings
+	/* Check for out-of-limit voltages */
+
+	/* Is any cell too low? */
+	if (pbq->cellv_low < pbq->lc.cellv_min) // Too low?
+	{ // Here, one or more cells are below min limit
+		pbq->fet_status &= ~(FET_DUMP|FET_HEATER); // Disable discharge
+		// The following assumes DUMP2 FET controls an external charger
+		pbq->cellbal = 0; // All cell balancing FET bits off
+		pbq->battery_status |= BSTATUS_CELLTOOLO; // Update status 
+
+		// One or more are too low. Are any still too high?
+		if (pbq->cellv_high > pbq->lc.cellv_max)
+		{ // EGADS YES! We cannot charge, but can selectively discharge
+			pbq->fet_status &= ~(FET_CHGR|FET_DUMP2); // Disable charging
+		}
 	}
 	else
-	{ // Here it looks like we have a normal situation with good readings
-		/* Check out of limit voltages */
-		if (pbq->cellv_high > pbq->lc.cellv_max) // Too high?
-		{ // Here, one or more cells are over max limit
-			// No charging, and discharging is needed
-			pbq->fet_status &= ~(FET_CHGR|FET_DUMP2);
+	{ // Here, no cell is too low.
+		pbq->battery_status &= ~BSTATUS_CELLTOOLO; // Update status 
+	}
+
+	/* Is any cell too high? */
+	if (pbq->cellv_high > pbq->lc.cellv_max) // Too high?
+	{ // Here, yes. One or more cells are over max limit
+		// No charging, but discharging is needed
+		pbq->fet_status &= ~(FET_CHGR|FET_DUMP2);
+		pbq->battery_status |= BSTATUS_CELLTOOHI;
+	}
+	else
+	{ // Here, no cells are too high.
+		pbq->battery_status &= ~BSTATUS_CELLTOOHI; // Update status
+	}
+
+	/* Here, balancing is permitted. Make cell selections.
+	Goal: Build a 32b word with bits set for setting cell 
+	discharge FETs. BQ97952 uses 16b, ADBMS1818 uses 18b. */
+
+	// A cell voltages above 'tmp' are candidates for discharging.
+	tmp = pbq->cellv_low + pbq->lc.cellbal_del;
+
+	// Limit the number of cells discharging at any given cycle
+	pbq->active_ct = 0;    // Count number of cell bits set
+
+	/* Sort on Cell voltages. (qsort does ascending) */
+	psort  = &pbq->cellv_bal[0];
+	qsort(psort, pbq->lc.ncell, sizeof(struct BQCELLV), compare_v);
+
+for (i= 0;i<NCELLMAX;i++) dbsort[i] = pbq->cellv_bal[i];	
+
+	// Sending 16b (for BQ76952) set active cells. 
+	pbq->cellbal = 0; // Begin with no cells set
+
+	/* Start with highest voltage cell and decrement index. */ 
+	i = ncellm1; // Sorted array index for highest cell voltage
+
+	/* Select cells for discharging. */
+	        /* Is number selected at max? */
+	while ( ((pbq->active_ct < pbq->balnumwrk) && 
+		    /* End of array? */
+		    (i >= 0)) && 
+		    /* Is this cell voltage a discharge candidate? */
+		    ((psort+i)->v > tmp) )
+	{ 
+		j = (psort+i)->idx; // Cell number index
+
+		/* Check if adjacent cell already selected. */
+	        /* Top case: adjacent cell is below. */
+		if (( (j == ncellm1) && 
+			  (((pbq->cellbal & (1 << ncellm2)) == 0))) ||
+			/* Bottom case: adjacent cell is above. */
+			( (j == 0) && 
+			  ((pbq->cellbal & (1 << 1)) == 0))   ||
+		    /* Middle cases: adjacent cell both above and below. */
+			( (j > 0) && 
+			  (j < ncellm1) && 
+			  ((pbq->cellbal & (1 << (j+1))) == 0)  &&
+			  ((pbq->cellbal & (1 << (j-1))) == 0) ) )	
+		{ // Here, adjcent cell(s) have not be selected.
+			pbq->cellbal |= (1 << j); // Set bit for discharge FET
+			pbq->active_ct += 1; // Count number of cells selected
 		}
-		if (pbq->cellv_low < pbq->lc.cellv_min) // Too low?
-		{ // Here, one or more cells are below min limit
-			pbq->fet_status &= ~(FET_DUMP|FET_HEATER); // No discharge
-			// The following assumes DUMP2 FET controls an external charger
-			pbq->fet_status |= (FET_CHGR|FET_DUMP2); // Enable charging
 
-			pbq->cellbal = 0; // All cell balancing FET bits off
-		}
-		else
-		{ // Here, balancing is permitted. Make cell selections
-
-			/* Build a 16b word for the BQ to set discharge FETs. */
-
-			// Cells above 'tmp' are candidates for discharging
-			int16_t tmp = pbq->cellv_low + pbq->lc.cellbal_del;
-
-			pbal = &bqfunction.cellv_bal[0]; // Cell readings pointer
-
-			// Limit the number of cells discharging at any given cycle
-			pbq->active_ct = 0;    // Count number of cell bits set
-
-			// Prevent adjacent cells from being turned ON
-			uint8_t previous = 0;  // Adjacent active cell restriction
-
-			// Sending this word to BQ will set active cells. 
-			pbq->cellbal = 0; // Begin with no cells set
-
-			// Note: this always gives cell indices 1 to balnumax first dibs
-			for (i = 0; i < 16; i++)
-			{
-				if (pbal->v > tmp) // Need discharging?
-				{ // Here, yes. Cell is candidate for discharge
-					if (previous == 0)
-					{ // Here, previous (adjacent) cell was NOT SET
-						if (pbq->active_ct < pbq->balnumwrk)
-						{ // Here number active cells not at limit
-							pbq->cellbal |= (1 << i); // Set BQ word bit
-							pbq->active_ct += 1;
-							previous = 1;
-						}
-					}
-					else
-					{ // Previous (adjacent) cell was SET ON
-						previous = 0;
-					}
-				}
-				else
-				{ // Here, this cell does not need discharging
-					previous = 0;
-				}
-				pbal += 1;
-			}
-		}
+		i -= 1;
 	}
 	return;
 }
 /* ************************************************************************************************************ 
  * Comparison function for qsort
  * ************************************************************************************************************ */
-//#define USESORTCODE
+#define USESORTCODE
 #ifdef  USESORTCODE
 static int compare_v(const void *a, const void *b)
 {
@@ -152,12 +190,12 @@ static int compare_v(const void *a, const void *b)
 /* *************************************************************************
  * void bq_items_qsortV(struct BQCELLV* p);
  * @brief	: Sort array by voltage
- * @param   : p = pointer to 16 cell struct array
+ * @param   : p = pointer to NCELL cell struct array
  * *************************************************************************/
 void bq_items_qsortV(struct BQCELLV* p)
 {
 	/* Sort (ascending) on Cell voltages. */
-	qsort(p, 16, sizeof(struct BQCELLV), compare_v);
+	qsort(p, bqfunction.lc.ncell, sizeof(struct BQCELLV), compare_v);
 	return;
 }
 #endif

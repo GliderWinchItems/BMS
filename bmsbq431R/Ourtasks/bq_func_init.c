@@ -19,11 +19,7 @@ void bq_func_init(struct BQFUNCTION* p)
 	/* Get a copy of fixed parameters. */
 	bq_idx_v_struct_hardcode_params(&p->lc);
 
-	p->chargeflag   = 0;  // 0 = No charging; not zero = charging
-	p->dumpflag     = 0;  // 0 = Dump FET OFF; not zero = dump fet ON
-	p->extchgrflag  = 0;  // 0 = Dump2 (external charger) OFF; not zero = ON
 	p->tim1_ccr1    = 0;  // Charger FET ON time initially set for no charging.
-	p->cellv_ok     = 0;  // Cell voltage readings (cellv_latest[16]) initially not valid
 
 	p->cellbal        = 0; // Bits to activate cell balance fets
 	p->battery_status = 0; // Cell status Bits 

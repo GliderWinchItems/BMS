@@ -62,31 +62,38 @@ void StartChgrTask(void* argument)
 	ret = HAL_COMP_Start(&hcomp2);
 	if (ret != HAL_OK) morse_trap(707);
 
-	TIM1->CCR1 = p->tim1_ccr1; // FET ON time
+	/* Working value for FET ON duration in PWM frame */
+	bqfunction.tim1_ccr1 = bqfunction.lc.tim1_ccr1_on; 
 
-bqfunction.chargeflag = 0;
-bqfunction.tim1_ccr1 = bqfunction.lc.tim1_ccr1_on;
 	for (;;)
 	{
-		/* Short blink green led */
+		/* Wink green led */
 		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_RESET); // GRN LED
-		osDelay(100); 	
+		osDelay(30); 	
 		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_SET); // GRN LED
-		osDelay(1900); 	
-
+		osDelay(970); 	
 
 		/* Internal charger control. */
-		if (p->chargeflag != 0)
+		if ((p->fet_status & FET_CHGR) != 0)
 		{ // Here, set charging 
 			TIM1->CCR1 = bqfunction.tim1_ccr1; // Set charge rate
 		}
 		else
-		{ // Here, stop charging
-			TIM1->CCR1 = 0;	// FET is off
+		{ // If not normal rate, should it be Very Low Chare rate?
+			if ((p->fet_status & FET_CHGR_VLC) != 0)
+			{ // Here, yes.
+				TIM1->CCR1 = bqfunction.lc.tim1_ccr1_on_vlc; // Set vlc rate
+			}
+			else
+			{ // Here, stop charging
+				TIM1->CCR1 = 0;	// FET is off
+			}
 		}
+TIM1->CCR1 = 0;	// FET is off		
+p->fet_status &= ~FET_CHGR;
 
 		/* DUMP controls module discharging FET. */
-		if (p->dumpflag != 0)
+		if ((p->fet_status & FET_DUMP) != 0)
 		{ // Here, turn on FET for resistor discharge
 			fetonoff(FET_DUMP,  FET_SETON);
 		}
@@ -96,7 +103,7 @@ bqfunction.tim1_ccr1 = bqfunction.lc.tim1_ccr1_on;
 		}
 
 		/* DUMP2 controls external charger. */
-		if ((p->extchgrflag != 0) && (p->chargeflag != 0))
+		if ((p->fet_status & FET_DUMP2) != 0)
 		{ // Here, turn on external module (or string?) charger
 			fetonoff(FET_DUMP2,  FET_SETON);
 		}
