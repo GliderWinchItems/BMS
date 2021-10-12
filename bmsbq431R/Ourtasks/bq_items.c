@@ -47,7 +47,7 @@ void bq_items_seq(int16_t* p)
 	pbq->cellv_low      = 32767; // Lowest cell voltage
 
 	/* Check each cell reading. */
-	for (i = 0; i < ncellm1; i++)
+	for (i = 0; i < pbq->lc.ncell; i++)
 	{
 		if (*p == 0)
 		{ // Here, no cell readings likely
@@ -75,10 +75,12 @@ void bq_items_seq(int16_t* p)
 		}
 
 		pbq->cellv_total += *p; // Sum cell readings
-		psort->v = *p; psort->idx = i; psort += 1;
+		psort->v = *p; psort->idx = i; // Copy to struct for sorting
+		psort += 1;
 		p += 1; // Next cell
 	}
-morse_string("EI",GPIO_PIN_1);
+//debuggin: visually check duration between calls	
+morse_string("E",GPIO_PIN_1);
 
 	/* Unusual situation check. */
 	if (((pbq->battery_status & BSTATUS_NOREADING) != 0) ||
@@ -120,6 +122,7 @@ morse_string("EI",GPIO_PIN_1);
 	else
 	{ // Here, no cells are too high.
 		pbq->battery_status &= ~BSTATUS_CELLTOOHI; // Update status
+		pbq->fet_status |= FET_CHGR;
 	}
 
 	/* Here, balancing is permitted. Make cell selections.
@@ -136,7 +139,8 @@ morse_string("EI",GPIO_PIN_1);
 	psort  = &pbq->cellv_bal[0];
 	qsort(psort, pbq->lc.ncell, sizeof(struct BQCELLV), compare_v);
 
-for (i= 0;i<NCELLMAX;i++) dbsort[i] = pbq->cellv_bal[i];	
+// debugging: copy array for monitoring in 'main'
+for (i= 0;i<pbq->lc.ncell;i++) dbsort[i] = pbq->cellv_bal[i];	
 
 	// Sending 16b (for BQ76952) set active cells. 
 	pbq->cellbal = 0; // Begin with no cells set

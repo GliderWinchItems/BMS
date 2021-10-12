@@ -69,17 +69,17 @@ void StartChgrTask(void* argument)
 	{
 		/* Wink green led */
 		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_RESET); // GRN LED
-		osDelay(30); 	
+		osDelay(15); 	
 		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_SET); // GRN LED
-		osDelay(970); 	
-
+		osDelay(1985); 	
+#ifdef USECHARGERUPDATEINCHRGTASK
 		/* Internal charger control. */
 		if ((p->fet_status & FET_CHGR) != 0)
 		{ // Here, set charging 
 			TIM1->CCR1 = bqfunction.tim1_ccr1; // Set charge rate
 		}
 		else
-		{ // If not normal rate, should it be Very Low Chare rate?
+		{ // If not normal rate, should it be Very Low Charge rate?
 			if ((p->fet_status & FET_CHGR_VLC) != 0)
 			{ // Here, yes.
 				TIM1->CCR1 = bqfunction.lc.tim1_ccr1_on_vlc; // Set vlc rate
@@ -89,8 +89,6 @@ void StartChgrTask(void* argument)
 				TIM1->CCR1 = 0;	// FET is off
 			}
 		}
-TIM1->CCR1 = 0;	// FET is off		
-p->fet_status &= ~FET_CHGR;
 
 		/* DUMP controls module discharging FET. */
 		if ((p->fet_status & FET_DUMP) != 0)
@@ -111,7 +109,8 @@ p->fet_status &= ~FET_CHGR;
 		{ // Here, turn it off.
 			fetonoff(FET_DUMP2,  FET_SETOFF);
 		}
-	} 
+#endif
+	} 	
 }
 
 /* *************************************************************************

@@ -136,8 +136,8 @@ void bqview_cuv_cov_snap_0x0080_0x0081 (struct SERIALSENDTASKBCB** pp)
  * void bqview_cb_status2_0x0086_0x0087 (struct SERIALSENDTASKBCB** pp);
  *	@brief	: display parameters
  * *************************************************************************/
-extern uint32_t cb_status2_0x0086_u32[16]; // Seconds active cell balancing: 1 - 9
-extern uint32_t cb_status3_0x0087_u32[16]; // Seconds active cell balancing: 9 - 16
+extern uint32_t cb_status2_0x0086_u32[8]; // Seconds active cell balancing: 1 - 9
+extern uint32_t cb_status3_0x0087_u32[8]; // Seconds active cell balancing: 9 - 16
 void bqview_cb_status2_0x0086_0x0087 (struct SERIALSENDTASKBCB** pp)
 {
 	int i;
@@ -148,7 +148,7 @@ void bqview_cb_status2_0x0086_0x0087 (struct SERIALSENDTASKBCB** pp)
 	for (i = 0; i < 8; i++)
 		yprintf(pp,"%8d",(uint32_t)cb_status2_0x0086_u32[i]);
 
-	for (i = 8; i < 16; i++)
+	for (i = 0; i < 8; i++)
 		yprintf(pp,"%8d",(uint32_t)cb_status3_0x0087_u32[i]);
 	return;
 
@@ -243,7 +243,7 @@ void bqview_balance1 (struct SERIALSENDTASKBCB** pp)
 	int16_t* p = &celldev[0];
 
 	bqcellbal_data ();
-	yprintf(pp,"\n\rabs dev ");
+	yprintf(pp,"\n\rdev +/- ");
 	for (i = 0; i < 16; i++) yprintf(pp,"%8d",*p++);
 	return;
 }

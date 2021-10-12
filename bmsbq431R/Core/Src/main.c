@@ -1090,11 +1090,15 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(BQ_LD_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : BQ_ALERT_Pin */
-  GPIO_InitStruct.Pin = BQ_ALERT_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(BQ_ALERT_GPIO_Port, &GPIO_InitStruct);
+  /*Configure GPIO pin : ALERT_Pin */
+  GPIO_InitStruct.Pin = ALERT_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(ALERT_GPIO_Port, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI3_IRQn, 11, 0);
+  HAL_NVIC_EnableIRQ(EXTI3_IRQn);
 
 }
 
@@ -1114,7 +1118,7 @@ void StartDefaultTask(void *argument)
   /* USER CODE BEGIN 5 */
 
 //#define TESTSHUTDOWN_VIA_COMMAND // Test processor commanded BQ shutdown
-#define DUMPandHEATER_TEST
+//#define DUMPandHEATER_TEST
   #define BQMonitor
 
   uint32_t mctr = 0;
@@ -1143,7 +1147,11 @@ extern uint32_t cvflag;
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1000);
+extern uint8_t flagmain;
+
+    while (flagmain == 0) osDelay(2);
+    flagmain = 0;
+    
     yprintf(&pbuf1,"\n\r%d CHGR", mctr++);
 
 #ifdef BQMonitor
@@ -1155,7 +1163,7 @@ extern uint32_t cvflag;
 //    bqview_blk_0x92fa (&pbuf1);  yprintf(&pbuf1,"\n\r");
     bqview_blk_0x62 (&pbuf1);
 //    bqview_cuv_cov_snap_0x0080_0x0081 (&pbuf1);
-    bqview_cb_status2_0x0086_0x0087 (&pbuf1);
+    bqview_cb_status2_0x0086_0x0087 (&pbuf1); // Cell balancing time 
 
     /* Consolidation of cell-by-cell lines. */
     bqview_blk_0x0071_u32 (&pbuf1); // ADC counts: voltage w current
@@ -1164,9 +1172,16 @@ extern uint32_t cvflag;
     bqview_balance1 (&pbuf1);
     bqview_balance_misc (&pbuf1);
     bqview_our_params (&pbuf1); // Some params from BQTask.h
-    bqview_our_params_sortV (&pbuf1);
+    bqview_our_params_sortV (&pbuf1); // Sorted voltage array
 
-    bqview_blk_0x0075_s16 (&pbuf1);
+extern uint16_t alarm_status[3]; // 0x62 TRM:105
+extern uint16_t alarm_status_ctr;
+extern uint16_t alarm_status_ctr1;
+    yprintf(&pbuf1,"\n\r alarm_status_ctr: %d alarm_status: %04X %04X %04X ctr1: %d",
+      alarm_status_ctr,alarm_status[0],alarm_status[1],alarm_status[2],alarm_status_ctr1);
+
+
+//    bqview_blk_0x0075_s16 (&pbuf1); // DASTATUS85: min max cell volt
     bqview_blk_0x9335_14  (&pbuf1);
 
     /* Block includes REG12 */
@@ -1204,7 +1219,7 @@ extern uint16_t ddsgp_config_u16;
 #endif
  //   osDelay(500);
 //    HAL_GPIO_WritePin(GPIOB,GPIO_PIN_1,GPIO_PIN_SET); // RED LED
-    osDelay(1000);
+    osDelay(2000);
 //   HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_SET); // GRN LED
 #ifdef DUMPandHEATER_TEST
 //   HAL_GPIO_WritePin(DUMP_NOT_GPIO_Port,DUMP_NOT_Pin, GPIO_PIN_RESET);

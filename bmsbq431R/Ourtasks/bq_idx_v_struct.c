@@ -46,7 +46,7 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->modulev_max = (16*3400); // Battery module max limit (mv)
    p->modulev_min = (16*4150); // Battery module min limit (mv)
 
-   p->balnummax   =  6;  // Max number of cells to discharge at one time
+   p->balnummax   =  7;  // Max number of cells to discharge at one time
    p->cellbal_del = 10;  // Balance within lowest cellv + this delta (mv)
  
 // CAN ids levelwind sends

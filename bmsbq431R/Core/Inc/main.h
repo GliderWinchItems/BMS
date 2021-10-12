@@ -104,8 +104,9 @@ void Error_Handler(void);
 #define HEATER_GPIO_Port GPIOC
 #define BQ_LD_Pin GPIO_PIN_2
 #define BQ_LD_GPIO_Port GPIOD
-#define BQ_ALERT_Pin GPIO_PIN_3
-#define BQ_ALERT_GPIO_Port GPIOB
+#define ALERT_Pin GPIO_PIN_3
+#define ALERT_GPIO_Port GPIOB
+#define ALERT_EXTI_IRQn EXTI3_IRQn
 #define FET_CUR_A1_Pin GPIO_PIN_4
 #define FET_CUR_A1_GPIO_Port GPIOB
 #define BQ_RST_SHUT_Pin GPIO_PIN_5

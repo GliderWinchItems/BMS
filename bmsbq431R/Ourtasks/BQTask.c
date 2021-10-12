@@ -22,13 +22,15 @@
 extern I2C_HandleTypeDef hi2c1;
 
 static uint8_t bqconfig(void);
-static uint8_t subcmdcomW(uint16_t cmd, uint16_t data, uint8_t nd, uint8_t config);
-static uint8_t subcmdcomR(uint8_t* pr, uint8_t nr, uint16_t cmd);
-static uint8_t cmdcom(uint8_t* pr, uint8_t nr, uint8_t cmd);
+static uint8_t subcmdW(uint16_t cmd, uint16_t data, uint8_t nd, uint8_t config);
+static uint8_t subcmdR(uint8_t* pr, uint8_t nr, uint16_t cmd);
+static uint8_t dircmdR(uint8_t* pr, uint8_t nr, uint8_t cmd);
+static uint8_t dircmdW(uint8_t* pr, uint8_t ns, uint8_t cmd);
 static void morse_sos(void);
 static uint8_t readblock_cmd(uint8_t* pr, uint8_t nr, uint8_t cmd);
 static uint8_t getcellv(void);
 static void read_all(void);
+static void charger_update(struct BQFUNCTION* p);
 
 struct BQFUNCTION bqfunction;
 
@@ -44,6 +46,13 @@ TaskHandle_t BQTaskHandle = NULL;
  int16_t cellv[2][BQVSIZE];
  uint8_t cvidx = 0;
  uint32_t cvflag = 0;
+
+uint16_t alarm_status[3]; // 0x62 TRM:105
+uint16_t alarm_status_prev;
+uint16_t alarm_status_ctr;
+uint16_t alarm_status_ctr1;
+uint16_t alarm_reset = 0x0082; //0x0002;
+
 
 /* Readings */ 
 uint16_t device_number_u16;
@@ -64,8 +73,8 @@ int16_t blk_0x0075_s16[16];
 uint16_t blk_0x0083_u16[3];
 int16_t cuv_snap_0x0080_s16[16];
 int16_t cov_snap_0x0081_s16[16];
-uint32_t cb_status2_0x0086_u32[16]; // Seconds active cell balancing: 1 - 9
-uint32_t cb_status3_0x0087_u32[16]; // Seconds active cell balancing: 9 - 16
+uint32_t cb_status2_0x0086_u32[8]; // Seconds active cell balancing: 1 - 8
+uint32_t cb_status3_0x0087_u32[8]; // Seconds active cell balancing: 9 - 16
 
 
 uint8_t fw_version_6[6];
@@ -74,6 +83,7 @@ uint8_t blk_0x92fa_11[11];
 uint8_t blk_0x9335_14[14];
 
 uint8_t bq_initflag = 0;
+uint8_t flagmain;
 
 /* *************************************************************************
  * static void brake_init(struct BQFUNCTION* p);
@@ -84,83 +94,83 @@ static void bq_init(void)
 		uint8_t ret;
 
 		/* ENTER configuration mode. */
-		ret = subcmdcomW(SET_CFGUPDATE, 0x0, 0, 0);
+		ret = subcmdW(SET_CFGUPDATE, 0x0, 0, 0);
 		if (ret != 0) morse_string("HI",GPIO_PIN_1);
 
 		/* Enable REG0. */
 		//       (uint16_t cmd, uint16_t data, uint8_t nd, uint8_t config);
-		ret = subcmdcomW(REG0Config, 0x1, 1, 0);
+		ret = subcmdW(REG0Config, 0x1, 1, 0);
 		if (ret != 0) morse_string("S",GPIO_PIN_1);
 
 		/* Enable REG12. REG0: 1.8v, REG1: 5.0v (?) */
 		//       (uint16_t cmd, uint16_t data, uint8_t nd, uint8_t config);
-		ret = subcmdcomW(REG12Config, 0xF1, 1, 0);
+		ret = subcmdW(REG12Config, 0xF1, 1, 0);
 		if (ret != 0) morse_string("S",GPIO_PIN_1);
 
 		/* Set no communications shutdown duration: minutes. */
 		//       (uint16_t cmd, uint16_t data, uint8_t nd, uint8_t config);
-		ret = subcmdcomW(CommIdleTime, 0x1, 1, 0);
+		ret = subcmdW(CommIdleTime, 0x1, 1, 0);
 		if (ret != 0) morse_string("H",GPIO_PIN_1);
 
-		ret = subcmdcomW(CellBalanceMaxCells, 0x6, 1, 0);
+		ret = subcmdW(CellBalanceMaxCells, 0x6, 1, 0);
 		if (ret != 0) morse_string("H",GPIO_PIN_1);
 
 		/* Slow loop mode when balancing. */
-		ret = subcmdcomW(PowerConfig,(uint16_t)0x29B2, 1, 0);
+		ret = subcmdW(PowerConfig,(uint16_t)0x29B2, 1, 0);
 		if (ret != 0) morse_string("H",GPIO_PIN_1);
 
 		/* Alert inputs to L431. Active low; Alert mode. */
-		ret = subcmdcomW(ALERTPinConfig,   0x82, 1, 1); 
+		ret = subcmdW(ALERTPinConfig,   0x82, 1, 1); 
 		if (ret != 0) morse_string("N",GPIO_PIN_1);		
 
 		/* Alarm enable: measurement scan complete */
-		ret = subcmdcomW(AlarmEnable,   0x02, 1, 1); 
+		ret = subcmdW(AlarmEnable,   0x02, 1, 1); 
 		if (ret != 0) morse_string("AM",GPIO_PIN_1);	
 
 		/* Alarm enable: loads upon reset of exit config */
-		ret = subcmdcomW(DefaultAlarmMask, 0x02, 1, 1); 
+		ret = subcmdW(DefaultAlarmMask, 0x82, 2, 1); // Fullscan, Scan complete
 		if (ret != 0) morse_string("AD",GPIO_PIN_1);
 
 		/* EXIT configuration mode. */
-		ret = subcmdcomW(EXIT_CFGUPDATE, 0x0, 0, 0);
+		ret = subcmdW(EXIT_CFGUPDATE, 0x0, 0, 0);
 		if (ret != 0) morse_string("HI",GPIO_PIN_1);
 
 /* Thermistor mode. */
 				//       (uint16_t cmd, uint16_t data, uint8_t nd, uint8_t config);
-		ret = subcmdcomW(CFETOFFPinConfig,  0x2, 1, 0); // Therm 5
+		ret = subcmdW(CFETOFFPinConfig,  0x2, 1, 0); // Therm 5
 		if (ret != 0) morse_string("A",GPIO_PIN_1);
-		ret = subcmdcomW(DFETOFFPinConfig,  0x2, 1, 0); // Therm 4
+		ret = subcmdW(DFETOFFPinConfig,  0x2, 1, 0); // Therm 4
 		if (ret != 0) morse_string("B",GPIO_PIN_1);
-		ret = subcmdcomW(TS1Config,         0x2, 1, 0); // Therm 1
+		ret = subcmdW(TS1Config,         0x2, 1, 0); // Therm 1
 		if (ret != 0) morse_string("D",GPIO_PIN_1);
-		ret = subcmdcomW(TS3Config,         0x2, 1, 0); // Therm 2
+		ret = subcmdW(TS3Config,         0x2, 1, 0); // Therm 2
 		if (ret != 0) morse_string("B",GPIO_PIN_1);
-		ret = subcmdcomW(DCHGPinConfig,     0x2, 1, 0); // Therm 3
+		ret = subcmdW(DCHGPinConfig,     0x2, 1, 0); // Therm 3
 		if (ret != 0) morse_string("U",GPIO_PIN_1);
 
 		/* GPIO. */
 // $$$$ 0x09 uses REG18 for GPIO voltage active high. Just for test		
-		ret = subcmdcomW(DDSGPinConfig,    0x09, 1, 1); // REG18 pullup, active hi
+		ret = subcmdW(DDSGPinConfig,    0x09, 1, 1); // REG18 pullup, active hi
 		if (ret != 0) morse_string("U",GPIO_PIN_1);
 
 		/* Read battery status byte. */
-		ret = cmdcom((uint8_t *)&battery_status, 2, BatteryStatus);
+		ret = dircmdR((uint8_t *)&battery_status, 2, BatteryStatus);
 		if (ret != 0) morse_string("E",GPIO_PIN_1);
 
 		/* Read device number. */
 		//                       (uint8_t* pr, uint8_t nr, uint16_t cmd)
-		ret = subcmdcomR((uint8_t*)&device_number_u16, 2, DEVICE_NUMBER);
+		ret = subcmdR((uint8_t*)&device_number_u16, 2, DEVICE_NUMBER);
 		if (ret != 0) morse_string("I",GPIO_PIN_1);
 
 		// Device, Firmware
-		ret = subcmdcomR((uint8_t*)&fw_version_6, 6, FW_VERSION);
+		ret = subcmdR((uint8_t*)&fw_version_6, 6, FW_VERSION);
 		if (ret != 0) morse_string("I",GPIO_PIN_1);
 		// Convert to Big Endian
 		fw_version_u16[0] = fw_version_6[0] << 8 | fw_version_6[1];
 		fw_version_u16[1] = fw_version_6[2] << 8 | fw_version_6[3];
 		fw_version_u16[2] = fw_version_6[4] << 8 | fw_version_6[5];
 
-		ret = subcmdcomR((uint8_t*)&hw_version_u16, 2, HW_VERSION);
+		ret = subcmdR((uint8_t*)&hw_version_u16, 2, HW_VERSION);
 		if (ret != 0) morse_string("I",GPIO_PIN_1);
 
 	bq_initflag = 0; // Reset flag
@@ -187,7 +197,7 @@ uint8_t bqstate = 0;
 
 
 	struct BQFUNCTION* pbq = &bqfunction;
-	uint32_t osdelay = 500; // FOR loop delay
+//	uint32_t osdelay = 500; // FOR loop delay
 	uint8_t ret;            // Error check return
 	uint8_t bqstate = 0;    // State machine
 	uint8_t bqloopctr;      // Number of readall between discharge check
@@ -210,22 +220,41 @@ uint8_t bqstate = 0;
 
 	for (;;)
 	{
-		osDelay(osdelay);
+		osDelay(6); // Polling loop; Later have ALERT interrupt & notify
 
+		/* I think this is needed if ribbon cabled pulled and re-plugged. */
 		if (bq_initflag != 0) 
 			bq_init();
 
+		/* Read: ALARMstatus 0x62, AlarmRawStatus 0x64, AlarmEnable 0x66  */
+		ret = dircmdR((uint8_t *)&alarm_status[0], 3*2, AlarmStatus);
+		if (ret != 0) morse_string("AL",GPIO_PIN_1);
+
+		if ((alarm_status[0] & 0x2) != alarm_status_prev) 
+		{
+			alarm_status_prev = (alarm_status[0] & 0x2);
+			alarm_status_ctr += 1;
+			osDelay(3);
+//			ret = dircmdW((uint8_t*)&alarm_reset, 2, AlarmStatus); // 0x62: Write 1 to clear bit
+//			if (ret != 0) morse_string("AW",GPIO_PIN_1);
+
+		}
+
+//		osDelay(3);
+//		ret = dircmdR((uint8_t *)&alarm_status[0], 3*2, AlarmStatus);
+
+	osDelay(3);
 		switch (bqstate)
 		{
 		case 0: // Turn off charging & discharging
 
-			ret = subcmdcomW(CB_ACTIVE_CELLS,(uint16_t)0x0000, 2, 0); // Active cells balancing
-			if (ret != 0) morse_string("BA",GPIO_PIN_1);
+//			ret = subcmdW(CB_ACTIVE_CELLS,(uint16_t)0x0000, 2, 0); // Active cells balancing
+//			if (ret != 0) morse_string("BA",GPIO_PIN_1);
 
 			/* Turn OFF all fets: charger(s), heater, etc. */
-			fetonoff_status_set(0);
+//			fetonoff_status_set(0);
 
-			osDelay(300); // Wait for next complete BQ reading cycle
+//			osDelay(300); // Wait for next complete BQ reading cycle
 
 			/* Read cell voltages, plus the extras */
 			ret = getcellv();
@@ -236,24 +265,35 @@ uint8_t bqstate = 0;
 
 			/* Set FETs accordingly. */
 			fetonoff_status_set(pbq->fet_status);
-pbq->cellbal = 0x0400;
-			/* Set cell balancing fets.  */
-			// uint8_t subcmdcomW(uint16_t cmd, uint16_t data, uint8_t nd, uint8_t config)
-			ret = subcmdcomW(CB_ACTIVE_CELLS,(uint16_t)pbq->cellbal, 2, 0); // Active cells balancing
-			if (ret != 0) morse_string("BA",GPIO_PIN_1);	
 
-			/* Cell balancing parameters. */
-			ret = subcmdcomR((uint8_t*)&blk_0x9335_14, 14, BalancingConfiguration);
-			if (ret != 0) morse_string("CB3",GPIO_PIN_1);	
+			/* Set cell balancing fets.  */
+			// uint8_t subcmdW(uint16_t cmd, uint16_t data, uint8_t nd, uint8_t config)
+			ret = subcmdW(CB_ACTIVE_CELLS,(uint16_t)pbq->cellbal, 2, 0); // Active cells balancing
+			if (ret != 0) morse_string("BA",GPIO_PIN_1);
+
+			/* Cell balancing data. */
+			ret = subcmdR((uint8_t*)&blk_0x0083_u16[0], 3*2, 0x0083);
+			if (ret != 0) morse_string("C3",GPIO_PIN_1);	
+
+			/* Read cell balancing parameters. */
+			ret = subcmdR((uint8_t*)&blk_0x9335_14, 14, BalancingConfiguration);
+			if (ret != 0) morse_string("CB3",GPIO_PIN_1);
+
+			/* Update charging/discharging */
+			charger_update(pbq);	
 
 			read_all(); // This takes (100 * 13) ms
-			osdelay = 10000-1300; // Wait another 10 secs
-
+//			osdelay = 10000-1300; // Wait another 10 secs
+flagmain = 1;
 			bqloopctr = 0;
 			bqstate = 1;
 
-		case 1:		
-			read_all(); // This takes (100 * 13) ms
+		case 1:	
+			
+/* Update charging/discharging */
+//charger_update(pbq);			
+			read_all(); // This takes (100 * 13) m
+			
 			bqloopctr += 1;
 			if (bqloopctr <= 8) break;
 			bqstate = 0;
@@ -264,7 +304,7 @@ pbq->cellbal = 0x0400;
 			ret = getcellv();
 			if (ret != 0) morse_string("GET2",GPIO_PIN_1);
 
-			osdelay = 700;
+//			osdelay = 700;
 			break;
 		}
 	}
@@ -276,9 +316,9 @@ if (ddsgctr >= 4)
 {
 	ddsgctr = 0;
 	if ((ddsgalt & 1) == 0)
-		subcmdcomW(DDSG_HI, 0x0, 0, 0);
+		subcmdW(DDSG_HI, 0x0, 0, 0);
 	else
-		subcmdcomW(DDSG_LO, 0x0, 0, 0);
+		subcmdW(DDSG_LO, 0x0, 0, 0);
 	ddsgalt ^= 1;
 }
 #endif
@@ -331,23 +371,23 @@ static uint8_t bqconfig(void)
 	uint8_t ret;
 
  		/* Read battery status byte. */
-		ret = cmdcom((uint8_t *)&battery_status, 2, BatteryStatus);
+		ret = dircmdR((uint8_t *)&battery_status, 2, BatteryStatus);
 		if (ret != 0) morse_string("E",GPIO_PIN_1);
 
 		/* Read device number. */
 		//                       (uint8_t* pr, uint8_t nr, uint16_t cmd)
-		ret = subcmdcomR((uint8_t*)&device_number_u16, 2, DEVICE_NUMBER);
+		ret = subcmdR((uint8_t*)&device_number_u16, 2, DEVICE_NUMBER);
 		if (ret != 0) morse_string("I",GPIO_PIN_1);
 
 		/* Enable REG0. */
 		//       (uint16_t cmd, uint16_t data, uint8_t nd, uint8_t config);
-		ret = subcmdcomW(REG0Config, 0x1, 1, 1);
+		ret = subcmdW(REG0Config, 0x1, 1, 1);
 		if (ret != 0) morse_string("S",GPIO_PIN_1);
 
 	return 0;
 }
 /* *************************************************************************
- * static uint8_t subcmdcomW(uint16_t cmd, uint16_t data, uint8_t nd, uint8_t config);
+ * static uint8_t subcmdW(uint16_t cmd, uint16_t data, uint8_t nd, uint8_t config);
  * @brief	: Execute a subcommand that writes and/or requires going into confiure mode.
  * @param   : cmd = subcommand code
  * @param   : data = subcommand data to be sent to BQ (two bytes little Endian in uin16_t)
@@ -356,7 +396,7 @@ static uint8_t bqconfig(void)
  * @return  : 0 = success;  > 0 is failure
  * *************************************************************************/
 uint8_t dbA[16];
-static uint8_t subcmdcomW(uint16_t cmd, uint16_t data, uint8_t nd, uint8_t config)
+static uint8_t subcmdW(uint16_t cmd, uint16_t data, uint8_t nd, uint8_t config)
 {
 	uint8_t ret;
 	uint8_t bufchk[4];
@@ -418,14 +458,14 @@ dbA[6]=bufchk[2];
     return 0;
 }
 /* *************************************************************************
- * static uint8_t subcmdcomR(uint8_t* pr, uint8_t nr, uint16_t cmd);
+ * static uint8_t subcmdR(uint8_t* pr, uint8_t nr, uint16_t cmd);
  * @brief	: Execute a subcommand that reads
  * @param   : pr = pointer to buffer to receive data 
  * @param   : nr = number of receive bytes to be read from BQ (0-32)
  * @param   : cmd = subcommand code
  * @return  : 0 = success;  > 0 is failure
  * *************************************************************************/
-static uint8_t subcmdcomR(uint8_t* pr, uint8_t nr, uint16_t cmd)
+static uint8_t subcmdR(uint8_t* pr, uint8_t nr, uint16_t cmd)
 {
 	uint8_t ret;
 	uint8_t bufx[6];
@@ -453,14 +493,14 @@ static uint8_t subcmdcomR(uint8_t* pr, uint8_t nr, uint16_t cmd)
     return 0;
 }
 /* *************************************************************************
- * static uint8_t cmdcom(uint8_t* pr, uint8_t nr, uint8 cmd);
+ * static uint8_t dircmdR(uint8_t* pr, uint8_t nr, uint8 cmd);
  * @brief	: Execute a one byte command
  * @param   : pr = pointer to buffer to receive data 
  * @param   : nr = number of receive bytes to be read from BQ
  * @param   : cmd = one byte command code
  * @return  : 0 = success;  > 0 is failure
  * *************************************************************************/
-static uint8_t cmdcom(uint8_t* pr, uint8_t nr, uint8_t cmd)
+static uint8_t dircmdR(uint8_t* pr, uint8_t nr, uint8_t cmd)
 {
 	uint8_t ret;
 	uint8_t cmdx = cmd;
@@ -476,6 +516,28 @@ static uint8_t cmdcom(uint8_t* pr, uint8_t nr, uint8_t cmd)
 		ret |= HAL_I2C_Master_Receive(&hi2c1, 0x10, pr, nr, 5000);
    		if ( ret != HAL_OK ) return 3;
     }	
+    return 0;
+}
+/* *************************************************************************
+ * static uint8_t dircmdW(uint8_t* pr, uint8_t ns, uint8_t cmd);
+ * @brief	: Execute a one byte command that sends data
+ * @param   : pr = pointer to buffer with data to be sent
+ * @param   : nw = number of bytes to send
+ * @param   : cmd = one byte command code
+ * @return  : 0 = success;  > 0 is failure
+ * *************************************************************************/
+static uint8_t dircmdW(uint8_t* pr, uint8_t ns, uint8_t cmd)
+{
+	uint8_t ret;
+	uint8_t cmdx[4];
+	cmdx[0] = cmd;
+	cmdx[1] = *(pr+0);
+	cmdx[2] = *(pr+1);
+
+	/* Send  command. */
+	ret = HAL_I2C_Master_Transmit(&hi2c1, 0x10, &cmdx[0], (ns+1), 5000);
+	if ( ret != HAL_OK ) return 1;
+ 
     return 0;
 }
 /* *************************************************************************
@@ -549,11 +611,11 @@ static void read_all(void)
 		int ret;
 
  		/* Read block with lots of stuff. */
-		ret = subcmdcomR((uint8_t*)&blk_0x9231_12, 12, 0x9231);
+		ret = subcmdR((uint8_t*)&blk_0x9231_12, 12, 0x9231);
 		if (ret != 0) morse_string("T",GPIO_PIN_1);	
 
 		/* Read block with lots of stuff. */
-		ret = subcmdcomR((uint8_t*)&blk_0x92fa_11, 11, 0x92fa);
+		ret = subcmdR((uint8_t*)&blk_0x92fa_11, 11, 0x92fa);
 		if (ret != 0) morse_string("M",GPIO_PIN_1);	
 
 		
@@ -561,37 +623,83 @@ static void read_all(void)
 		if (ret != 0) morse_string("W",GPIO_PIN_1);	
 
 		/* Cell balancing data. */
-		ret = subcmdcomR((uint8_t*)&blk_0x0083_u16[0], 3*2, 0x0083);
+		ret = subcmdR((uint8_t*)&blk_0x0083_u16[0], 3*2, 0x0083);
 		if (ret != 0) morse_string("C3",GPIO_PIN_1);	
 
 		// Records the cell voltage measurement made just after the latest CUV event.
-		ret = subcmdcomR((uint8_t*)&cuv_snap_0x0080_s16[0], 16*2, 0x0080);
+		ret = subcmdR((uint8_t*)&cuv_snap_0x0080_s16[0], 16*2, 0x0080);
 		if (ret != 0) morse_string("CSP1",GPIO_PIN_1);
 
 		// Records the cell voltage measurement made just after the latest COV event
-		ret = subcmdcomR((uint8_t*)&cov_snap_0x0081_s16[0], 16*2, 0x0081);
+		ret = subcmdR((uint8_t*)&cov_snap_0x0081_s16[0], 16*2, 0x0081);
 		if (ret != 0) morse_string("CSP2",GPIO_PIN_1);	
 
 		// Reports the cumulative number of seconds that balancing has been 
 		//   active on this cell since the last device reset.
-		ret = subcmdcomR((uint8_t*)&cb_status2_0x0086_u32[0], 8*4, 0x0086);
+		ret = subcmdR((uint8_t*)&cb_status2_0x0086_u32[0], 8*4, 0x0086);
 		if (ret != 0) morse_string("CBT1",GPIO_PIN_1);	
-		ret = subcmdcomR((uint8_t*)&cb_status3_0x0087_u32[0], 8*4, 0x0087);
+		ret = subcmdR((uint8_t*)&cb_status3_0x0087_u32[0], 8*4, 0x0087);
 		if (ret != 0) morse_string("CBT2",GPIO_PIN_1);	
 
 		/* Read ADC counts for current and voltage for each cell. */
 		// ADC count for current measurement taken during the cell voltage measurement.
-		ret = subcmdcomR((uint8_t*)&cellcts.blk[0][0], 4*2*4, 0x0071);
+		ret = subcmdR((uint8_t*)&cellcts.blk[0][0], 4*2*4, 0x0071);
 		if (ret != 0) morse_string("DS1",GPIO_PIN_1);	
-		ret = subcmdcomR((uint8_t*)&cellcts.blk[4][0], 4*2*4, 0x0072);
+		ret = subcmdR((uint8_t*)&cellcts.blk[4][0], 4*2*4, 0x0072);
 		if (ret != 0) morse_string("DS1",GPIO_PIN_1);	
-		ret = subcmdcomR((uint8_t*)&cellcts.blk[8][0], 4*2*4, 0x0073);
+		ret = subcmdR((uint8_t*)&cellcts.blk[8][0], 4*2*4, 0x0073);
 		if (ret != 0) morse_string("DS1",GPIO_PIN_1);	
-		ret = subcmdcomR((uint8_t*)&cellcts.blk[12][0], 4*2*4, 0x0074);
+		ret = subcmdR((uint8_t*)&cellcts.blk[12][0], 4*2*4, 0x0074);
 		if (ret != 0) morse_string("DS1",GPIO_PIN_1);	
 
 		/* Misc ADC counts, VREG18 - CC3. */
-		ret = subcmdcomR((uint8_t*)&blk_0x0075_s16[0], 16*2, 0x0075);
+		ret = subcmdR((uint8_t*)&blk_0x0075_s16[0], 16*2, 0x0075);
 		if (ret != 0) morse_string("DS5",GPIO_PIN_1);
 	return;
 }	
+/* *************************************************************************
+ * static void charger_update(struct BQFUNCTION* p);
+ * @brief	: Update charger/discharging FETs based on status byte
+ * *************************************************************************/
+static void charger_update(struct BQFUNCTION* p)
+{
+	/* Internal charger control. */
+	if ((p->fet_status & FET_CHGR) != 0)
+	{ // Here, set charging 
+		TIM1->CCR1 = bqfunction.tim1_ccr1; // Set charge rate
+	}
+	else
+	{ // If not normal rate, should it be Very Low Charge rate?
+		if ((p->fet_status & FET_CHGR_VLC) != 0)
+		{ // Here, yes.
+			TIM1->CCR1 = bqfunction.lc.tim1_ccr1_on_vlc; // Set vlc rate
+		}
+		else
+		{ // Here, stop charging
+			
+		}
+	}
+//		
+//p->fet_status &= ~FET_CHGR;
+
+	/* DUMP controls module discharging FET. */
+	if ((p->fet_status & FET_DUMP) != 0)
+	{ // Here, turn on FET for resistor discharge
+		fetonoff(FET_DUMP,  FET_SETON);
+	}
+	else
+	{ // Here, turn off FET for resistor discharge
+		fetonoff(FET_DUMP,  FET_SETOFF);
+	}
+
+	/* DUMP2 controls external charger. */
+	if ((p->fet_status & FET_DUMP2) != 0)
+	{ // Here, turn on external module (or string?) charger
+		fetonoff(FET_DUMP2,  FET_SETON);
+	}
+	else
+	{ // Here, turn it off.
+		fetonoff(FET_DUMP2,  FET_SETOFF);
+	}
+	return;
+}
