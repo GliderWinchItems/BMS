@@ -1,0 +1,12 @@
+#!/bin/bash
+
+make
+
+cd build
+
+#/$ARM_PREFIX/bin/arm-none-eabi-objdump -S $1.elf | tee $1.list
+$ARM_PREFIX/bin/arm-none-eabi-objdump -S $1.elf > $1.list
+
+$ARM_PREFIX/bin/arm-none-eabi-objcopy -O srec $1.elf $1.srec
+
+../script-flash $1

@@ -1,0 +1,35 @@
+CAN-msg-notes.txt
+
+A. EMC command msgs causing all modules to respond
+
+byte 0:
+  0 = send status (payload same as heartbeat)
+  1 = capture cell voltage
+  2 = send all cell voltages
+  3 = send all temperatures
+  ...
+
+ B. Heartbeat
+
+byte 0:  battery_status
+byte 1:  fet_status
+byte 2-4: cell discharge fets
+
+C. Cell voltages
+
+CAN ID maps to battery module
+
+Payload carries cell voltates
+byte [0]: command code
+byte [1] Cell numbers
+   bits[7:3]cell number 'n' (n > 0)
+   bits[2:0]cell number payload readings (1-3)
+     0 = no cell
+byte [2-3] 16b voltage cell (n)
+byte [4-5] 16b voltage cell (n+1)
+byte [6-7] 16b voltage cell (n+2)
+
+Cell voltage--
+0 = not availble, open wire
+65535 (0xFFFF) = reserved code for error, open wire, ...
+0 < unsigned in 100 uV steps < 65535

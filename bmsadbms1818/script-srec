@@ -1,0 +1,2 @@
+#!/bin/bash
+$ARM_PREFIX/bin/arm-none-eabi-objcopy -O srec bms1818.elf bms1818.srec
