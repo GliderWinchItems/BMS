@@ -1,0 +1,45 @@
+Drill Station Info File: /mnt/home/deh/GliderWinchItems/BMS/hw/eagle/bmsbmsBQ/bmsbq.dri
+
+ Date              :  5/07/2021 21:44:35 
+ Drills            : generated
+ Device            : Excellon drill station
+
+Parameter settings:
+
+ Tolerance Drill + :  2.50 %
+ Tolerance Drill - :  2.50 %
+ Rotate            : no
+ Mirror            : no
+ Optimize          : yes
+ Auto fit          : yes
+ OffsetX           : 0inch
+ OffsetY           : 0inch
+ Layers            : Drills Holes
+
+Drill File Info:
+
+ Data Mode         : Absolute
+ Units             : 1/1000 Inch
+
+Drills used:
+
+ Code  Size       used
+
+ T01   0.1102inch     4
+ T02   0.0350inch    44
+ T03   0.0420inch    30
+ T04   0.0394inch    51
+ T05   0.0400inch    35
+ T06   0.0315inch    19
+ T07   0.0433inch    10
+ T08   0.0551inch     4
+ T09   0.0320inch     7
+ T10   0.0512inch     1
+ T11   0.0354inch     5
+ T12   0.0236inch   267
+
+Total number of drills: 477
+
+Plotfiles:
+
+ /mnt/home/deh/GliderWinchItems/BMS/hw/eagle/bmsbmsBQ/bmsbq.drd
