@@ -492,6 +492,10 @@
 <text x="52.07" y="38.1" size="1.778" layer="91" rot="R90">CAN BUS MINUS</text>
 <text x="66.675" y="49.53" size="1.778" layer="91" rot="R90">CAN-H</text>
 <text x="60.325" y="50.165" size="1.778" layer="91" rot="R90">CAN-L</text>
+<text x="48.26" y="127" size="3.81" layer="91">Adaptor</text>
+<text x="76.2" y="127" size="3.81" layer="91">RJ45 CAN cable</text>
+<text x="96.52" y="121.92" size="3.81" layer="91">to</text>
+<text x="83.82" y="116.84" size="3.81" layer="91">BMS pcb 2x10 keyed header</text>
 </plain>
 <instances>
 <instance part="P+1" gate="1" x="19.685" y="46.99" rot="R270"/>

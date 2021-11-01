@@ -79,7 +79,7 @@ void bq_items_seq(int16_t* p)
 		psort += 1;
 		p += 1; // Next cell
 	}
-//debuggin: visually check duration between calls	
+//debugging: visually check duration between calls	
 morse_string("E",GPIO_PIN_1);
 
 	/* Unusual situation check. */

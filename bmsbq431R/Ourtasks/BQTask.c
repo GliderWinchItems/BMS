@@ -32,6 +32,8 @@ static uint8_t getcellv(void);
 static void read_all(void);
 static void charger_update(struct BQFUNCTION* p);
 
+extern osThreadId_t defaultTaskHandle;
+
 struct BQFUNCTION bqfunction;
 
 uint8_t bqchksum(uint8_t* ptr, uint8_t len);
@@ -83,7 +85,6 @@ uint8_t blk_0x92fa_11[11];
 uint8_t blk_0x9335_14[14];
 
 uint8_t bq_initflag = 0;
-uint8_t flagmain;
 
 /* *************************************************************************
  * static void brake_init(struct BQFUNCTION* p);
@@ -112,7 +113,7 @@ static void bq_init(void)
 		ret = subcmdW(CommIdleTime, 0x1, 1, 0);
 		if (ret != 0) morse_string("H",GPIO_PIN_1);
 
-		ret = subcmdW(CellBalanceMaxCells, 0x6, 1, 0);
+		ret = subcmdW(CellBalanceMaxCells, 0x7, 1, 0);
 		if (ret != 0) morse_string("H",GPIO_PIN_1);
 
 		/* Slow loop mode when balancing. */
@@ -132,7 +133,7 @@ static void bq_init(void)
 		if (ret != 0) morse_string("AD",GPIO_PIN_1);
 
 		/* Cell balance stop delta. (mv) */
-		ret = subcmdW(CellBalanceMinCellVCharge,(uint16_t)4000, 2, 0); 
+		ret = subcmdW(CellBalanceMinCellVCharge,(uint16_t)bqfunction.lc.cellv_max, 2, 0); 
 		if (ret != 0) morse_string("CBX",GPIO_PIN_1);
 
 
@@ -186,7 +187,7 @@ static void bq_init(void)
 		ret = subcmdR((uint8_t*)&hw_version_u16, 2, HW_VERSION);
 		if (ret != 0) morse_string("I",GPIO_PIN_1);
 
-	bq_initflag = 0; // Reset flag
+	bq_initflag = 1; // Show init has been completed
 	
 	return;
 }
@@ -194,6 +195,10 @@ static void bq_init(void)
  * void StartBQTask(void const * argument);
  *	@brief	: Task startup
  * *************************************************************************/
+uint8_t dbgx; // Debug
+
+
+
 
 void StartBQTask(void* argument)
 {
@@ -213,7 +218,8 @@ uint8_t bqstate = 0;
 //	uint32_t osdelay = 500; // FOR loop delay
 	uint8_t ret;            // Error check return
 	uint8_t bqstate = 0;    // State machine
-	uint8_t bqloopctr;      // Number of readall between discharge check
+	uint32_t bqloopctr;      // Number of readall between discharge check
+	
 
 	/* Wake up BQ if it is SHUTDOWN mode. */
 	HAL_GPIO_WritePin(GPIOD,GPIO_PIN_2,GPIO_PIN_RESET);
@@ -234,15 +240,14 @@ uint8_t bqstate = 0;
 	for (;;)
 	{
 		osDelay(10); // Polling loop; Later have ALERT interrupt & notify
-
 		/* I think this is needed if ribbon cabled pulled and re-plugged. */
-		if (bq_initflag != 0) 
+		if (bq_initflag == 0) 
 			bq_init();
 
+#ifdef USEALARMSTATUSSTUFF
 		/* Read: ALARMstatus 0x62, AlarmRawStatus 0x64, AlarmEnable 0x66  */
 		ret = dircmdR((uint8_t *)&alarm_status[0], 3*2, AlarmStatus);
 		if (ret != 0) morse_string("AL",GPIO_PIN_1);
-
 		if ((alarm_status[0] & 0x2) != alarm_status_prev) 
 		{
 			alarm_status_prev = (alarm_status[0] & 0x2);
@@ -250,9 +255,8 @@ uint8_t bqstate = 0;
 			osDelay(3);
 			ret = dircmdW((uint8_t*)&alarm_reset, 2, AlarmStatus); // 0x62: Write 1 to clear bit
 			if (ret != 0) morse_string("AW",GPIO_PIN_1);
-
 		}
-
+#endif
 //		osDelay(3);
 //		ret = dircmdR((uint8_t *)&alarm_status[0], 3*2, AlarmStatus);
 
@@ -267,9 +271,13 @@ uint8_t bqstate = 0;
 			/* Turn OFF all fets: charger(s), heater, etc. */
 			fetonoff_status_set(0);
 
-//			osDelay(300); // Wait for next complete BQ reading cycle
+			/* Turn off any dishcarging. */
+			ret = subcmdW(CB_ACTIVE_CELLS,(uint16_t)0x0, 2, 0); 
+			if (ret != 0) morse_string("BA",GPIO_PIN_1);
 
-			/* Read cell voltages, plus the extras */
+			osDelay(300); // Wait for next complete BQ reading cycle
+
+			/* Get cell voltages (with charging/discharging off). */
 			ret = getcellv();
 			if (ret != 0) morse_string("GET1",GPIO_PIN_1);
 
@@ -281,44 +289,37 @@ uint8_t bqstate = 0;
 
 			/* Set cell balancing fets.  */
 			// uint8_t subcmdW(uint16_t cmd, uint16_t data, uint8_t nd, uint8_t config)
-//			ret = subcmdW(CB_ACTIVE_CELLS,(uint16_t)pbq->cellbal, 2, 0); // Active cells balancing
-//			if (ret != 0) morse_string("BA",GPIO_PIN_1);
-
+			ret = subcmdW(CB_ACTIVE_CELLS,(uint16_t)pbq->cellbal, 2, 0); // Active cells balancing
+			if (ret != 0) morse_string("BA",GPIO_PIN_1);
+osDelay(3);
 			/* Cell balancing data. */
 			ret = subcmdR((uint8_t*)&blk_0x0083_u16[0], 3*2, 0x0083);
 			if (ret != 0) morse_string("C3",GPIO_PIN_1);	
-
+osDelay(3);
 			/* Read cell balancing parameters. */
 			ret = subcmdR((uint8_t*)&blk_0x9335_14, 14, BalancingConfiguration);
 			if (ret != 0) morse_string("CB3",GPIO_PIN_1);
+osDelay(3);
+			ret = subcmdW(CB_ACTIVE_CELLS,(uint16_t)pbq->cellbal, 2, 0); // Active cells balancing
+			if (ret != 0) morse_string("BA",GPIO_PIN_1);
 
 			/* Update charging/discharging */
 			charger_update(pbq);	
 
-//			read_all(); // This takes (100 * 13) ms
-//			osdelay = 10000-1300; // Wait another 10 secs
-flagmain = 1;
+			/* Trigger 'main.c' to display all the crap retrieved. */
+			xTaskNotify(defaultTaskHandle, DEFAULTTASKBIT01, eSetBits);
 			bqloopctr = 0;
 			bqstate = 1;
 
-		case 1:	
-			
-/* Update charging/discharging */
-//charger_update(pbq);			
-			
+		case 1:	// Duration for charging or discharging progress.
 			bqloopctr += 1;
-			if (bqloopctr <= 8000) break;
+			if (bqloopctr <= 900) break; // 0.01 sec thru loop
+
+			/* Read everything (but charging/discharging is still on) */
 			read_all(); // This takes (100 * 13) m
 			bqstate = 0;
 			break;
 
-		case 2:
-			read_all();
-			ret = getcellv();
-			if (ret != 0) morse_string("GET2",GPIO_PIN_1);
-
-//			osdelay = 700;
-			break;
 		}
 	}
 

@@ -38,6 +38,7 @@
 #include "bqcellbal.h"
 #include "ChgrTask.h"
 #include "bq_func_init.h"
+#include "ADCTask.h"
 
 #include "FreeRTOS.h"
 #include "semphr.h"
@@ -198,6 +199,8 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
+  Thrdret = xADCTaskCreate(1); // (arg) = priority
+  if (Thrdret == NULL) morse_trap(117);
 
   /* Create serial task (priority) */
   // Task handle "osThreadId SerialTaskHandle" is global
@@ -320,7 +323,7 @@ static void MX_ADC1_Init(void)
   hadc1.Init.EOCSelection = ADC_EOC_SEQ_CONV;
   hadc1.Init.LowPowerAutoWait = DISABLE;
   hadc1.Init.ContinuousConvMode = ENABLE;
-  hadc1.Init.NbrOfConversion = 9;
+  hadc1.Init.NbrOfConversion = 8;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
   hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
   hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
@@ -333,9 +336,9 @@ static void MX_ADC1_Init(void)
   }
   /** Configure Regular Channel
   */
-  sConfig.Channel = ADC_CHANNEL_2;
+  sConfig.Channel = ADC_CHANNEL_8;
   sConfig.Rank = ADC_REGULAR_RANK_1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_2CYCLES_5;
+  sConfig.SamplingTime = ADC_SAMPLETIME_24CYCLES_5;
   sConfig.SingleDiff = ADC_SINGLE_ENDED;
   sConfig.OffsetNumber = ADC_OFFSET_NONE;
   sConfig.Offset = 0;
@@ -345,24 +348,9 @@ static void MX_ADC1_Init(void)
   }
   /** Configure Regular Channel
   */
-  sConfig.Channel = ADC_CHANNEL_4;
+  sConfig.Channel = ADC_CHANNEL_9;
   sConfig.Rank = ADC_REGULAR_RANK_2;
-  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /** Configure Regular Channel
-  */
-  sConfig.Channel = ADC_CHANNEL_5;
-  sConfig.Rank = ADC_REGULAR_RANK_3;
-  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /** Configure Regular Channel
-  */
-  sConfig.Channel = ADC_CHANNEL_8;
-  sConfig.Rank = ADC_REGULAR_RANK_4;
+  sConfig.SamplingTime = ADC_SAMPLETIME_47CYCLES_5;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -370,7 +358,17 @@ static void MX_ADC1_Init(void)
   /** Configure Regular Channel
   */
   sConfig.Channel = ADC_CHANNEL_12;
-  sConfig.Rank = ADC_REGULAR_RANK_5;
+  sConfig.Rank = ADC_REGULAR_RANK_3;
+  sConfig.SamplingTime = ADC_SAMPLETIME_92CYCLES_5;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Configure Regular Channel
+  */
+  sConfig.Channel = ADC_CHANNEL_2;
+  sConfig.Rank = ADC_REGULAR_RANK_4;
+  sConfig.SamplingTime = ADC_SAMPLETIME_12CYCLES_5;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -378,7 +376,8 @@ static void MX_ADC1_Init(void)
   /** Configure Regular Channel
   */
   sConfig.Channel = ADC_CHANNEL_13;
-  sConfig.Rank = ADC_REGULAR_RANK_6;
+  sConfig.Rank = ADC_REGULAR_RANK_5;
+  sConfig.SamplingTime = ADC_SAMPLETIME_47CYCLES_5;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -386,7 +385,7 @@ static void MX_ADC1_Init(void)
   /** Configure Regular Channel
   */
   sConfig.Channel = ADC_CHANNEL_14;
-  sConfig.Rank = ADC_REGULAR_RANK_7;
+  sConfig.Rank = ADC_REGULAR_RANK_6;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -394,14 +393,16 @@ static void MX_ADC1_Init(void)
   /** Configure Regular Channel
   */
   sConfig.Channel = ADC_CHANNEL_TEMPSENSOR;
-  sConfig.Rank = ADC_REGULAR_RANK_8;
+  sConfig.Rank = ADC_REGULAR_RANK_7;
+  sConfig.SamplingTime = ADC_SAMPLETIME_247CYCLES_5;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     Error_Handler();
   }
   /** Configure Regular Channel
   */
-  sConfig.Rank = ADC_REGULAR_RANK_9;
+  sConfig.Channel = ADC_CHANNEL_VREFINT;
+  sConfig.Rank = ADC_REGULAR_RANK_8;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -1117,6 +1118,11 @@ void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
 
+  uint32_t noteval = 0; // TaskNotifyWait notification word
+  uint32_t notectr = 0; // Running count of notifications
+  uint32_t notectr_prev = 0;
+//  uint32_t tick_next;
+
 //#define TESTSHUTDOWN_VIA_COMMAND // Test processor commanded BQ shutdown
 //#define DUMPandHEATER_TEST
   #define BQMonitor
@@ -1142,15 +1148,31 @@ extern uint32_t cvflag;
   uint32_t tickstate = ticksys + 20000;
   uint8_t shutstate = 0;
   yprintf(&pbuf1,"\n\r\tProcessor commanded shut-down cycling");
-#endif  
+#endif 
 
   /* Infinite loop */
   for(;;)
   {
-extern uint8_t flagmain;
+    /* Wait for ADC new adc data (ADCTask.c) */
+    xTaskNotifyWait(0,0xffffffff, &noteval, 10000);
 
-    while (flagmain == 0) osDelay(2);
-    flagmain = 0;
+    if (noteval & DEFAULTTASKBIT00)
+    {
+      notectr += 1;  // Running count of notifications
+      if ((int)(notectr-notectr_prev) >= 128)
+      {
+extern uint8_t  adcsumidx;
+extern float adcsumfilt[2][ADC1IDX_ADCSCANSIZE];
+float* padcfilt = &adcsumfilt[adcsumidx^1][0];
+
+
+        yprintf(&pbuf1,"\n\r%3d %4d",mctr++,notectr-notectr_prev);
+        notectr_prev = notectr;
+        for (i = 0; i < 8; i++)
+          yprintf(&pbuf1," %6.2f",adcsumfilt[0][i]);
+      }
+    }
+    if ((noteval & DEFAULTTASKBIT01) == 0) continue;
     
     yprintf(&pbuf1,"\n\r%d CHGR", mctr++);
 
@@ -1260,7 +1282,7 @@ extern uint8_t bq_initflag; // 1 = signal BQ to initialize
         osDelay(330);
         HAL_GPIO_WritePin(GPIOD,GPIO_PIN_2,GPIO_PIN_RESET); // LD
         osDelay(3);
-        bq_initflag = 1;
+        bq_initflag = 0;
         yprintf(&pbuf1,"\n\r\tLD: reset");
         shutstate = 0;
         tickstate = tickstate + 15000; // 105sec
@@ -1272,10 +1294,11 @@ extern uint8_t bq_initflag; // 1 = signal BQ to initialize
     {
       if (cvflag == 0)
       { // Here new Cell voltage readings
-        cvflag = 0; // Reset 
         yprintf(&pbuf1,"\n\r\t%5d No cell readings: bqflag = %d",mctr++,bqflag);
         continue;
       }
+      cvflag = 0; // Reset to wait for new readings
+
 
       /* Header: device readings and cell numbers */
       lctr += 1;

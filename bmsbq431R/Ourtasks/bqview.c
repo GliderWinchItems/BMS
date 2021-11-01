@@ -99,7 +99,7 @@ void bqview_blk_0x0083 (struct SERIALSENDTASKBCB** pp)
 // Cells actively being balanced
 //	yprintf(pp,"\n\rCB_ACTIVE_CELLS 0x0083");
 //	for (i = 1; i < 17; i++) yprintf(pp,"%4d", i); // Cell number header
-	yprintf(pp,"\n\r        ");
+	yprintf(pp,"\n\rII      ");
 	for (i = 0; i < 16; i++)
 	{
 		if ((tmp & (1 << i)) == 0) 
@@ -228,7 +228,7 @@ void bqview_blk_0x14_u16 (struct SERIALSENDTASKBCB** pp)
 {
 	int i;
 	int16_t* pv = &cellv[cvidx][0];
-    yprintf(pp,"\n\r        ");
+    yprintf(pp,"\n\rVV      ");
     for (i = 0; i < 16; i++) yprintf(pp,"%8d",*pv++);
 
     return;
@@ -284,6 +284,6 @@ void bqview_our_params_sortV (struct SERIALSENDTASKBCB** pp)
 	extern struct BQCELLV dbsort[NCELLMAX];
 	int i;
 	for (i = 0; i < 16; i++)
-		yprintf(pp,"\n\r%2d %5d %2d",i,dbsort[i].v,dbsort[i].idx);
+		yprintf(pp,"\n\rS %2d %5d %2d",i,dbsort[i].v,dbsort[i].idx);
 	return;
 }

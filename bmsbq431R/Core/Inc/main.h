@@ -116,8 +116,13 @@ void Error_Handler(void);
 #define BQ_SDA_Pin GPIO_PIN_7
 #define BQ_SDA_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
+
 // USART/UART assignments
 #define HUARTMON  huart1 // uart  for PC monitoring
+#define DEFAULTTASKBIT00 (1 << 0)  // Task notification bit (from ADCtask.c)
+#define DEFAULTTASKBIT01 (1 << 1)  // Task notification bit (from BQtask.c)
+
+
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus
