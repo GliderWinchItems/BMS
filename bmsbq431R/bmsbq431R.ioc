@@ -197,7 +197,6 @@ Mcu.UserConstants=
 Mcu.UserName=STM32L431RBTx
 MxCube.Version=6.3.0
 MxDb.Version=DB.6.0.30
-NVIC.ADC1_IRQn=true\:5\:0\:false\:false\:true\:true\:true\:true
 NVIC.BusFault_IRQn=true\:0\:0\:false\:false\:true\:false\:false\:false
 NVIC.DMA1_Channel1_IRQn=true\:6\:0\:true\:false\:true\:true\:false\:true
 NVIC.DMA1_Channel6_IRQn=true\:6\:0\:true\:false\:true\:true\:false\:true

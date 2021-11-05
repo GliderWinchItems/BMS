@@ -47,7 +47,7 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->modulev_min = (16*3450); // Battery module min limit (mv)
 
    p->balnummax   =  7;  // Max number of cells to discharge at one time
-   p->cellbal_del = 10;  // Balance within lowest cellv + this delta (mv)
+   p->cellbal_del =  2;  // Balance within lowest cellv + this delta (mv)
  
 // CAN ids levelwind sends
    //                      CANID_HEX      CANID_NAME             CAN_MSG_FMT     DESCRIPTION

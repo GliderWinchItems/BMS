@@ -1124,7 +1124,6 @@ void StartDefaultTask(void *argument)
 //  uint32_t tick_next;
 
 //#define TESTSHUTDOWN_VIA_COMMAND // Test processor commanded BQ shutdown
-//#define DUMPandHEATER_TEST
   #define BQMonitor
 
   uint32_t mctr = 0;
@@ -1169,7 +1168,7 @@ float* padcfilt = &adcsumfilt[adcsumidx^1][0];
         yprintf(&pbuf1,"\n\r%3d %4d",mctr++,notectr-notectr_prev);
         notectr_prev = notectr;
         for (i = 0; i < 8; i++)
-          yprintf(&pbuf1," %6.2f",adcsumfilt[0][i]);
+          yprintf(&pbuf1," %7.3f",adcsumfilt[0][i]);
       }
     }
     if ((noteval & DEFAULTTASKBIT01) == 0) continue;
@@ -1227,29 +1226,6 @@ extern uint16_t reg0_config_u16;
 extern uint16_t ddsgp_config_u16;    
     yprintf(&pbuf1,"\n\rbattery_status: 0x%04X", battery_status);
 
-//   osDelay(500);
-  //  HAL_GPIO_WritePin(GPIOB,GPIO_PIN_1,GPIO_PIN_RESET); // RED LED
-//   osDelay(500);
-//    HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_RESET); // GRN LED
-
-#ifdef DUMPandHEATER_TEST
-//AL_GPIO_WritePin(DUMP_NOT_GPIO_Port,DUMP_NOT_Pin, GPIO_PIN_SET);    
-//HAL_GPIO_WritePin(HEATER_NOT_GPIO_Port, HEATER_NOT_Pin, GPIO_PIN_SET);
-    fetonoff(FET_DUMP,  FET_SETON);
-    fetonoff(FET_DUMP2, FET_SETON);
-   fetonoff(FET_HEATER,FET_SETON);
-#endif
- //   osDelay(500);
-//    HAL_GPIO_WritePin(GPIOB,GPIO_PIN_1,GPIO_PIN_SET); // RED LED
-    osDelay(2000);
-//   HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_SET); // GRN LED
-#ifdef DUMPandHEATER_TEST
-//   HAL_GPIO_WritePin(DUMP_NOT_GPIO_Port,DUMP_NOT_Pin, GPIO_PIN_RESET);
-//  HAL_GPIO_WritePin(HEATER_NOT_GPIO_Port, HEATER_NOT_Pin, GPIO_PIN_RESET);
-    fetonoff(FET_DUMP,  FET_SETOFF);
-    fetonoff(FET_DUMP2, FET_SETOFF);
-    fetonoff(FET_HEATER,FET_SETOFF);
-#endif
 
 
 #ifdef TESTSHUTDOWN_VIA_COMMAND

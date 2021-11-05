@@ -103,9 +103,9 @@ static void bq_init(void)
 		ret = subcmdW(REG0Config, 0x1, 1, 0);
 		if (ret != 0) morse_string("S",GPIO_PIN_1);
 
-		/* Enable REG12. REG0: 1.8v, REG1: 5.0v (?) */
+		/* Enable REG12. REG0: 2.5v, REG1: not enabled */
 		//       (uint16_t cmd, uint16_t data, uint8_t nd, uint8_t config);
-		ret = subcmdW(REG12Config, 0xF1, 1, 0);
+		ret = subcmdW(REG12Config, 0x09, 1, 0);
 		if (ret != 0) morse_string("S",GPIO_PIN_1);
 
 		/* Set no communications shutdown duration: minutes. */
@@ -113,11 +113,12 @@ static void bq_init(void)
 		ret = subcmdW(CommIdleTime, 0x1, 1, 0);
 		if (ret != 0) morse_string("H",GPIO_PIN_1);
 
+		/* Max number of cell fets on at same time. */
 		ret = subcmdW(CellBalanceMaxCells, 0x7, 1, 0);
 		if (ret != 0) morse_string("H",GPIO_PIN_1);
 
 		/* Slow loop mode when balancing. */
-		ret = subcmdW(PowerConfig,(uint16_t)0x29B2, 1, 0);
+		ret = subcmdW(PowerConfig,(uint16_t)0x29BE, 1, 0);
 		if (ret != 0) morse_string("H",GPIO_PIN_1);
 
 		/* Alert inputs to L431. Active low; Alert mode. */
@@ -215,11 +216,12 @@ uint8_t bqstate = 0;
 
 
 	struct BQFUNCTION* pbq = &bqfunction;
-//	uint32_t osdelay = 500; // FOR loop delay
 	uint8_t ret;            // Error check return
 	uint8_t bqstate = 0;    // State machine
-	uint32_t bqloopctr;      // Number of readall between discharge check
-	
+	uint8_t tmp;
+	uint8_t i;
+
+	TickType_t xLastWakeTime;
 
 	/* Wake up BQ if it is SHUTDOWN mode. */
 	HAL_GPIO_WritePin(GPIOD,GPIO_PIN_2,GPIO_PIN_RESET);
@@ -236,6 +238,8 @@ uint8_t bqstate = 0;
 		morse_sos();
 		osDelay(50);
 	}
+
+	xLastWakeTime = xTaskGetTickCount();
 
 	for (;;)
 	{
@@ -263,19 +267,20 @@ uint8_t bqstate = 0;
 	osDelay(3);
 		switch (bqstate)
 		{
-		case 0: // Turn off charging & discharging
+		case 0: // Balancing loop
 
 //			ret = subcmdW(CB_ACTIVE_CELLS,(uint16_t)0x0000, 2, 0); // Active cells balancing
 //			if (ret != 0) morse_string("BA",GPIO_PIN_1);
 
 			/* Turn OFF all fets: charger(s), heater, etc. */
 			fetonoff_status_set(0);
-
+fetonoff(FET_DUMP,0);
 			/* Turn off any dishcarging. */
 			ret = subcmdW(CB_ACTIVE_CELLS,(uint16_t)0x0, 2, 0); 
 			if (ret != 0) morse_string("BA",GPIO_PIN_1);
 
-			osDelay(300); // Wait for next complete BQ reading cycle
+			/* Read everything */
+			read_all(); // This takes ~(100 * 13) ms
 
 			/* Get cell voltages (with charging/discharging off). */
 			ret = getcellv();
@@ -308,18 +313,50 @@ osDelay(3);
 
 			/* Trigger 'main.c' to display all the crap retrieved. */
 			xTaskNotify(defaultTaskHandle, DEFAULTTASKBIT01, eSetBits);
-			bqloopctr = 0;
-			bqstate = 1;
 
-		case 1:	// Duration for charging or discharging progress.
-			bqloopctr += 1;
-			if (bqloopctr <= 900) break; // 0.01 sec thru loop
-
-			/* Read everything (but charging/discharging is still on) */
-			read_all(); // This takes (100 * 13) m
-			bqstate = 0;
+			/* Delay loop. Approx 10 sec per loop. */
+			vTaskDelayUntil( &xLastWakeTime,pdMS_TO_TICKS(10000) );
 			break;
 
+		case 1:	// DUMP discharge until cutoff voltage. 
+			/* Turn off any FET dishcarging. */
+			ret = subcmdW(CB_ACTIVE_CELLS,(uint16_t)0x0, 2, 0); 
+			if (ret != 0) morse_string("BA",GPIO_PIN_1);
+
+			/* Read everything */
+			read_all(); // This takes ~(100 * 13) ms
+
+			/* Turn OFF all fets: charger(s), heater, etc. */
+			fetonoff_status_set(0);
+
+			/* Get cell voltages (with charging/discharging off). */
+			ret = getcellv();
+			if (ret != 0) morse_string("GET2",GPIO_PIN_1);
+
+			/* Check for any cell at cutoff voltage. */
+			int16_t* p = &cellv[(cvidx)][0];
+			tmp = 0;
+			for (i = 0; i < pbq->lc.ncell; i++)
+			{
+				if (*p++ < pbq->lc.cellv_min) tmp = 1;
+			}
+			if (tmp != 0)
+			{ // Here, stop discharging
+				/* Turn OFF all fets: charger(s), heater, etc. */
+				fetonoff_status_set(0);
+			}
+			else
+			{ // Here, start discharging
+				fetonoff(FET_DUMP, FET_SETON);
+			}
+
+			/* Trigger 'main.c' to display all the crap retrieved. */
+			xTaskNotify(defaultTaskHandle, DEFAULTTASKBIT01, eSetBits);
+
+			/* Fixed delay for loop. */
+			vTaskDelayUntil( &xLastWakeTime,pdMS_TO_TICKS(3000) );
+
+			break;	
 		}
 	}
 
@@ -695,7 +732,7 @@ static void charger_update(struct BQFUNCTION* p)
 	}
 //		
 //p->fet_status &= ~FET_CHGR;
-
+#ifdef USETHISFETSTUFF
 	/* DUMP controls module discharging FET. */
 	if ((p->fet_status & FET_DUMP) != 0)
 	{ // Here, turn on FET for resistor discharge
@@ -715,5 +752,7 @@ static void charger_update(struct BQFUNCTION* p)
 	{ // Here, turn it off.
 		fetonoff(FET_DUMP2,  FET_SETOFF);
 	}
+#endif
+
 	return;
 }

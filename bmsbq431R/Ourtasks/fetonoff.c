@@ -27,7 +27,7 @@ uint8_t fetonoff(uint8_t fetnum, uint8_t fetcommand)
 		switch (fetnum)
 		{
 		case FET_DUMP:   // DUMP = Battery module discharge "dump"
-			HAL_GPIO_WritePin(DUMP_NOT_GPIO_Port,DUMP_NOT_Pin, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(DUMP_NOT_GPIO_Port,DUMP_NOT_Pin, GPIO_PIN_SET);
 			HAL_GPIO_WritePin(DUMP_GPIO_Port,DUMP_Pin, GPIO_PIN_SET);
 			pbq->fet_status |= FET_DUMP;
 			break;
@@ -38,7 +38,7 @@ uint8_t fetonoff(uint8_t fetnum, uint8_t fetcommand)
 			break;
 
 		case FET_HEATER: // Battery module warmup heater
-			HAL_GPIO_WritePin(HEATER_NOT_GPIO_Port, HEATER_NOT_Pin, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(HEATER_NOT_GPIO_Port, HEATER_NOT_Pin, GPIO_PIN_SET);
 			HAL_GPIO_WritePin(HEATER_GPIO_Port,HEATER_Pin, GPIO_PIN_SET);
 			pbq->fet_status |= FET_HEATER;
 
@@ -57,8 +57,8 @@ uint8_t fetonoff(uint8_t fetnum, uint8_t fetcommand)
 		switch (fetnum)
 		{
 		case FET_DUMP:   // Battery module discharge "dump"
-			HAL_GPIO_WritePin(DUMP_NOT_GPIO_Port,DUMP_NOT_Pin, GPIO_PIN_SET);
-			HAL_GPIO_WritePin(DUMP_GPIO_Port,DUMP_Pin, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(DUMP_NOT_GPIO_Port,DUMP_NOT_Pin, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(DUMP_GPIO_Port,DUMP_Pin, GPIO_PIN_SET);
 			pbq->fet_status &= ~FET_DUMP;
 			break;
 
@@ -68,8 +68,8 @@ uint8_t fetonoff(uint8_t fetnum, uint8_t fetcommand)
 			break;
 
 		case FET_HEATER: // Battery module warmup heater
-			HAL_GPIO_WritePin(HEATER_NOT_GPIO_Port, HEATER_NOT_Pin, GPIO_PIN_SET);
-			HAL_GPIO_WritePin(HEATER_GPIO_Port,HEATER_Pin, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(HEATER_NOT_GPIO_Port, HEATER_NOT_Pin, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(HEATER_GPIO_Port,HEATER_Pin, GPIO_PIN_SET);
 			pbq->fet_status &= ~FET_HEATER;
 			break;
 
