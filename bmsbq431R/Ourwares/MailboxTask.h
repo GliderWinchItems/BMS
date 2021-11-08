@@ -126,7 +126,7 @@ osThreadId xMailboxTaskCreate(uint32_t taskpriority);
  * @param	: taskpriority = Task priority (just as it says!)
  * @return	: QueueHandle_t = queue handle
  * *************************************************************************/
-void StartMailboxTask(void const * argument);
+void StartMailboxTask(void* argument);
 /*	@brief	: Task startup
  * *************************************************************************/
 struct CANNOTIFYLIST* MailboxTask_disable_notifications(struct MAILBOXCAN* pmbx);
@@ -155,7 +155,7 @@ struct CANRCVBUFN* Mailboxgetbuf(int i);
  * @return	: Pointer to CAN msg circular buffer; NULL = failed
  * *************************************************************************/
 
-extern osThreadId MailboxTaskHandle;
+extern TaskHandle_t MailboxTaskHandle;
 extern struct MAILBOXCANNUM mbxcannum[STM32MAXCANNUM];
 
 #endif

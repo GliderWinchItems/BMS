@@ -4,8 +4,8 @@
 * Description        : Incoming CAN msgs to Mailbox
 *******************************************************************************/
 
-#include "stm32f4xx_hal.h"
-#include "stm32f4xx_hal_can.h"
+#include "stm32l4xx_hal.h"
+#include "stm32l4xx_hal_can.h"
 #include "CanTask.h"
 #include "MailboxTask.h"
 #include "morse.h"
@@ -27,9 +27,9 @@ struct MAILBOXCANBUFNOTE* pcir[STM32MAXCANNUM] = {NULL};
 	struct MBXTOGATEBUF mbxgatebuf[STM32MAXCANNUM] = {0};
 #endif
 
-osThreadId MailboxTaskHandle; // This wonderful task handle
+TaskHandle_t MailboxTaskHandle; // This wonderful task handle
 
-void StartMailboxTask(void const * argument);
+void StartMailboxTask(void* argument);
 static struct MAILBOXCAN* loadmbx(struct MAILBOXCANNUM* pmbxnum, struct CANRCVBUFN* pncan);
 
 /* *************************************************************************
@@ -406,11 +406,15 @@ struct CANRCVBUFN* Mailboxgetbuf(int i)
 osThreadId xMailboxTaskCreate(uint32_t taskpriority)
 {
  /* definition and creation of CanTask */
-  osThreadDef(MailboxTask, StartMailboxTask, osPriorityNormal, 0,(192-32));
+ // osThreadDef(MailboxTask, StartMailboxTask, osPriorityNormal, 0,(192-32));
+//  MailboxTaskHandle = osThreadCreate(osThread(MailboxTask), NULL);
+//	vTaskPrioritySet( MailboxTaskHandle, taskpriority );
 
-  MailboxTaskHandle = osThreadCreate(osThread(MailboxTask), NULL);
+	BaseType_t ret = xTaskCreate(StartMailboxTask, "MailboxTask",\
+     (96), NULL, taskpriority,\
+     &MailboxTaskHandle);
+	if (ret != pdPASS) return NULL;
 
-	vTaskPrioritySet( MailboxTaskHandle, taskpriority );
 
 #ifdef GATEWAYTASKINCLUDED
 	gatebufsetup(&mbxgatebuf[0]); // CAN1
@@ -425,7 +429,7 @@ osThreadId xMailboxTaskCreate(uint32_t taskpriority)
  * void StartMailboxTask(void const * argument);
  *	@brief	: Task startup
  * *************************************************************************/
-void StartMailboxTask(void const * argument)
+void StartMailboxTask(void* argument)
 {
 	struct MAILBOXCANNUM* pmbxnum;
 	struct CANRCVBUFN* pncan;

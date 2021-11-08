@@ -68,7 +68,7 @@ void StartChgrTask(void* argument)
 	for (;;)
 	{
 		/* Wink green led */
-//		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_RESET); // GRN LED
+		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_RESET); // GRN LED
 		osDelay(15); 	
 		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_SET); // GRN LED
 		osDelay(1985); 	

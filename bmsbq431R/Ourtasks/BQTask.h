@@ -12,17 +12,29 @@
 #include "cmsis_os.h"
 #include "stm32l4xx_hal.h"
 #include "bq_idx_v_struct.h"
+#include "CanTask.h"
 
 #define BQVSIZE 20 // Readout loop size (16 cells plus others)
 
 #define NUMCANMSGS 16 // 
+#define MAXNUMCELLMSGS  6  // Max number of CAN msgs with cell readings
+#define CID_MSG_CELLV01  (1 << 0) // CAN msg with cell readings 1 2 3
+#define CID_MSG_CELLV02  (1 << 1) // CAN msg with cell readings 4 5 6
+#define CID_MSG_CELLV03  (1 << 2) // CAN msg with cell readings 7 8 9
+#define CID_MSG_CELLV04  (1 << 3) // CAN msg with cell readings 10 11 12
+#define CID_MSG_CELLV05  (1 << 4) // CAN msg with cell readings 13 14 15
+#define CID_MSG_CELLV06  (1 << 5) // CAN msg with cell readings 16 or 16 17 18
+#define CID_CMD_MISC     (1 << 6) // CAN msg with cell readings 1-3
+
+
 
 #define BSTATUS_NOREADING (1 << 0)	// Exactly zero = no reading
 #define BSTATUS_OPENWIRE  (1 << 1)  // Negative or over 5v indicative of open wire
 #define BSTATUS_CELLTOOHI (1 << 2)  // One or more cells above max limit
-#define BSTATUS_CELLTOOLO (1 << 3)  // One or more cells above max limit
+#define BSTATUS_CELLTOOLO (1 << 3)  // One or more cells below min limit
 #define BSTATUS_CELLBAL   (1 << 4)  // Cell balancing in progress
 #define BSTATUS_CHARGING  (1 << 5)  // Charging in progress
+#define BSTATUS_DUMPTOV   (1 << 6)  // Dump to a voltage in progress
 
 #define FET_DUMP     (1 << 0) // 1 = DUMP FET ON
 #define FET_HEATER   (1 << 1) // 1 = HEATER FET ON
@@ -66,10 +78,10 @@ struct BQFUNCTION
 //	struct ADCFUNCTION* padc; // Pointer to ADC working struct
 
 	/* Timings in milliseconds. Converted later to timer ticks. */
-	uint32_t ka_k;        // Gevcu polling timer
-	uint32_t keepalive_k;
-
 	uint32_t hbct_k;      // Heartbeat ct: ticks between sending
+
+	uint8_t ident_string; // Packed: string
+	uint8_t ident_onlyus; // Packed: string and module numbers
 
 //	uint8_t chargeflag;  // 0 = No charging; not zero = charging
 //	uint8_t dumpflag;    // 0 = Dump FET OFF; not zero = dump fet ON
@@ -96,8 +108,8 @@ struct BQFUNCTION
 
 
 	/* Pointers to incoming CAN msg mailboxes. */
-//	struct MAILBOXCAN* pmbx_cid_gps_sync;        // CANID_HB_TIMESYNC:  U8 : GPS_1: U8 GPS time sync distribution msg-GPS time sync msg
-//	struct MAILBOXCAN* pmbx_cid_drum_tst_stepcmd;// CANID_TST_STEPCMD: U8_FF DRUM1: U8: Enable,Direction, FF: CL position: E4600000
+	struct MAILBOXCAN* pmbx_cid_cmd_bms_cellvq;// CANID_CMD_BMS_CELLVQ: BMSV1 U8: EMC requests to BMS to send cellv, cmd code
+	struct MAILBOXCAN* pmbx_cid_cmd_bms_miscq; // CANID_CMD_BMS_MISCQ: BMSV1 U8: EMC requests to BMS to value for given cmd code
 
 
 	uint8_t state;      // main state
@@ -105,7 +117,7 @@ struct BQFUNCTION
 	uint8_t substateB;  // spare substate 
 
 	/* CAN msgs */
-//	struct CANTXQMSG canmsg[NUMCANMSGS];
+	struct CANTXQMSG canmsg[NUMCANMSGS];
 
 
 };

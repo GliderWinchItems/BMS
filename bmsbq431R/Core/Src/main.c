@@ -30,6 +30,9 @@
 
 #include "SerialTaskSend.h"
 #include "SerialTaskReceive.h"
+#include "CanTask.h"
+#include "can_iface.h"
+#include "canfilter_setup.h"
 #include "getserialbuf.h"
 #include "yprintf.h"
 #include "DTW_counter.h"
@@ -39,6 +42,7 @@
 #include "ChgrTask.h"
 #include "bq_func_init.h"
 #include "ADCTask.h"
+#include "MailboxTask.h"
 
 #include "FreeRTOS.h"
 #include "semphr.h"
@@ -46,6 +50,29 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+uint32_t timectr = 0;
+struct CAN_CTLBLOCK* pctl0; // Pointer to CAN1 control block
+//struct CAN_CTLBLOCK* pctl1; // Pointer to CAN2 control block
+
+uint32_t debugTX1b;
+uint32_t debugTX1b_prev;
+
+uint32_t debugTX1c;
+uint32_t debugTX1c_prev;
+
+uint32_t debug03;
+uint32_t debug03_prev;
+
+//extern osThreadId SerialTaskHandle;
+//extern osThreadId CanTxTaskHandle;
+//extern osThreadId CanRxTaskHandle;
+//extern osThreadId SerialTaskReceiveHandle;
+
+uint16_t m_trap = 450; // Trap codes for MX Init() and Error Handler
+
+uint8_t canflag;
+uint8_t canflag1;
+//uint8_t canflag2;
 
 /* USER CODE END PTD */
 
@@ -131,7 +158,7 @@ int main(void)
 {
   /* USER CODE BEGIN 1 */
   BaseType_t ret;    // Used for returns from function calls
-  //osMessageQId Qidret; // Function call return
+  osMessageQId Qidret; // Function call return
   osThreadId Thrdret;  // Return from thread create
   /* USER CODE END 1 */
 
@@ -207,6 +234,18 @@ int main(void)
   Thrdret = xSerialTaskSendCreate(osPriorityNormal); // Create task and set Task priority
   if (Thrdret == NULL) morse_trap(112);
 
+    /* Add bcb circular buffer to SerialTaskSend for usart3 -- PC monitor */
+  #define NUMCIRBCB3  16 // Size of circular buffer of BCB for usart3
+  ret = xSerialTaskSendAdd(&HUARTMON, NUMCIRBCB3, 1); // dma
+  if (ret < 0) morse_trap(14); // Panic LED flashing
+
+  /* Setup TX linked list for CAN  */
+   // CAN1 (CAN_HandleTypeDef *phcan, uint8_t canidx, uint16_t numtx, uint16_t numrx);
+  pctl0 = can_iface_init(&hcan1, 0, 32, 32);
+  if (pctl0 == NULL) morse_trap(118); // Panic LED flashing
+  if (pctl0->ret < 0) morse_trap(119);
+
+
   /* Create serial receiving task. */
   //ret = xSerialTaskReceiveCreate(osPriorityNormal);
   //if (ret != pdPASS) morse_trap(113);
@@ -225,6 +264,35 @@ int main(void)
   /* add events, ... */
   // Initialize struct for BQ. */
   bq_func_init(&bqfunction);
+
+  /* definition and creation of CanTxTask - CAN driver TX interface. */
+  Qidret = xCanTxTaskCreate(1, 64); // CanTask priority, Number of msgs in queue
+  if (Qidret < 0) morse_trap(120); // Panic LED flashing
+
+  /* definition and creation of CanRxTask - CAN driver RX interface. */
+  /* The MailboxTask takes care of the CANRx                         */
+//  Qidret = xCanRxTaskCreate(1, 32); // CanTask priority, Number of msgs in queue
+//  if (Qidret < 0) morse_trap(6); // Panic LED flashing
+
+  /* Setup CAN hardware filters to default to accept all ids. */
+  HAL_StatusTypeDef Cret;
+  Cret = canfilter_setup_first(0, &hcan1, 15); // CAN1
+  if (Cret == HAL_ERROR) morse_trap(121);
+
+  /* Remove "accept all" CAN msgs and add specific id & mask, or id here. */
+  // See canfilter_setup.h
+
+  /* Create MailboxTask */
+  xMailboxTaskCreate(2); // (arg) = priority
+
+  /* Create Mailbox control block w 'take' pointer for each CAN module. */
+  struct MAILBOXCANNUM* pmbxret;
+  // (CAN1 control block pointer, size of circular buffer)
+  pmbxret = MailboxTask_add_CANlist(pctl0, 48);
+  if (pmbxret == NULL) morse_trap(123);
+
+
+
   /* USER CODE END RTOS_EVENTS */
 
   /* Start scheduler */
@@ -257,19 +325,15 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-  /** Configure LSE Drive Capability
-  */
-  HAL_PWR_EnableBkUpAccess();
-  __HAL_RCC_LSEDRIVE_CONFIG(RCC_LSEDRIVE_LOW);
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI|RCC_OSCILLATORTYPE_HSE
-                              |RCC_OSCILLATORTYPE_LSE;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI|RCC_OSCILLATORTYPE_LSI
+                              |RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-  RCC_OscInitStruct.LSEState = RCC_LSE_ON;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLM = 1;

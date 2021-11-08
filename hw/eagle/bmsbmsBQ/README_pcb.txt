@@ -264,6 +264,35 @@ R9   PA0-OP current sense rc
 TLV521 no
 PMEG diode yes
 
+========================================
+11/05/2021
+BQ blew and took out L431 11/03/2021
+After replacing blown L431--
+No BQ chip present
+
+1. LSE hanging startup
+
+Switched to LSI and worked OK.
+Reheated pins for xtal to L431 and it began 
+working.
+
+1. Test master reset
+
+LSE (xtal) wouldn't start after master reset pull-down
+removed. 
+
+Master reset works OK with LSI.
+
+Resistance across xtal was around 1.5M.
+
+Tried alcohol cleaning of xtal circuit and got resistance
+up to 5M. Master reset would sometimes work. Pushbutton
+reset always worked.
+
+Continue testing with LSI enabled, and LSE disabled.
+
+
+
 
 
 

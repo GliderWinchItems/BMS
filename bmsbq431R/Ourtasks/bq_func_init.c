@@ -5,7 +5,8 @@
 * Description        : Init function struc
 *******************************************************************************/
 #include "bq_func_init.h"
-
+#include "CanCommTask.h"
+#include "../../../../GliderWinchCommons/embed/svn_common/trunk/db/gen_db.h"
 
 /* *************************************************************************
  * void bq_func_init(struct BQFUNCTION* p);
@@ -18,6 +19,13 @@ void bq_func_init(struct BQFUNCTION* p)
 
 	/* Get a copy of fixed parameters. */
 	bq_idx_v_struct_hardcode_params(&p->lc);
+
+	/* Hearbeat timing. */
+	p->hbct_k =  pdMS_TO_TICKS(p->lc.hbct_t); // Convert ms to RTOS ticks
+
+	// Packed: string and module numbers
+	p->ident_onlyus = ((p->lc.stringnum-1) << 4) | ((p->lc.modulenum-1) << 0); 
+	p->ident_string = ((p->lc.stringnum-1) << 4); 
 
 	p->tim1_ccr1    = 0;  // Charger FET ON time initially set for no charging.
 
@@ -37,10 +45,6 @@ void bq_func_init(struct BQFUNCTION* p)
 	p->balnumwrk = p->lc.balnummax; // Working number of active cell balancing bits
 
 
-
-		/* Pointers to incoming CAN msg mailboxes. */
-//	struct MAILBOXCAN* pmbx_cid_gps_sync;        // CANID_HB_TIMESYNC:  U8 : GPS_1: U8 GPS time sync distribution msg-GPS time sync msg
-//	struct MAILBOXCAN* pmbx_cid_drum_tst_stepcmd;// CANID_TST_STEPCMD: U8_FF DRUM1: U8: Enable,Direction, FF: CL position: E4600000
 
 
 	return;

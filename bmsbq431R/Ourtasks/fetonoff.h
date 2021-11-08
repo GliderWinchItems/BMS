@@ -15,7 +15,7 @@ uint8_t fetonoff(uint8_t fetnum, uint8_t fetcommand);
  /* @brief	: Set i/o bits to turn fet on or off
  * @param	: fetnum = designate FET
  * @param	: fetcommand: 1 = on; not 1 = off
- * @return  : byte with bits set/reset for each FET 
+ * @return  : status byte with bits set/reset for each FET 
  * *************************************************************************/
 void fetonoff_status_set(uint8_t status);
 /* @brief	: Set FETs according to status byte (see BQTask.h)

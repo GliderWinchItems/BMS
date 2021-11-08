@@ -22,7 +22,10 @@ struct BQLC
 	uint32_t crc;   // TBD
    uint32_t version;   //
 
-   uint8_t  modulenumber;
+   /* Identification of this module node. */
+   uint8_t  stringnum; // Battery string number (1 - 4)
+   uint8_t  modulenum; // Module number on string (1-16)
+
 
 	/* Timings in milliseconds. Converted later to 'swtim1' ticks. */
 	uint32_t hbct_t;     // Heartbeat ct: ms between sending 
@@ -47,15 +50,15 @@ struct BQLC
    uint8_t ncell;       // Number of series cells in module
 
  // CAN ids ...........................................................................
-   //                                  CANID_NAME             CAN_MSG_FMT     DESCRIPTION
-    // Levelwind sends; PC receives
-//   uint32_t cid_hb_levelwind;        // CANID_HB_LEVELWIND: U8_U32','LEVELWIND: U8: Status, U32: stepper position accum
-
+   //                                  CANID_NAME            CANID       PAYLOAD FORMAT
+    // BMS sends; EMC receives
+   uint32_t cid_msg_bms_cellvsmr; // CANID_MSG_BMS_CELLV11R','B0201114', 'U8_U8_U16_U16_U16'
+   uint32_t cid_cmd_bms_misc11r; // CANID_CMD_BMS_MISC11R' ,'B0401114', 'U8_U8_U8_X4'
 
  // List of CAN ID's for setting up hw filter for incoming msgs
-	// stepper test repo sends: drum receives
-//	uint32_t cid_drum_tst_stepcmd; // CANID_TST_STEPCMD: U8_FF DRUM1: U8: Enable,Direction, FF: CL position: E4600000
-   //uint32_t cid_mc_state; //'CANID_MC_STATE','26000000', 'MC', 'UNDEF','MC: Launch state msg');
+   // EMC sends; BMS receives
+   uint32_t cid_cmd_bms_cellvq;// CANID_CMD_BMS_CELLVQ B0200000 request cell voltages
+   uint32_t cid_cmd_bms_miscq; // CANID_CMD_BMS_MISCQ  B0400000 request reading for many options
 
  };
 

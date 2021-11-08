@@ -25,8 +25,8 @@ This simplifies the issue of disabling of interrupts
 #endif
 
 #include <malloc.h>
-#include "stm32f4xx_hal.h"
-#include "stm32f4xx_hal_can.h"
+#include "stm32l4xx_hal.h"
+#include "stm32l4xx_hal_can.h"
 #include "can_iface.h"
 #include "DTW_counter.h"
 

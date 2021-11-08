@@ -23,16 +23,19 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
 
 	/* Timings in milliseconds. Converted later to timer ticks. */
 
-	//    my drum should be associated with whole node and not just the
-   //    level-wind function. need to figure out where the parameters for 
-   //    the whole node should be placed       
-   p->modulenumber = 1;     // drum this node is assigned to     
+
+   /* Identification of this module node. */
+   p->stringnum    = 1; // Battery string number (1 - 4)
+   if ((p->stringnum == 0) || (p->stringnum > 4)) morse_trap(700);
+   p->modulenum    = 1; // Module number on string (1-16)
+   if ((p->modulenum == 0) || (p->modulenum > 16)) morse_trap(701);
+
    p->hbct_t       = 500;   // Heartbeat ct: milliseconds between sending 
    p->hbct         = 64;    // Number of swctr ticks between heartbeats
 
    /* Arrays have been compile using NCELLMAX [18] */
    p->ncell = 16; // Number of series cells in this module
-   if (p->ncell > NCELLMAX) morse_trap(8555); // Needs recompiling
+   if (p->ncell > NCELLMAX) morse_trap(702); // Needs recompiling
 
    p->dac1_hv_setting  = 2900; // 65.2 volt limit
    p->dac2_ix_setting  =  116; // Current sense level setting
@@ -55,7 +58,8 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
 //   p->cid_hb_levelwind  = 0xE4A00000;   // CANID_HB_LEVELWIND: U8_U32, Heartbeat Status, levelwind position accum');
 
 // List of CAN ID's for setting up hw filter for incoming msgs
-   	// We receive: Logger/gps 
+   	// We receive: EMC
+   p->cid_cmd_bms_cellvq; // B0200000 CANID_CMD_BMS_CELLVQ
 //	p->cid_gps_sync     = 0x00400000; // CANID_HB_TIMESYNC:  U8 : GPS_1: U8 GPS time sync distribution msg-GPS time sync msg
 	// We receive stepper repo: update100K sends
 //	p->cid_drum_tst_stepcmd	=  CANID_TST_STEPCMD; //0xE4600000; // CANID_TST_STEPCMD: U8_FF DRUM1: U8: Enable,Direction, FF: CL position:

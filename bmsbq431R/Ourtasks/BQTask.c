@@ -203,7 +203,7 @@ uint8_t dbgx; // Debug
 
 void StartBQTask(void* argument)
 {
-//while(1==1) osDelay(100); // Temp nix BQ'ing
+while(1==1) osDelay(100); // Temp nix BQ'ing
 //	struct BQFUNCTION* p;
 //	int i;
 
