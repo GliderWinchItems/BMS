@@ -108,19 +108,19 @@ extern CAN_HandleTypeDef hcan1;
        		// 10 = All modules on identified string respond
        		// 01 = Only identified string and module responds
        		// 00 = spare; no response expected
-		else if ((noteval & CANCOMMBIT01) != 0)
+		if ((noteval & CANCOMMBIT01) != 0)
 		{
 			pcan = &p->pmbx_cid_cmd_bms_miscq->ncan.can;
 			code = pcan->cd.uc[0] & 0xC0; // Extract identification code
 			if (((code == (3 << 6))) ||
 				((code == (2 << 6)) && ((pcan->cd.uc[0] & 0x30) == p->ident_string)) ||
 				((code == (1 << 6)) && ((pcan->cd.uc[0] & 0x3F) == p->ident_onlyus)) )
-			{ // Here, respond to request, otherwise, ignore.
+			{ // Here, respond to request
 
-				// TODO response goes here.
+				cancomm_items_sendcmdr(pcan);
 			}
 		}
-		else
+		if (noteval == 0)
 		{ // Send heartbeat
 			  /* Queue CAN msg to send. */
 			p->canmsg[CID_CMD_MISC].can.cd.uc[0] &= ~0xC0; 

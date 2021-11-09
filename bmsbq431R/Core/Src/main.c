@@ -1224,9 +1224,9 @@ extern uint32_t cvflag;
       notectr += 1;  // Running count of notifications
       if ((int)(notectr-notectr_prev) >= 128)
       {
-extern uint8_t  adcsumidx;
+//extern uint8_t  adcsumidx;
 extern float adcsumfilt[2][ADC1IDX_ADCSCANSIZE];
-float* padcfilt = &adcsumfilt[adcsumidx^1][0];
+//float* padcfilt = &adcsumfilt[adcsumidx^1][0];
 
 
         yprintf(&pbuf1,"\n\r%3d %4d",mctr++,notectr-notectr_prev);
