@@ -25,12 +25,14 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
 
 
    /* Identification of this module node. */
+   p->winchnum    = 1; // Winch number (1 - 4)
+   if ((p->winchnum == 0) || (p->winchnum > 4)) morse_trap(700);
    p->stringnum    = 1; // Battery string number (1 - 4)
-   if ((p->stringnum == 0) || (p->stringnum > 4)) morse_trap(700);
+   if ((p->stringnum == 0) || (p->stringnum > 4)) morse_trap(701);
    p->modulenum    = 1; // Module number on string (1-16)
-   if ((p->modulenum == 0) || (p->modulenum > 16)) morse_trap(701);
+   if ((p->modulenum == 0) || (p->modulenum > 16)) morse_trap(702);
 
-   p->hbct_t       = 500;   // Heartbeat ct: milliseconds between sending 
+   p->hbct_t       = 200;   // Heartbeat ct: milliseconds between sending 
    p->hbct         = 64;    // Number of swctr ticks between heartbeats
 
    /* Arrays have been compile using NCELLMAX [18] */
@@ -59,10 +61,8 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
 
 // List of CAN ID's for setting up hw filter for incoming msgs
    	// We receive: EMC
-   p->cid_cmd_bms_cellvq; // B0200000 CANID_CMD_BMS_CELLVQ
-//	p->cid_gps_sync     = 0x00400000; // CANID_HB_TIMESYNC:  U8 : GPS_1: U8 GPS time sync distribution msg-GPS time sync msg
-	// We receive stepper repo: update100K sends
-//	p->cid_drum_tst_stepcmd	=  CANID_TST_STEPCMD; //0xE4600000; // CANID_TST_STEPCMD: U8_FF DRUM1: U8: Enable,Direction, FF: CL position:
-//
+   p->cid_cmd_bms_cellvq = CANID_CMD_BMS_CELLVQ; // B0200000 
+   p->cid_cmd_bms_miscq  = CANID_CMD_BMS_MISCQ;  // B0400000 request reading for many options
+
 	return;
 }

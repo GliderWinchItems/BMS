@@ -25,6 +25,8 @@ extern struct CAN_CTLBLOCK* pctl0; // Pointer to CAN1 control block
 #define CANCOMMBIT00 (1 << 0) // Send cell voltage  command
 #define CANCOMMBIT01 (1 << 1) // Send misc reading command
 
+uint8_t rdyflag_cancomm = 0; // Initialization complete and ready = 1
+
 TaskHandle_t CanCommHandle = NULL;
 /* *************************************************************************
  * void StartCanComm(void const * argument);
@@ -32,7 +34,7 @@ TaskHandle_t CanCommHandle = NULL;
  * *************************************************************************/
 void StartCanComm(void* argument)
 {
-while(1==1) osDelay(100);
+//while(1==1) osDelay(100);
 
 	/* We use the parameters from BQ for this task. */
 	struct BQFUNCTION* p = &bqfunction;
@@ -58,33 +60,42 @@ while(1==1) osDelay(100);
 		p->canmsg[i].can.dlc = 8;    // Default payload size (might be modified when loaded and sent)
 	}
 
+
 	/* Preload fixed data for sending cell reading msgs. */
 	for (i = 0; i < MAXNUMCELLMSGS; i++)
 	{	
 		/* Preload CAN IDs */
 		p->canmsg[CID_MSG_CELLV01 + i].can.id = p->lc.cid_msg_bms_cellvsmr;
 
-		/* Preload string and module number. */
-		p->canmsg[CID_MSG_CELLV01 + i].can.cd.uc[0] = p->ident_onlyus;
+	/* Preload string and module number. */
+		/*  payload [0-1] U16 – Payload Identification
+  			[15:14] Winch (0 - 3)(winch #1 - #4)
+  			[13:12] Battery string (0 – 3) (string #1 - #4)
+  			[11:8] Module (0 – 15) (module #1 - #16)
+  			[7:3] Cell (0 - 31) (cell #1 - #32)
+  			[2:0] Group sequence number (0 - 7) */
+		p->canmsg[CID_MSG_CELLV01 + i].can.cd.ui[0]  = p->cellvpayident;
 
-		/* Preload cell number for first payload cell reading.. */
-		p->canmsg[CID_MSG_CELLV01 + i].can.cd.uc[1] = i*3 +1; // 1,4,7,10,13,16
-
-		/* Group sequence number. */
-		p->canmsg[CID_MSG_CELLV01 + i].can.cd.uc[1] = 0; 
+		/* Preload cell number-1 for first payload cell reading.. */
+		p->canmsg[CID_MSG_CELLV01 + i].can.cd.ui[0] |= (i*3 << 3); // 0,3,6,8,12,15
 	}
 
 	/* Preload fixed data for sending "misc" readings. */
-	p->canmsg[CID_CMD_MISC].can.id    = p->lc.cid_cmd_bms_miscq;
+	p->canmsg[CID_CMD_MISC].can.id = p->lc.cid_cmd_bms_miscq;
 	p->canmsg[CID_CMD_MISC].can.cd.uc[0] = p->ident_onlyus;
+
+	while (CANTaskreadyflag == 0) osDelay(1);
 
 extern CAN_HandleTypeDef hcan1;
 	HAL_CAN_Start(&hcan1); // CAN1
+
+	rdyflag_cancomm = 1; // Initialization complete and ready
 
 	for (;;)
 	{
 				/* Wait for notifications */
 		xTaskNotifyWait(0,0xffffffff, &noteval, p->hbct_k);
+
 		/* CAN msg request for sending CELL VOLTAGES. */
 			// Code for which modules should respond bits [7:6]
 	   		// 11 = All modules respond
@@ -116,7 +127,6 @@ extern CAN_HandleTypeDef hcan1;
 				((code == (2 << 6)) && ((pcan->cd.uc[0] & 0x30) == p->ident_string)) ||
 				((code == (1 << 6)) && ((pcan->cd.uc[0] & 0x3F) == p->ident_onlyus)) )
 			{ // Here, respond to request
-
 				cancomm_items_sendcmdr(pcan);
 			}
 		}

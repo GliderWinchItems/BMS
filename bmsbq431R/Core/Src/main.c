@@ -43,6 +43,7 @@
 #include "bq_func_init.h"
 #include "ADCTask.h"
 #include "MailboxTask.h"
+#include "CanCommTask.h"
 
 #include "FreeRTOS.h"
 #include "semphr.h"
@@ -116,7 +117,7 @@ DMA_HandleTypeDef hdma_usart1_tx;
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
-  .stack_size = 384 * 4,
+  .stack_size = 512 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* USER CODE BEGIN PV */
@@ -158,7 +159,6 @@ int main(void)
 {
   /* USER CODE BEGIN 1 */
   BaseType_t ret;    // Used for returns from function calls
-  osMessageQId Qidret; // Function call return
   osThreadId Thrdret;  // Return from thread create
   /* USER CODE END 1 */
 
@@ -226,6 +226,7 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
+
   Thrdret = xADCTaskCreate(1); // (arg) = priority
   if (Thrdret == NULL) morse_trap(117);
 
@@ -266,8 +267,8 @@ int main(void)
   bq_func_init(&bqfunction);
 
   /* definition and creation of CanTxTask - CAN driver TX interface. */
-  Qidret = xCanTxTaskCreate(1, 64); // CanTask priority, Number of msgs in queue
-  if (Qidret < 0) morse_trap(120); // Panic LED flashing
+  QueueHandle_t QHret = xCanTxTaskCreate(1, 32); // CanTask priority, Number of msgs in queue
+  if (QHret == NULL) morse_trap(120); // Panic LED flashing
 
   /* definition and creation of CanRxTask - CAN driver RX interface. */
   /* The MailboxTask takes care of the CANRx                         */
@@ -277,7 +278,7 @@ int main(void)
   /* Setup CAN hardware filters to default to accept all ids. */
   HAL_StatusTypeDef Cret;
   Cret = canfilter_setup_first(0, &hcan1, 15); // CAN1
-  if (Cret == HAL_ERROR) morse_trap(121);
+  if (Cret == HAL_ERROR) morse_trap(122);
 
   /* Remove "accept all" CAN msgs and add specific id & mask, or id here. */
   // See canfilter_setup.h
@@ -290,6 +291,16 @@ int main(void)
   // (CAN1 control block pointer, size of circular buffer)
   pmbxret = MailboxTask_add_CANlist(pctl0, 48);
   if (pmbxret == NULL) morse_trap(123);
+
+  /* CAN communication */
+  retT = xCanCommCreate(osPriorityNormal);
+  if (retT == NULL) morse_trap(121);
+
+    /* Select interrupts for CAN1 */
+  HAL_CAN_ActivateNotification(&hcan1, \
+    CAN_IT_TX_MAILBOX_EMPTY     |  \
+    CAN_IT_RX_FIFO0_MSG_PENDING |  \
+    CAN_IT_RX_FIFO1_MSG_PENDING    );
 
 
 
@@ -493,11 +504,11 @@ static void MX_CAN1_Init(void)
 
   /* USER CODE END CAN1_Init 1 */
   hcan1.Instance = CAN1;
-  hcan1.Init.Prescaler = 16;
+  hcan1.Init.Prescaler = 4;
   hcan1.Init.Mode = CAN_MODE_NORMAL;
   hcan1.Init.SyncJumpWidth = CAN_SJW_1TQ;
-  hcan1.Init.TimeSeg1 = CAN_BS1_1TQ;
-  hcan1.Init.TimeSeg2 = CAN_BS2_1TQ;
+  hcan1.Init.TimeSeg1 = CAN_BS1_5TQ;
+  hcan1.Init.TimeSeg2 = CAN_BS2_2TQ;
   hcan1.Init.TimeTriggeredMode = DISABLE;
   hcan1.Init.AutoBusOff = DISABLE;
   hcan1.Init.AutoWakeUp = DISABLE;
@@ -1213,12 +1224,25 @@ extern uint32_t cvflag;
   yprintf(&pbuf1,"\n\r\tProcessor commanded shut-down cycling");
 #endif 
 
+    /* Add CAN Mailboxes */
+  #define CID_TEST 0xE2E00000
+  uint32_t mbxctr = 0;
+  struct MAILBOXCAN* pmbx_cid_test; // Gateway HB
+                                          //      CAN,  CAN ID, TaskHandle,  Notify bit, Skip,Paytype
+    pmbx_cid_test = MailboxTask_add(pctl0,CID_TEST, NULL, DEFAULTTASKBIT02,0,23);
+
+
   /* Infinite loop */
   for(;;)
   {
     /* Wait for ADC new adc data (ADCTask.c) */
     xTaskNotifyWait(0,0xffffffff, &noteval, 10000);
 
+    if (noteval & DEFAULTTASKBIT02)
+    {
+      yprintf(&pbuf1,"\n\rMAIN: CAN TEST MSG %08X %d",pmbx_cid_test->ncan.can.id,mbxctr++);
+    }
+continue;
     if (noteval & DEFAULTTASKBIT00)
     {
       notectr += 1;  // Running count of notifications

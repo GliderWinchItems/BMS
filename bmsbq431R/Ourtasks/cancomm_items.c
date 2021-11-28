@@ -55,18 +55,13 @@ void cancomm_items_sendcell(struct CANRCVBUF* pcan)
 
 	for (i = 0; i < MAXNUMCELLMSGS; i++)
 	{	
-		p->canmsg[CID_MSG_CELLV01 + i].can.cd.uc[2] = *pcell >> 0;
-		p->canmsg[CID_MSG_CELLV01 + i].can.cd.uc[3] = *pcell >> 8;
-		pcell += 1;
-		p->canmsg[CID_MSG_CELLV01 + i].can.cd.uc[4] = *pcell >> 0;
-		p->canmsg[CID_MSG_CELLV01 + i].can.cd.uc[5] = *pcell >> 8;
-		pcell += 1;		
-		p->canmsg[CID_MSG_CELLV01 + i].can.cd.uc[6] = *pcell >> 0;
-		p->canmsg[CID_MSG_CELLV01 + i].can.cd.uc[7] = *pcell >> 8;
-		pcell += 1;
-
 		// Set sequence number sent by requesting CAN msgs
-		p->canmsg[CID_MSG_CELLV01 + i].can.cd.uc[1] = pcan->cd.uc[1];
+		p->canmsg[CID_MSG_CELLV01 + i].can.cd.ui[0] &= ~0x7;
+		p->canmsg[CID_MSG_CELLV01 + i].can.cd.ui[0] |= (pcan->cd.uc[1] & 0x7);
+
+		p->canmsg[CID_MSG_CELLV01 + i].can.cd.ui[1] = *(pcell+0);
+		p->canmsg[CID_MSG_CELLV01 + i].can.cd.ui[2] = *(pcell+1);
+		p->canmsg[CID_MSG_CELLV01 + i].can.cd.ui[3] = *(pcell+2);
 
 		// DLC is the same except possibly last msg
 		p->canmsg[CID_MSG_CELLV01 + i].can.dlc = 8;

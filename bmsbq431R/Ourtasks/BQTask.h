@@ -16,17 +16,15 @@
 
 #define BQVSIZE 20 // Readout loop size (16 cells plus others)
 
-#define NUMCANMSGS 16 // 
-#define MAXNUMCELLMSGS  6  // Max number of CAN msgs with cell readings
-#define CID_MSG_CELLV01  (1 << 0) // CAN msg with cell readings 1 2 3
-#define CID_MSG_CELLV02  (1 << 1) // CAN msg with cell readings 4 5 6
-#define CID_MSG_CELLV03  (1 << 2) // CAN msg with cell readings 7 8 9
-#define CID_MSG_CELLV04  (1 << 3) // CAN msg with cell readings 10 11 12
-#define CID_MSG_CELLV05  (1 << 4) // CAN msg with cell readings 13 14 15
-#define CID_MSG_CELLV06  (1 << 5) // CAN msg with cell readings 16 or 16 17 18
-#define CID_CMD_MISC     (1 << 6) // CAN msg with cell readings 1-3
-
-
+#define NUMCANMSGS 7 // Number of predefined CAN msgs 
+#define MAXNUMCELLMSGS 6 // Max number of CAN msgs with cell readings
+#define CID_MSG_CELLV01  0 // CAN msg with cell readings 1 2 3
+#define CID_MSG_CELLV02  1 // CAN msg with cell readings 4 5 6
+#define CID_MSG_CELLV03  2 // CAN msg with cell readings 7 8 9
+#define CID_MSG_CELLV04  3 // CAN msg with cell readings 10 11 12
+#define CID_MSG_CELLV05  4 // CAN msg with cell readings 13 14 15
+#define CID_MSG_CELLV06  5 // CAN msg with cell readings 16 or 16 17 18
+#define CID_CMD_MISC     6 // CAN msg with status and TBD stuff
 
 #define BSTATUS_NOREADING (1 << 0)	// Exactly zero = no reading
 #define BSTATUS_OPENWIRE  (1 << 1)  // Negative or over 5v indicative of open wire
@@ -82,6 +80,13 @@ struct BQFUNCTION
 
 	uint8_t ident_string; // Packed: string
 	uint8_t ident_onlyus; // Packed: string and module numbers
+	/*  payload [0-1] U16 – Payload Identification
+  [15:14] Winch (0 - 3)(winch #1 - #4)
+  [13:12] Battery string (0 – 3) (string #1 - #4)
+  [11:8] Module (0 – 15) (module #1 - #16)
+  [7:3] Cell (0 - 31) (cell #1 - #32)
+  [2:0] Group sequence number (0 - 7) */
+	uint16_t cellvpayident; // Payload[0] identification for cell readings
 
 //	uint8_t chargeflag;  // 0 = No charging; not zero = charging
 //	uint8_t dumpflag;    // 0 = Dump FET OFF; not zero = dump fet ON

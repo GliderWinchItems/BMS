@@ -25,7 +25,9 @@ static uint8_t bqconfig(void);
 static uint8_t subcmdW(uint16_t cmd, uint16_t data, uint8_t nd, uint8_t config);
 static uint8_t subcmdR(uint8_t* pr, uint8_t nr, uint16_t cmd);
 static uint8_t dircmdR(uint8_t* pr, uint8_t nr, uint8_t cmd);
+#ifdef USEdircmdW // Avoid warning if not used
 static uint8_t dircmdW(uint8_t* pr, uint8_t ns, uint8_t cmd);
+#endif
 static void morse_sos(void);
 static uint8_t readblock_cmd(uint8_t* pr, uint8_t nr, uint8_t cmd);
 static uint8_t getcellv(void);
@@ -574,6 +576,7 @@ static uint8_t dircmdR(uint8_t* pr, uint8_t nr, uint8_t cmd)
  * @param   : cmd = one byte command code
  * @return  : 0 = success;  > 0 is failure
  * *************************************************************************/
+#ifdef USEdircmdW // Avoid warning if not used
 static uint8_t dircmdW(uint8_t* pr, uint8_t ns, uint8_t cmd)
 {
 	uint8_t ret;
@@ -588,6 +591,7 @@ static uint8_t dircmdW(uint8_t* pr, uint8_t ns, uint8_t cmd)
  
     return 0;
 }
+#endif
 /* *************************************************************************
  * static void morse_sos(void);
  * @brief	: 

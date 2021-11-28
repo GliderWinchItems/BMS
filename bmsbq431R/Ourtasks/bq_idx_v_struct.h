@@ -23,6 +23,7 @@ struct BQLC
    uint32_t version;   //
 
    /* Identification of this module node. */
+   uint8_t  winchnum;  // Winch number (1-4)
    uint8_t  stringnum; // Battery string number (1 - 4)
    uint8_t  modulenum; // Module number on string (1-16)
 

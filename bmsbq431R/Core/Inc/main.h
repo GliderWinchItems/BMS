@@ -121,6 +121,7 @@ void Error_Handler(void);
 #define HUARTMON  huart1 // uart  for PC monitoring
 #define DEFAULTTASKBIT00 (1 << 0)  // Task notification bit (from ADCtask.c)
 #define DEFAULTTASKBIT01 (1 << 1)  // Task notification bit (from BQtask.c)
+#define DEFAULTTASKBIT02 (1 << 2)  // Task notification bit (from Mailbox)
 
 
 /* USER CODE END Private defines */

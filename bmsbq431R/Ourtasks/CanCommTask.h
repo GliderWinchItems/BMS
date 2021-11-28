@@ -20,5 +20,6 @@
  * *************************************************************************/
 
 extern TaskHandle_t CanCommHandle;
+extern uint8_t rdyflag_cancomm;  // Initialization complete and ready = 1
 
 #endif

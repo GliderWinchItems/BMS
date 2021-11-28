@@ -12,9 +12,13 @@
 
 #include "main.h"
 
+extern CAN_HandleTypeDef hcan1;
+
 //osThreadId CanTxTaskHandle;
 TaskHandle_t CanTxTaskHandle;
 QueueHandle_t CanTxQHandle;
+
+uint8_t CANTaskreadyflag = 0;
 
 /* ====== Tx ==============================================================*/
 /* *************************************************************************
@@ -53,6 +57,10 @@ void StartCanTxTask(void* argument)
 	struct CANTXQMSG txq;
 	int ret;
 
+	HAL_CAN_Start(&hcan1); // CAN1
+
+	CANTaskreadyflag = 1;
+
   /* Infinite RTOS Task loop */
   for(;;)
   {
@@ -61,6 +69,7 @@ void StartCanTxTask(void* argument)
 		if (Qret == pdPASS) // Break loop if not empty
 		{
 			ret = can_driver_put(txq.pctl, &txq.can, txq.maxretryct, txq.bits);
+				
 /* ===> Trap errors
  *				: -1 = Buffer overrun (no free slots for the new msg)
  *				: -2 = Bogus CAN id rejected

@@ -30,6 +30,8 @@ This simplifies the issue of disabling of interrupts
 #include "can_iface.h"
 #include "DTW_counter.h"
 
+#include "morse.h"
+
 /* Debugging */
 #include "morse.h"
 extern struct CAN_CTLBLOCK* pctl0;
@@ -221,7 +223,7 @@ taskENTER_CRITICAL();
 	/* Get CAN xmit linked list. */	
 	if (numtx == 0)  {pctl->ret = -1; return pctl;} // Bogus tx buffering count
 	ptmp = (struct CAN_POOLBLOCK*)calloc(numtx, sizeof(struct CAN_POOLBLOCK));
-	if (ptmp == NULL){pctl->ret = -2; taskEXIT_CRITICAL(); return NULL;} // Get buff failed
+	if (ptmp == NULL){pctl->ret = -2; taskEXIT_CRITICAL(); return pctl;} // Get buff failed
 
 	/* Initialize links.  All are in the "free" list. */
 	// Item: the last block is left with NULL in plinknext
@@ -366,7 +368,7 @@ static void loadmbx2(struct CAN_CTLBLOCK* pctl)
 	uint32_t TxMailbox;
 	CAN_TxHeaderTypeDef halmsg;
 
-	volatile struct CAN_POOLBLOCK* p = pctl->pend.plinknext;
+	volatile struct CAN_POOLBLOCK* p = pctl->pend.plinknext;//p = pctl->pxprv->plinknext;//pctl->pend.plinknext;
 
 	if (p == NULL)
 	{
@@ -449,7 +451,7 @@ struct CAN_CTLBLOCK* getpctl(CAN_HandleTypeDef *phcan)
 
 /* Transmission Mailbox 0 complete callback. */
 void HAL_CAN_TxMailbox0CompleteCallback(CAN_HandleTypeDef *phcan)
-{
+{	
 	struct CAN_CTLBLOCK* pctl = getpctl(phcan); // Lookup our pointer
 
 	/* Loop back CAN =>TX<= msgs. */
@@ -476,11 +478,11 @@ volatile	struct CAN_POOLBLOCK* p = pctl->pxprv->plinknext;//pctl->pend.plinknext
 					&xHigherPriorityTaskWoken );
 			}
 	}
-
 	moveremove2(pctl);	// remove from pending list, add to free list
 	pctl->abortflag = 0;
 	loadmbx2(pctl);		// Load mailbox 0.  Mailbox should be available/empty.
 //portYIELD_FROM_ISR( xHigherPriorityTaskWoken ); // Trigger scheduler
+	return;
 }
 
 /* Transmission Mailbox 0 Abort callback. */
