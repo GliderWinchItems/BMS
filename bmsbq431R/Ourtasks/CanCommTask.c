@@ -55,7 +55,7 @@ void StartCanComm(void* argument)
 	for (i = 0; i < NUMCANMSGS; i++)
 	{
 		p->canmsg[i].pctl = pctl0;   // Control block for CAN module (CAN 1)
-		p->canmsg[i].maxretryct = 8; //
+		p->canmsg[i].maxretryct = 4; //
 		p->canmsg[i].bits = 0;       //
 		p->canmsg[i].can.dlc = 8;    // Default payload size (might be modified when loaded and sent)
 	}

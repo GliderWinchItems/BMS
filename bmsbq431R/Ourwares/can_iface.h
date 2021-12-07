@@ -80,18 +80,18 @@ struct CANTAKEPTR
 union CAN_X
 {
 	uint32_t	xw;	// RX (DTW)
-	u8	xb[4];	// TX 
+	uint8_t  xb[4];	// TX 
 };
 
 /* xb usage for TX */
-// retryct    xb[0]	// Counter for number of retries for TERR errors
-// maxretryct xb[1]	// Maximum number of TERR retry counts
+// retryct    xb[0]	// Counter for number of retries for tx errors
+// maxretryct xb[1]	// Maximum number of tx error retries
 // bits       xb[2]	// Use these bits to set some conditions (see below)
 // nosend     xb[3]	// Do not send: 0 = send; 1 = do NOT send on CAN bus (internal use only)
 /*  bit definition within bits, xb[2] */
-#define SOFTNART	        0x01 // 1 = No retries (including arbitration); 0 = retries
+#define SOFTNART	        0x01 // 1 = No retries (including arbitration); 0 = do retries
 #define NOCANSEND	        0x02 // 1 = Do not send to the CAN bus
-#define CANMSGLOOPBACKBIT 0x04 // 1 = Loopback: copy of outgoing msg appears in incoming
+#define CANMSGLOOPBACKBIT   0x04 // 1 = Loopback: copy of outgoing msg appears in incoming
 
 struct CAN_POOLBLOCK	// Used for common CAN TX/RX linked lists
 {

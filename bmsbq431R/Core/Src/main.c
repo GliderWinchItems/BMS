@@ -44,6 +44,7 @@
 #include "ADCTask.h"
 #include "MailboxTask.h"
 #include "CanCommTask.h"
+#include "FanTask.h"
 
 #include "FreeRTOS.h"
 #include "semphr.h"
@@ -117,7 +118,7 @@ DMA_HandleTypeDef hdma_usart1_tx;
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
-  .stack_size = 512 * 4,
+  .stack_size = 384 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* USER CODE BEGIN PV */
@@ -302,6 +303,9 @@ int main(void)
     CAN_IT_RX_FIFO0_MSG_PENDING |  \
     CAN_IT_RX_FIFO1_MSG_PENDING    );
 
+  /* Fan control task. */
+  retT = xFanTaskCreate(osPriorityNormal);
+  if (retT == NULL) morse_trap(124);
 
 
   /* USER CODE END RTOS_EVENTS */
@@ -510,7 +514,7 @@ static void MX_CAN1_Init(void)
   hcan1.Init.TimeSeg1 = CAN_BS1_5TQ;
   hcan1.Init.TimeSeg2 = CAN_BS2_2TQ;
   hcan1.Init.TimeTriggeredMode = DISABLE;
-  hcan1.Init.AutoBusOff = DISABLE;
+  hcan1.Init.AutoBusOff = ENABLE;
   hcan1.Init.AutoWakeUp = DISABLE;
   hcan1.Init.AutoRetransmission = DISABLE;
   hcan1.Init.ReceiveFifoLocked = DISABLE;
@@ -929,7 +933,7 @@ static void MX_TIM2_Init(void)
   htim2.Instance = TIM2;
   htim2.Init.Prescaler = 0;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 4294967295;
+  htim2.Init.Period = 640;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
@@ -1212,8 +1216,11 @@ extern int16_t cellv[2][BQVSIZE];
 extern uint8_t cvidx;
 extern uint32_t cvflag;
 
-  struct SERIALSENDTASKBCB* pbuf1 = getserialbuf(&HUARTMON,256);
+  struct SERIALSENDTASKBCB* pbuf1 = getserialbuf(&HUARTMON,128);
   if (pbuf1 == NULL) morse_trap(115);
+  struct SERIALSENDTASKBCB* pbuf2 = getserialbuf(&HUARTMON,128);
+  if (pbuf2 == NULL) morse_trap(125);
+
 
   yprintf(&pbuf1,"\n\n\rPROGRAM STARTS");
 
@@ -1231,7 +1238,7 @@ extern uint32_t cvflag;
                                           //      CAN,  CAN ID, TaskHandle,  Notify bit, Skip,Paytype
     pmbx_cid_test = MailboxTask_add(pctl0,CID_TEST, NULL, DEFAULTTASKBIT02,0,23);
 
-
+uint32_t T2C3ctr_prev = 0;
   /* Infinite loop */
   for(;;)
   {
@@ -1240,7 +1247,19 @@ extern uint32_t cvflag;
 
     if (noteval & DEFAULTTASKBIT02)
     {
+extern uint32_t T2C3ctr;
+extern float fanrpm;
+extern uint32_t itmpcum;
+extern uint32_t itmpcum_prev;
+extern uint32_t itmpctr;
+extern uint32_t itmpctr_prev;
+extern uint32_t itmp;
+extern uint32_t deltaN;
+extern float fdeltaT; 
+
       yprintf(&pbuf1,"\n\rMAIN: CAN TEST MSG %08X %d",pmbx_cid_test->ncan.can.id,mbxctr++);
+      yprintf(&pbuf2," %d %d %6.0f %6.2E",T2C3ctr-T2C3ctr_prev,deltaN,fanrpm,fdeltaT*(1.0/16E6));
+      T2C3ctr_prev = T2C3ctr;
     }
 continue;
     if (noteval & DEFAULTTASKBIT00)
