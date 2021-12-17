@@ -61,6 +61,7 @@ void bq_items_seq(int16_t* p)
 			}
 			else
 			{ // Here, cell reading looks valid
+				pbq->battery_status &= ~BSTATUS_OPENWIRE;
 				if (*p > pbq->cellv_high)
 				{ // Find max cell reading
 					pbq->cellv_high = *p; // Save voltage

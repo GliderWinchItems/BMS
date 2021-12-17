@@ -1198,12 +1198,12 @@ void StartDefaultTask(void *argument)
   /* USER CODE BEGIN 5 */
 
   uint32_t noteval = 0; // TaskNotifyWait notification word
-  uint32_t notectr = 0; // Running count of notifications
-  uint32_t notectr_prev = 0;
-//  uint32_t tick_next;
 
+/* These #defines select uart output for monitoring. */
 //#define TESTSHUTDOWN_VIA_COMMAND // Test processor commanded BQ shutdown
   #define BQMonitor
+//  #define CANMBXTESTnFANMonitor
+//  #define ADCMonitor
 
   uint32_t mctr = 0;
   uint8_t lctr = 0;
@@ -1231,14 +1231,22 @@ extern uint32_t cvflag;
   yprintf(&pbuf1,"\n\r\tProcessor commanded shut-down cycling");
 #endif 
 
-    /* Add CAN Mailboxes */
+#ifdef ADCMonitor
+  uint32_t notectr_prev = 0;
+  uint32_t notectr = 0; // Running count of notifications
+#endif
+
+#ifdef CANMBXTESTnFANMonitor
+  uint32_t itmpctr_prev = 0;
+
+      /* Add CAN Mailboxes */
   #define CID_TEST 0xE2E00000
   uint32_t mbxctr = 0;
   struct MAILBOXCAN* pmbx_cid_test; // Gateway HB
                                           //      CAN,  CAN ID, TaskHandle,  Notify bit, Skip,Paytype
     pmbx_cid_test = MailboxTask_add(pctl0,CID_TEST, NULL, DEFAULTTASKBIT02,0,23);
+#endif
 
-uint32_t T2C3ctr_prev = 0;
   /* Infinite loop */
   for(;;)
   {
@@ -1247,36 +1255,28 @@ uint32_t T2C3ctr_prev = 0;
 
     if (noteval & DEFAULTTASKBIT02)
     {
-extern uint32_t T2C3ctr;
-extern float fanrpm;
-extern uint32_t itmpcum;
-extern uint32_t itmpcum_prev;
-extern uint32_t itmpctr;
-extern uint32_t itmpctr_prev;
-extern uint32_t itmp;
-extern uint32_t deltaN;
-extern float fdeltaT; 
-
-      yprintf(&pbuf1,"\n\rMAIN: CAN TEST MSG %08X %d",pmbx_cid_test->ncan.can.id,mbxctr++);
-      yprintf(&pbuf2," %d %d %6.0f %6.2E",T2C3ctr-T2C3ctr_prev,deltaN,fanrpm,fdeltaT*(1.0/16E6));
-      T2C3ctr_prev = T2C3ctr;
+#ifdef CANnFANMonitor
+      yprintf(&pbuf1,"\n\rCAN TEST %08X %d",pmbx_cid_test->ncan.can.id,mbxctr++);
+    extern float fanrpm; extern uint32_t itmpctr;
+      yprintf(&pbuf2," %6.0f %4d",fanrpm, itmpctr-itmpctr_prev);
+      itmpctr_prev = itmpctr;
+#endif
     }
-continue;
+//continue; // Skip BQ displays
+
     if (noteval & DEFAULTTASKBIT00)
     {
+#ifdef ADCMonitor
       notectr += 1;  // Running count of notifications
       if ((int)(notectr-notectr_prev) >= 128)
       {
-//extern uint8_t  adcsumidx;
-extern float adcsumfilt[2][ADC1IDX_ADCSCANSIZE];
-//float* padcfilt = &adcsumfilt[adcsumidx^1][0];
-
-
-        yprintf(&pbuf1,"\n\r%3d %4d",mctr++,notectr-notectr_prev);
+    extern float adcsumfilt[2][ADC1IDX_ADCSCANSIZE];
+        yprintf(&pbuf1,"\n\rADC %3d %4d",mctr++,notectr-notectr_prev);
         notectr_prev = notectr;
         for (i = 0; i < 8; i++)
           yprintf(&pbuf1," %7.3f",adcsumfilt[0][i]);
       }
+#endif      
     }
     if ((noteval & DEFAULTTASKBIT01) == 0) continue;
     

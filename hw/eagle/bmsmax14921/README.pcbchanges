@@ -1,0 +1,48 @@
+bmsbmaBQ
+
+Changes--
+
+01/20/2021
+
+Add pullups to U$8 U$11 for H11L1S opto-isolator outputs.
+
+Add 74LVC1G14 for inverting FAN pwm 
+
+Add ISO1050 CAN driver as alternative to ISO1042.
+
+Add two silicon diodes to drop 12v to FAN for a 13.2v CAN bus.
+
+Delete second FAN header, fet, fet driver, etc.
+
+Delete dc-dc switching converter for 3.3v
+
+Delete 7805T 5v reg for system side CAN 5v.
+
+01/21/2021
+
+Fan header changed to keyed Molex-47053 (KK type)
+
+Delete ISO1050 and ISO1042 (unavailable), add ISO1042 16pin version
+
+Change 3.3v linear to AP7380 version
+
+Add provision for TO-220 3.3v linear or dc switcher in TO-220 package
+
+1/28/2021
+
+Holes (via) for gas discharge to bridge GNDA and GND. Located
+in upper left (one hole between left pads of pushbutton switch).
+
+Pushbutton changed from POD board type to newer type.
+
+Use remaining two gates to require dump fet gate turn ON to be
+one i/o pin high and the other low to avoid inadvertent turn-on.
+
+Add pull up to TXD to prevent floating when micro is off, per
+datasheet.
+
+
+
+
+
+

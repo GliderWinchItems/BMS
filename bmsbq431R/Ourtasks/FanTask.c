@@ -93,7 +93,7 @@ void StartFanTask(void* argument)
 		fanrpm = K * (float)deltaN / fdeltaT;
 
 		/* Update FAN pwm. */
-fanspeed = 100;
+fanspeed = 0; // 14 = minimum; 100+ = full speed
 ;
 		pT2base->CCR1 = (640 * fanspeed)/100;
 

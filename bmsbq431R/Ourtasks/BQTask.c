@@ -202,7 +202,7 @@ uint8_t dbgx; // Debug
 
 void StartBQTask(void* argument)
 {
-while(1==1) osDelay(100); // Temp nix BQ'ing
+//while(1==1) osDelay(100); // Temp nix BQ'ing
 //	struct BQFUNCTION* p;
 //	int i;
 
@@ -718,18 +718,20 @@ static void charger_update(struct BQFUNCTION* p)
 	/* Internal charger control. */
 	if ((p->fet_status & FET_CHGR) != 0)
 	{ // Here, set charging 
-		TIM1->CCR1 = bqfunction.tim1_ccr1; // Set charge rate
-	}
-	else
-	{ // If not normal rate, should it be Very Low Charge rate?
-		if ((p->fet_status & FET_CHGR_VLC) != 0)
-		{ // Here, yes.
+			if ((battery_status & BSTATUS_CELLTOOLO) != 0)
+		{
 			TIM1->CCR1 = bqfunction.lc.tim1_ccr1_on_vlc; // Set vlc rate
-		}
+			p->fet_status |= FET_CHGR_VLC;
+		}			
 		else
 		{ // Here, stop charging
-			
+			TIM1->CCR1 = bqfunction.tim1_ccr1; // Set charge rate
+			p->fet_status &= ~FET_CHGR_VLC;
 		}
+	}
+	else
+	{
+		TIM1->CCR1 = 0;	// FET is off
 	}
 //		
 //p->fet_status &= ~FET_CHGR;
