@@ -1,0 +1,14 @@
+All bms board have the same mounting holes
+
+Mounting holes:
+ 2.8 mm dia
+   3.20   3.20 
+  79.00   3.20
+ 137.80   3.20
+   3.20  46.80 
+  79.00  46.80 
+ 137.80  46.80 
+  79.00  25.00
+
+   
+    
