@@ -1,0 +1,4 @@
+echo "DIFF C FILE: $1.c"
+diff ~/Gl*ems/$1/$2/$3.c $3.c
+echo "DIFF H FILE: $1.h"
+diff ~/Gl*ems/$1/$2/$3.h $3.h
