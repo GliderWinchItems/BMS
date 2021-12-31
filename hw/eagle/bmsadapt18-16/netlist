@@ -1,0 +1,116 @@
+Netlist
+
+Exported from bmsadapt18-16.sch at 12/30/2021 11:35:19 
+
+EAGLE Version 4.13 Copyright (c) 1988-2004 CadSoft
+
+Net      Part     Pad      Pin        Sheet
+
+Change Class 0;
+C0       JP1      4        4          1
+         JP4      2        2          1
+         JP5      3        3          1
+
+Change Class 0;
+C1       JP1      13       13         1
+         JP2      12       12         1
+         JP3      7        7          1
+
+Change Class 0;
+C2       JP1      5        5          1
+         JP2      3        3          1
+         JP3      3        3          1
+
+Change Class 0;
+C3       JP1      14       14         1
+         JP2      13       13         1
+         JP4      7        7          1
+
+Change Class 0;
+C4       JP1      6        6          1
+         JP2      4        4          1
+         JP4      3        3          1
+
+Change Class 0;
+C5       JP1      15       15         1
+         JP2      14       14         1
+         JP3      8        8          1
+
+Change Class 0;
+C6       JP1      7        7          1
+         JP2      5        5          1
+         JP3      4        4          1
+
+Change Class 0;
+C7       JP1      16       16         1
+         JP2      15       15         1
+         JP4      8        8          1
+
+Change Class 0;
+C8       JP1      8        8          1
+         JP2      6        6          1
+         JP4      4        4          1
+
+Change Class 0;
+C9       JP1      17       17         1
+         JP2      16       16         1
+         JP3      9        9          1
+
+Change Class 0;
+C10      JP1      9        9          1
+         JP2      7        7          1
+         JP3      5        5          1
+
+Change Class 0;
+C11      JP1      18       18         1
+         JP2      17       17         1
+         JP4      9        9          1
+
+Change Class 0;
+C12      JP1      10       10         1
+         JP2      8        8          1
+         JP4      5        5          1
+
+Change Class 0;
+C13      JP1      19       19         1
+         JP2      18       18         1
+         JP3      10       10         1
+
+Change Class 0;
+C14      JP1      11       11         1
+         JP2      9        9          1
+         JP3      6        6          1
+
+Change Class 0;
+C15      JP1      20       20         1
+         JP2      19       19         1
+         JP4      10       10         1
+
+Change Class 0;
+C16      JP1      12       12         1
+         JP2      10       10         1
+         JP4      6        6          1
+
+Change Class 0;
+C17      JP2      20       20         1
+         JP5      4        4          1
+
+Change Class 0;
+C18      JP2      11       11         1
+         JP5      2        2          1
+
+Change Class 0;
+GND      JP1      3        3          1
+         JP2      2        2          1
+         JP3      2        2          1
+
+Change Class 0;
+PGND-SRN JP1      1        1          1
+         JP2      1        1          1
+         JP3      1        1          1
+
+Change Class 0;
+SRP      JP1      2        2          1
+         JP4      1        1          1
+         JP5      1        1          1
+

@@ -7,6 +7,3 @@ rm *.cmp
 rm *.pls
 rm *.drd
 rm *.drl
-rm *.tsp
-rm *.bsp
-
