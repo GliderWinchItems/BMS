@@ -1,6 +1,6 @@
 EAGLE Version 4.13 Copyright (c) 1988-2004 CadSoft
 
-Electrical Rule Check for /mnt/home/deh/GliderWinchItems/BMS/hw/eagle/bmsmax14921/bms14921.sch at 12/22/2021 15:46:50 
+Electrical Rule Check for /mnt/home/deh/GliderWinchItems/BMS/hw/eagle/bmsmax14921/bms14921.sch at  1/02/2022 11:54:53 
 
 WARNING: Sheet 1/1: POWER Pin IC102 VDD connected to +15V
 WARNING: Sheet 1/1: POWER Pin U2POWER VDD_1 connected to VCC
@@ -24,27 +24,12 @@ WARNING: Sheet 1/1: POWER Pin IC2B GND1 connected to GND
 WARNING: Sheet 1/1: POWER Pin IC4G$1 VCC+ connected to +5V/1
 WARNING: Sheet 1/1: POWER Pin IC4G$1 VCC- connected to GND
 WARNING: Sheet 1/1: POWER Pin IC2P VCC connected to +5V/1
-WARNING: Sheet 1/1: POWER Pin U1 VL connected to +5V/1
 WARNING: Sheet 1/1: POWER Pin U1 DGND connected to GND
 WARNING: Sheet 1/1: POWER Pin U1 AGND connected to GND
 WARNING: Sheet 1/1: POWER Pin U1 VA connected to VA_LDOIN
-WARNING: No Pins on net N$8
-WARNING: No Pins on net N$10
-WARNING: No Pins on net N$13
-WARNING: No Pins on net N$17
-WARNING: No Pins on net N$20
-WARNING: No Pins on net N$23
-WARNING: No Pins on net N$26
-WARNING: No Pins on net N$29
-WARNING: No Pins on net N$32
-WARNING: No Pins on net N$35
-WARNING: No Pins on net N$38
-WARNING: No Pins on net N$41
-WARNING: No Pins on net N$44
-WARNING: No Pins on net N$47
-WARNING: No Pins on net N$50
+WARNING: Sheet 1/1: POWER Pin U1 VP connected to CH16
 
 Board and schematic are consistent
 
     0 errors
-   41 warnings
+   26 warnings
