@@ -6,7 +6,7 @@
 <setting alwaysvectorfont="no"/>
 <setting verticaltext="up"/>
 </settings>
-<grid distance="0.1" unitdist="inch" unit="inch" style="lines" multiple="1" display="no" altdistance="0.01" altunitdist="inch" altunit="inch"/>
+<grid distance="0.025" unitdist="inch" unit="inch" style="lines" multiple="1" display="no" altdistance="0.01" altunitdist="inch" altunit="inch"/>
 <layers>
 <layer number="1" name="Top" color="4" fill="1" visible="no" active="no"/>
 <layer number="16" name="Bottom" color="1" fill="1" visible="no" active="no"/>
@@ -49,7 +49,7 @@
 <layer number="56" name="wert" color="7" fill="1" visible="no" active="no"/>
 <layer number="91" name="Nets" color="2" fill="1" visible="yes" active="yes"/>
 <layer number="92" name="Busses" color="1" fill="1" visible="yes" active="yes"/>
-<layer number="93" name="Pins" color="2" fill="1" visible="no" active="yes"/>
+<layer number="93" name="Pins" color="2" fill="1" visible="yes" active="yes"/>
 <layer number="94" name="Symbols" color="4" fill="1" visible="yes" active="yes"/>
 <layer number="95" name="Names" color="7" fill="1" visible="yes" active="yes"/>
 <layer number="96" name="Values" color="7" fill="1" visible="yes" active="yes"/>
@@ -482,14 +482,16 @@
 <part name="JP1" library="pinhead" deviceset="PINHD-1X2" device="" value="CAN"/>
 <part name="JP2" library="pinhead" deviceset="PINHD-1X1" device="" value="+12V"/>
 <part name="JP3" library="pinhead" deviceset="PINHD-1X1" device="" value="GND"/>
+<part name="JP4" library="pinhead" deviceset="PINHD-2X5_KEYED" device="" value="BMS ribbon"/>
+<part name="JP5" library="pinhead" deviceset="PINHD-1X1" device="" value="M-RESET"/>
 </parts>
 <sheets>
 <sheet>
 <plain>
 <text x="28.575" y="53.975" size="1.778" layer="91" rot="R180">CAN BUS PLUS</text>
 <text x="47.625" y="89.535" size="1.778" layer="91" rot="R270">PASS-THRU</text>
-<text x="43.18" y="39.37" size="1.778" layer="91" rot="R90">CAN BUS PLUS</text>
-<text x="52.07" y="38.1" size="1.778" layer="91" rot="R90">CAN BUS MINUS</text>
+<text x="43.18" y="48.895" size="1.778" layer="91" rot="R90">CAN BUS PLUS</text>
+<text x="52.705" y="48.26" size="1.778" layer="91" rot="R90">CAN BUS MINUS</text>
 <text x="66.675" y="49.53" size="1.778" layer="91" rot="R90">CAN-H</text>
 <text x="60.325" y="50.165" size="1.778" layer="91" rot="R90">CAN-L</text>
 <text x="48.26" y="127" size="3.81" layer="91">Adaptor</text>
@@ -508,6 +510,8 @@
 <instance part="JP1" gate="G$1" x="80.645" y="62.865"/>
 <instance part="JP2" gate="G$1" x="79.375" y="108.585"/>
 <instance part="JP3" gate="G$1" x="80.01" y="91.44"/>
+<instance part="JP4" gate="G$1" x="85.09" y="32.385" rot="R180"/>
+<instance part="JP5" gate="G$1" x="94.615" y="85.725"/>
 </instances>
 <busses>
 </busses>
@@ -554,6 +558,19 @@
 <pinref part="JP3" gate="G$1" pin="1"/>
 <wire x1="77.47" y1="91.44" x2="53.975" y2="91.44" width="0.1524" layer="91"/>
 <junction x="53.975" y="91.44"/>
+<pinref part="JP4" gate="G$1" pin="2"/>
+<wire x1="36.83" y1="23.495" x2="80.01" y2="23.495" width="0.1524" layer="91"/>
+<wire x1="80.01" y1="23.495" x2="80.01" y2="27.305" width="0.1524" layer="91"/>
+<junction x="36.83" y="23.495"/>
+<wire x1="80.01" y1="23.495" x2="95.25" y2="23.495" width="0.1524" layer="91"/>
+<wire x1="95.25" y1="23.495" x2="95.25" y2="32.385" width="0.1524" layer="91"/>
+<junction x="80.01" y="23.495"/>
+<pinref part="JP4" gate="G$1" pin="5"/>
+<wire x1="95.25" y1="32.385" x2="87.63" y2="32.385" width="0.1524" layer="91"/>
+<wire x1="95.25" y1="32.385" x2="95.25" y2="37.465" width="0.1524" layer="91"/>
+<junction x="95.25" y="32.385"/>
+<pinref part="JP4" gate="G$1" pin="9"/>
+<wire x1="95.25" y1="37.465" x2="87.63" y2="37.465" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="+12V" class="0">
@@ -596,6 +613,18 @@
 <pinref part="JP2" gate="G$1" pin="1"/>
 <wire x1="76.835" y1="108.585" x2="44.45" y2="108.585" width="0.1524" layer="91"/>
 <junction x="44.45" y="108.585"/>
+<pinref part="JP4" gate="G$1" pin="1"/>
+<wire x1="31.75" y1="21.59" x2="74.93" y2="21.59" width="0.1524" layer="91"/>
+<wire x1="74.93" y1="21.59" x2="87.63" y2="21.59" width="0.1524" layer="91"/>
+<wire x1="87.63" y1="21.59" x2="87.63" y2="27.305" width="0.1524" layer="91"/>
+<junction x="31.75" y="21.59"/>
+<pinref part="JP4" gate="G$1" pin="7"/>
+<pinref part="JP4" gate="G$1" pin="8"/>
+<wire x1="87.63" y1="34.925" x2="80.01" y2="34.925" width="0.1524" layer="91"/>
+<wire x1="80.01" y1="34.925" x2="74.93" y2="34.925" width="0.1524" layer="91"/>
+<wire x1="74.93" y1="34.925" x2="74.93" y2="21.59" width="0.1524" layer="91"/>
+<junction x="80.01" y="34.925"/>
+<junction x="74.93" y="21.59"/>
 </segment>
 </net>
 <net name="CANL" class="0">
@@ -613,6 +642,12 @@
 <pinref part="JP1" gate="G$1" pin="2"/>
 <wire x1="78.105" y1="62.865" x2="61.595" y2="62.865" width="0.1524" layer="91"/>
 <junction x="61.595" y="62.865"/>
+<wire x1="61.595" y1="29.845" x2="78.105" y2="29.845" width="0.1524" layer="91"/>
+<wire x1="78.105" y1="29.845" x2="78.105" y2="31.115" width="0.1524" layer="91"/>
+<junction x="61.595" y="29.845"/>
+<pinref part="JP4" gate="G$1" pin="3"/>
+<wire x1="78.105" y1="31.115" x2="87.63" y2="31.115" width="0.1524" layer="91"/>
+<wire x1="87.63" y1="31.115" x2="87.63" y2="29.845" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="CANH" class="0">
@@ -632,6 +667,10 @@
 <pinref part="JP1" gate="G$1" pin="1"/>
 <wire x1="78.105" y1="65.405" x2="67.945" y2="65.405" width="0.1524" layer="91"/>
 <junction x="67.945" y="65.405"/>
+<pinref part="JP4" gate="G$1" pin="4"/>
+<wire x1="67.945" y1="28.575" x2="80.01" y2="28.575" width="0.1524" layer="91"/>
+<wire x1="80.01" y1="28.575" x2="80.01" y2="29.845" width="0.1524" layer="91"/>
+<junction x="67.945" y="28.575"/>
 </segment>
 </net>
 <net name="CANCABLE_1_1" class="0">
@@ -656,10 +695,30 @@
 <pinref part="JP6" gate="G$1" pin="6"/>
 <wire x1="26.67" y1="60.96" x2="8.255" y2="60.96" width="0.1524" layer="91"/>
 <wire x1="8.255" y1="60.96" x2="8.255" y2="32.385" width="0.1524" layer="91"/>
-<wire x1="8.255" y1="60.96" x2="8.255" y2="94.615" width="0.1524" layer="91"/>
+<wire x1="8.255" y1="60.96" x2="8.255" y2="89.535" width="0.1524" layer="91"/>
 <junction x="8.255" y="60.96"/>
 <pinref part="JP8" gate="G$1" pin="8"/>
+<wire x1="8.255" y1="89.535" x2="8.255" y2="94.615" width="0.1524" layer="91"/>
 <wire x1="8.255" y1="94.615" x2="26.67" y2="94.615" width="0.1524" layer="91"/>
+<wire x1="24.13" y1="32.385" x2="24.13" y2="33.655" width="0.1524" layer="91"/>
+<junction x="24.13" y="32.385"/>
+<pinref part="JP4" gate="G$1" pin="6"/>
+<wire x1="24.13" y1="33.655" x2="80.01" y2="33.655" width="0.1524" layer="91"/>
+<wire x1="80.01" y1="33.655" x2="80.01" y2="32.385" width="0.1524" layer="91"/>
+<pinref part="JP5" gate="G$1" pin="1"/>
+<wire x1="92.075" y1="85.725" x2="37.465" y2="85.725" width="0.1524" layer="91"/>
+<wire x1="37.465" y1="85.725" x2="37.465" y2="89.535" width="0.1524" layer="91"/>
+<wire x1="37.465" y1="89.535" x2="8.255" y2="89.535" width="0.1524" layer="91"/>
+<junction x="8.255" y="89.535"/>
+</segment>
+</net>
+<net name="N$2" class="0">
+<segment>
+<pinref part="JP6" gate="G$1" pin="10"/>
+<wire x1="24.13" y1="37.465" x2="24.13" y2="38.735" width="0.1524" layer="91"/>
+<pinref part="JP4" gate="G$1" pin="10"/>
+<wire x1="24.13" y1="38.735" x2="80.01" y2="38.735" width="0.1524" layer="91"/>
+<wire x1="80.01" y1="38.735" x2="80.01" y2="37.465" width="0.1524" layer="91"/>
 </segment>
 </net>
 </nets>
