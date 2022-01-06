@@ -484,6 +484,7 @@
 <part name="JP3" library="pinhead" deviceset="PINHD-1X1" device="" value="GND"/>
 <part name="JP4" library="pinhead" deviceset="PINHD-2X5_KEYED" device="" value="BMS ribbon"/>
 <part name="JP5" library="pinhead" deviceset="PINHD-1X1" device="" value="M-RESET"/>
+<part name="JP9" library="pinhead" deviceset="PINHD-1X2" device="" value="12V"/>
 </parts>
 <sheets>
 <sheet>
@@ -512,6 +513,7 @@
 <instance part="JP3" gate="G$1" x="80.01" y="91.44"/>
 <instance part="JP4" gate="G$1" x="85.09" y="32.385" rot="R180"/>
 <instance part="JP5" gate="G$1" x="94.615" y="85.725"/>
+<instance part="JP9" gate="G$1" x="95.885" y="52.705"/>
 </instances>
 <busses>
 </busses>
@@ -553,9 +555,10 @@
 <pinref part="JP6" gate="G$1" pin="5"/>
 <pinref part="JP6" gate="G$1" pin="9"/>
 <pinref part="GND10" gate="1" pin="GNDA"/>
-<wire x1="53.975" y1="60.96" x2="53.975" y2="25.4" width="0.1524" layer="91"/>
+<wire x1="53.975" y1="60.96" x2="53.975" y2="55.245" width="0.1524" layer="91"/>
 <junction x="53.975" y="60.96"/>
 <pinref part="JP3" gate="G$1" pin="1"/>
+<wire x1="53.975" y1="55.245" x2="53.975" y2="25.4" width="0.1524" layer="91"/>
 <wire x1="77.47" y1="91.44" x2="53.975" y2="91.44" width="0.1524" layer="91"/>
 <junction x="53.975" y="91.44"/>
 <pinref part="JP4" gate="G$1" pin="2"/>
@@ -571,6 +574,9 @@
 <junction x="95.25" y="32.385"/>
 <pinref part="JP4" gate="G$1" pin="9"/>
 <wire x1="95.25" y1="37.465" x2="87.63" y2="37.465" width="0.1524" layer="91"/>
+<pinref part="JP9" gate="G$1" pin="1"/>
+<wire x1="93.345" y1="55.245" x2="53.975" y2="55.245" width="0.1524" layer="91"/>
+<junction x="53.975" y="55.245"/>
 </segment>
 </net>
 <net name="+12V" class="0">
@@ -608,9 +614,10 @@
 <pinref part="JP8" gate="G$1" pin="2"/>
 <pinref part="JP7" gate="G$1" pin="2"/>
 <pinref part="JP7" gate="G$1" pin="5"/>
-<wire x1="44.45" y1="79.375" x2="44.45" y2="34.925" width="0.1524" layer="91"/>
+<wire x1="44.45" y1="79.375" x2="44.45" y2="52.705" width="0.1524" layer="91"/>
 <junction x="44.45" y="79.375"/>
 <pinref part="JP2" gate="G$1" pin="1"/>
+<wire x1="44.45" y1="52.705" x2="44.45" y2="34.925" width="0.1524" layer="91"/>
 <wire x1="76.835" y1="108.585" x2="44.45" y2="108.585" width="0.1524" layer="91"/>
 <junction x="44.45" y="108.585"/>
 <pinref part="JP4" gate="G$1" pin="1"/>
@@ -625,6 +632,9 @@
 <wire x1="74.93" y1="34.925" x2="74.93" y2="21.59" width="0.1524" layer="91"/>
 <junction x="80.01" y="34.925"/>
 <junction x="74.93" y="21.59"/>
+<pinref part="JP9" gate="G$1" pin="2"/>
+<wire x1="93.345" y1="52.705" x2="44.45" y2="52.705" width="0.1524" layer="91"/>
+<junction x="44.45" y="52.705"/>
 </segment>
 </net>
 <net name="CANL" class="0">
