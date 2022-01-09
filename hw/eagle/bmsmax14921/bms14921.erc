@@ -1,7 +1,8 @@
 EAGLE Version 4.13 Copyright (c) 1988-2004 CadSoft
 
-Electrical Rule Check for /mnt/home/deh/GliderWinchItems/BMS/hw/eagle/bmsmax14921/bms14921.sch at  1/02/2022 11:54:53 
+Electrical Rule Check for /mnt/home/deh/GliderWinchItems/BMS/hw/eagle/bmsmax14921/bms14921.sch at  1/08/2022 21:01:27 
 
+WARNING: Sheet 1/1: unconnected Pin: IC3F O
 WARNING: Sheet 1/1: POWER Pin IC102 VDD connected to +15V
 WARNING: Sheet 1/1: POWER Pin U2POWER VDD_1 connected to VCC
 WARNING: Sheet 1/1: POWER Pin U2POWER VDD_2 connected to VCC
@@ -28,8 +29,9 @@ WARNING: Sheet 1/1: POWER Pin U1 DGND connected to GND
 WARNING: Sheet 1/1: POWER Pin U1 AGND connected to GND
 WARNING: Sheet 1/1: POWER Pin U1 VA connected to VA_LDOIN
 WARNING: Sheet 1/1: POWER Pin U1 VP connected to CH16
+WARNING: Sheet 1/1: POWER Pin IC3P VCC connected to +5V/1
 
 Board and schematic are consistent
 
     0 errors
-   26 warnings
+   28 warnings

@@ -1,25 +1,25 @@
 EAGLE AutoRouter Statistics:
 
-Job           : /mnt/home/deh/GliderWinchItems/BMS/hw/eagle/bmsbmsBQ/bmsbq.brd
+Job           : /mnt/home/deh/GliderWinchItems/BMS/hw/eagle/bmsmax14921/bms14921.brd
 
-Start at      :   16:21:20  ( 2/09/2021)
-End at        :   16:21:20  ( 2/09/2021)
+Start at      :   20:55:37  ( 1/08/2022)
+End at        :   20:55:37  ( 1/08/2022)
 Elapsed time  :   00:00:00
 
-Signals       :   139   RoutingGrid: 50 mil  Layers: 2
-Connections   :   462   predefined:  459 ( 205 Vias )
+Signals       :   207   RoutingGrid: 50 mil  Layers: 2
+Connections   :   538   predefined:  537 ( 309 Vias )
 
-Router memory :   34160
+Router memory :   34932
 
-Passname          :    Busses     Route Optimize1 Optimize2 Optimize3 Optimize4
+Passname          :     Route Optimize1 Optimize2 Optimize3 Optimize4
 
-Time per pass     :  00:00:00  00:00:00  00:00:00  00:00:00  00:00:00  00:00:00
-Number of Ripups  :         0         0         0         0         0         0
-max. Level        :         0         0         0         0         0         0
-max. Total        :         0         0         0         0         0         0
+Time per pass     :  00:00:00  00:00:00  00:00:00  00:00:00  00:00:00
+Number of Ripups  :         0         0         0         0         0
+max. Level        :         0         0         0         0         0
+max. Total        :         0         0         0         0         0
 
-Routed            :         0         2         2         2         2         2
-Vias              :         0         1         0         0         0         0
-Resolution        :    99.4 %    99.8 %    99.8 %    99.8 %    99.8 %    99.8 %
+Routed            :         1         1         1         1         1
+Vias              :         0         0         0         0         0
+Resolution        :   100.0 %   100.0 %   100.0 %   100.0 %   100.0 %
 
-Final             : 99.8% finished
+Final             : 100.0% finished
