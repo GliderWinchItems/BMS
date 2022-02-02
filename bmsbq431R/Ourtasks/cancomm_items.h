@@ -34,5 +34,9 @@
 /*	@brief	: Prepare and send a response to a received command
  *  @param  : pcan = pointer to struct CANRCVBUF from mailbox 
  * *************************************************************************/
+void cancomm_items_uni_bms(struct CANRCVBUF* pcan);
+/*	@brief	: Multi-purpose command (CANCOMMBIT02)
+ *  @param  : pcan = pointer to struct CANRCVBUF from mailbox 
+ * *************************************************************************/
 
 #endif

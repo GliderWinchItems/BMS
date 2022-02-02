@@ -290,6 +290,7 @@ fetonoff(FET_DUMP,0);
 
 			/* Set FETs accordingly. */
 			fetonoff_status_set(pbq->fet_status);
+//			fetonoff_status_set(0);	//Turn OFF all fets: charger(s), heater, etc.
 
 			/* Set cell balancing fets.  */
 			// uint8_t subcmdW(uint16_t cmd, uint16_t data, uint8_t nd, uint8_t config)
@@ -318,7 +319,7 @@ osDelay(3);
 			break;
 
 		case 1:	// DUMP discharge until cutoff voltage. 
-			/* Turn off any FET dishcarging. */
+			/* Turn off any FET discharging. */
 			ret = subcmdW(CB_ACTIVE_CELLS,(uint16_t)0x0, 2, 0); 
 			if (ret != 0) morse_string("BA",GPIO_PIN_1);
 

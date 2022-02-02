@@ -40,6 +40,12 @@
 #define FET_CHGR     (1 << 3) // 1 = Charger FET enabled: Normal charge rate
 #define FET_CHGR_VLC (1 << 4) // 1 = Charger FET enabled: Very Low Charge rate
 
+/* CAN msgs are scaled to 100uv (see ADBMS1818 datasheet)
+  BQ76952 can measure negative voltages, so these are coded into the upper values
+  that are not possible. */
+#define CELLV_OPEN  65534  // cellv_latest array, uint16_t value for open wire
+#define CELLV_MINUS 65535  // cellv_latest array, uint16_t value for negative voltage
+
 
 /* Cell current voltage for last measurement. */
 struct VI
@@ -96,7 +102,7 @@ struct BQFUNCTION
 	uint16_t tim1_ccr1;  // Present CCR1 (PWM count)
 
 	struct BQCELLV cellv_bal[NCELLMAX]; // Working array for cell balancing
-	int16_t cellv_latest[NCELLMAX]; // Cell voltage readings (millivolts) (signed)
+	uint16_t cellv_latest[NCELLMAX]; // Cell voltage readings x10 (millivolts)
 	int32_t cellv_total;  // Some of cell voltages
 	int16_t cellv_high;   // Highest cellv millivolts
 	int16_t cellv_low;    // Lowest  cellv millivolts
@@ -115,6 +121,7 @@ struct BQFUNCTION
 	/* Pointers to incoming CAN msg mailboxes. */
 	struct MAILBOXCAN* pmbx_cid_cmd_bms_cellvq;// CANID_CMD_BMS_CELLVQ: BMSV1 U8: EMC requests to BMS to send cellv, cmd code
 	struct MAILBOXCAN* pmbx_cid_cmd_bms_miscq; // CANID_CMD_BMS_MISCQ: BMSV1 U8: EMC requests to BMS to value for given cmd code
+	struct MAILBOXCAN* pmbx_cid_unit_bms01;    //CANID_UNIT_BMS01 B0600000 UNIT_BMS01 U8_U8_U8_X4 BMS BQ76952  #01
 
 
 	uint8_t state;      // main state

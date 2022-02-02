@@ -228,7 +228,7 @@ void bqview_blk_0x14_u16 (struct SERIALSENDTASKBCB** pp)
 {
 	int i;
 	int16_t* pv = &cellv[cvidx][0];
-    yprintf(pp,"\n\rVV      ");
+    yprintf(pp,"\n\rVV ");
     for (i = 0; i < 16; i++) yprintf(pp,"%8d",*pv++);
 
     return;

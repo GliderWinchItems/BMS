@@ -8,8 +8,11 @@
 #include "BQTask.h"
 #include "cancomm_items.h"
 #include "adcparams.h"
+#include "../../../../GliderWinchCommons/embed/svn_common/trunk/db/gen_db.h"
 
 extern uint16_t blk_0x0083_u16[3]; // BQ cell balancing
+
+void cancomm_items_sendcell(struct CANRCVBUF* pcan);
 
 static void loadfloat(uint8_t* puc, float* pf);
 static void cellv_cal(struct CANRCVBUF* pcan);
@@ -42,6 +45,64 @@ static void loaduint32(uint8_t* puc, uint32_t n)
 	return;
 }
 /* *************************************************************************
+ * static uint32 extractint_32(uint8_t* p);
+ *	@brief	: Extract 32b int from payload
+ *  @param  : p = pointer to CAN msg payload
+ *  @param  : n = unit32_t to be loaded
+ * *************************************************************************/
+static uint32_t extract_int32(uint8_t* p)
+{
+	return (
+		(*(p+0) <<  0) | 
+		(*(p+1) <<  8) |
+		(*(p+2) << 16) |
+		(*(p+3) << 24) );	
+}
+/* *************************************************************************
+ * void cancomm_items_uni_bms(struct CANRCVBUF* pcan);
+ *	@brief	: UNIversal multi-purpose command (CANCOMMBIT02)
+ *  @param  : pcan = pointer to struct CANRCVBUF with request CAN msg
+ * *************************************************************************/
+void cancomm_items_uni_bms(struct CANRCVBUF* pcan)
+{
+	struct BQFUNCTION* p = &bqfunction;
+	uint32_t canid; // CANID requested to respond, if applicable
+	uint8_t code;
+
+	/* Skip if this request is not for us. */
+	code = pcan->cd.uc[1] & 0xC0;
+	// Code for which modules should respond bits [7:6]
+	// 11 = All modules respond
+    // 10 = All modules on identified string respond
+    // 01 = Only identified string and module responds
+    // 00 = spare; no response expected
+    canid = extract_int32(&pcan->cd.uc[4]); 
+    // Respond if CAN ID for this node was sent
+	if (!(((code == (3 << 6))) ||
+		  ((code == (2 << 6)) && ((pcan->cd.uc[0] & 0x30) == p->ident_string)) ||
+		  ((code == (1 << 6)) && ((pcan->cd.uc[0] & 0x3F) == p->ident_onlyus)) ||
+		  ((canid == p->lc.cid_unit_bms01))))
+		return; // Skip. This request is not for us.
+
+	/* Set up response to command. */
+	switch(pcan->cd.uc[0])
+	{
+	case CMD_CMD_TYPE1: // Send Cell readings
+
+		// Here, either all respond or just our unit. Send current cell readings
+		{
+			cancomm_items_sendcell(pcan);
+		}
+
+		break;
+	case CMD_CMD_TYPE2:
+		break;
+	case CMD_CMD_TYPE3:
+		break;
+	}
+	return;
+}
+/* *************************************************************************
  * void cancomm_items_sendcell(struct CANRCVBUF* pcan);
  *	@brief	: Prepare and queue CAN msgs for sending cell voltage array
  *  @param  : pcan = pointer to struct CANRCVBUF from mailbox 
@@ -49,23 +110,26 @@ static void loaduint32(uint8_t* puc, uint32_t n)
 void cancomm_items_sendcell(struct CANRCVBUF* pcan)
 {
 	struct BQFUNCTION* p = &bqfunction;
-	int16_t* pcell = &p->cellv_latest[0];
+	uint16_t* pcell = &p->cellv_latest[0];
 	uint8_t i;
 	uint8_t n;
 
+	/* Load cell data into CAN msgs. */
 	for (i = 0; i < MAXNUMCELLMSGS; i++)
 	{	
 		// Set sequence number sent by requesting CAN msgs
-		p->canmsg[CID_MSG_CELLV01 + i].can.cd.ui[0] &= ~0x7;
-		p->canmsg[CID_MSG_CELLV01 + i].can.cd.ui[0] |= (pcan->cd.uc[1] & 0x7);
+//		p->canmsg[CID_MSG_CELLV01 + i].can.cd.uc[1] &= ~0x0f;
+		p->canmsg[CID_MSG_CELLV01 + i].can.cd.uc[1] = (pcan->cd.uc[1] & 0x0f) | ((i*3) << 4);
 
-		p->canmsg[CID_MSG_CELLV01 + i].can.cd.ui[1] = *(pcell+0);
-		p->canmsg[CID_MSG_CELLV01 + i].can.cd.ui[2] = *(pcell+1);
-		p->canmsg[CID_MSG_CELLV01 + i].can.cd.ui[3] = *(pcell+2);
+		p->canmsg[CID_MSG_CELLV01 + i].can.cd.us[1] = *(pcell+0);
+		p->canmsg[CID_MSG_CELLV01 + i].can.cd.us[2] = *(pcell+1);
+		p->canmsg[CID_MSG_CELLV01 + i].can.cd.us[3] = *(pcell+2);
+		pcell += 3;
 
 		// DLC is the same except possibly last msg
 		p->canmsg[CID_MSG_CELLV01 + i].can.dlc = 8;
 	}
+
 	/* Adjust dlc if less than 18 cells. */
 	switch (p->lc.ncell)
 	{ // 

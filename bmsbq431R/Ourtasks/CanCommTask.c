@@ -24,7 +24,10 @@ extern struct CAN_CTLBLOCK* pctl0; // Pointer to CAN1 control block
 
 #define CANCOMMBIT00 (1 << 0) // Send cell voltage  command
 #define CANCOMMBIT01 (1 << 1) // Send misc reading command
+#define CANCOMMBIT02 (1 << 2) // Multi-purpose incoming command
 
+struct CANRCVBUF  can_hb; // Dummy heart-beat request CAN msg
+uint8_t hbseq; // heartbeat CAN msg sequence number
 uint8_t rdyflag_cancomm = 0; // Initialization complete and ready = 1
 
 TaskHandle_t CanCommHandle = NULL;
@@ -50,8 +53,9 @@ void StartCanComm(void* argument)
 	/* Add CAN Mailboxes                               CAN     CAN ID             TaskHandle,Notify bit,Skip, Paytype */
     p->pmbx_cid_cmd_bms_cellvq = MailboxTask_add(pctl0,p->lc.cid_cmd_bms_cellvq, NULL, CANCOMMBIT00,0,U8); // Command: send cell voltages
     p->pmbx_cid_cmd_bms_miscq  = MailboxTask_add(pctl0,p->lc.cid_cmd_bms_miscq,  NULL, CANCOMMBIT01,0,U8); // Command: many options	
+    p->pmbx_cid_unit_bms01     = MailboxTask_add(pctl0,p->lc.cid_unit_bms01,     NULL, CANCOMMBIT02,0,U8); // muli-purpose BQ76952  #01
 
-    	/* Pre-load fixed data in CAN msgs */
+    	/* Pre-load fixed data in all possible CAN msgs */
 	for (i = 0; i < NUMCANMSGS; i++)
 	{
 		p->canmsg[i].pctl = pctl0;   // Control block for CAN module (CAN 1)
@@ -60,29 +64,32 @@ void StartCanComm(void* argument)
 		p->canmsg[i].can.dlc = 8;    // Default payload size (might be modified when loaded and sent)
 	}
 
-
 	/* Preload fixed data for sending cell reading msgs. */
 	for (i = 0; i < MAXNUMCELLMSGS; i++)
 	{	
 		/* Preload CAN IDs */
 		p->canmsg[CID_MSG_CELLV01 + i].can.id = p->lc.cid_msg_bms_cellvsmr;
 
-	/* Preload string and module number. */
-		/*  payload [0-1] U16 – Payload Identification
-  			[15:14] Winch (0 - 3)(winch #1 - #4)
-  			[13:12] Battery string (0 – 3) (string #1 - #4)
-  			[11:8] Module (0 – 15) (module #1 - #16)
-  			[7:3] Cell (0 - 31) (cell #1 - #32)
-  			[2:0] Group sequence number (0 - 7) */
-		p->canmsg[CID_MSG_CELLV01 + i].can.cd.ui[0]  = p->cellvpayident;
+		/* Msg identification = cell readings. */
+		p->canmsg[CID_MSG_CELLV01 + i].can.cd.ui[0]  = CMD_CMD_TYPE1;//
 
-		/* Preload cell number-1 for first payload cell reading.. */
-		p->canmsg[CID_MSG_CELLV01 + i].can.cd.ui[0] |= (i*3 << 3); // 0,3,6,8,12,15
+		/* Preload cell_number-1 for first payload in cell reading msg. */
+		// 0,3,6,9,12,15 in upper nibble; lower order nibble (seq number) = 0;
+		p->canmsg[CID_MSG_CELLV01 + i].can.cd.ui[1] = ((i*3) << 4); 
 	}
 
 	/* Preload fixed data for sending "misc" readings. */
 	p->canmsg[CID_CMD_MISC].can.id = p->lc.cid_cmd_bms_miscq;
 	p->canmsg[CID_CMD_MISC].can.cd.uc[0] = p->ident_onlyus;
+
+	/* Pre-load dummy CAN msg request for requesting heartbeat. */
+	can_hb.cd.ull = 0;
+	can_hb.cd.uc[0] = CMD_CMD_TYPE1;  // request code
+	can_hb.cd.uc[1] = 0;  // cell msg sequence number 
+	can_hb.cd.uc[4] = p->lc.cid_unit_bms01 >>  0; // Our CAN ID
+	can_hb.cd.uc[5] = p->lc.cid_unit_bms01 >>  8;
+	can_hb.cd.uc[6] = p->lc.cid_unit_bms01 >> 16;
+	can_hb.cd.uc[7] = p->lc.cid_unit_bms01 >> 24;
 
 	while (CANTaskreadyflag == 0) osDelay(1);
 
@@ -93,7 +100,7 @@ extern CAN_HandleTypeDef hcan1;
 
 	for (;;)
 	{
-				/* Wait for notifications */
+		/* Wait for notifications */
 		xTaskNotifyWait(0,0xffffffff, &noteval, p->hbct_k);
 
 		/* CAN msg request for sending CELL VOLTAGES. */
@@ -130,13 +137,29 @@ extern CAN_HandleTypeDef hcan1;
 				cancomm_items_sendcmdr(pcan);
 			}
 		}
+		/* Multi-purpose command */
+		if ((noteval & CANCOMMBIT02) != 0)
+		{
+			cancomm_items_uni_bms(&p->pmbx_cid_unit_bms01->ncan.can);
+		}
+
+		/* Timeout notification. */
 		if (noteval == 0)
 		{ // Send heartbeat
 			  /* Queue CAN msg to send. */
-			p->canmsg[CID_CMD_MISC].can.cd.uc[0] &= ~0xC0; 
-			p->canmsg[CID_CMD_MISC].can.cd.uc[1]  = 0; 
-			p->canmsg[CID_CMD_MISC].can.dlc    = 2; 
-   			xQueueSendToBack(CanTxQHandle,&p->canmsg[CID_CMD_MISC],4);   
+//			p->canmsg[CID_CMD_MISC].can.cd.uc[0] &= ~0xC0; 
+//			p->canmsg[CID_CMD_MISC].can.cd.uc[1]  = 0; 
+//			p->canmsg[CID_CMD_MISC].can.dlc    = 2; 
+
+			/* Use dummy CAN msg, then it looks the same as a request CAN msg. */
+			cancomm_items_uni_bms(&can_hb);
+
+			/* Increment 4 bit CAN msg group sequence counter .*/
+			hbseq += 1;
+			can_hb.cd.uc[1] &= ~0x0f;
+			can_hb.cd.uc[1] |= (hbseq & 0x0f); // Ready for next heartbeat
+
+   	//		xQueueSendToBack(CanTxQHandle,&p->canmsg[CID_CMD_MISC],4);   
 		}	
 	} 	
 }

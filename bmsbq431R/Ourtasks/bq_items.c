@@ -74,12 +74,27 @@ void bq_items_seq(int16_t* p)
 				} 
 			}
 		}
+		/* Convert reading to 100uv ADBMS scaling. For CAN sending. */
+		if (*p > 6000)
+		{ // Special number = open wire
+			pbq->cellv_latest[i] = CELLV_OPEN; // 65534;
+		}
+		else if (*p < 0)
+		{ // Smalll  negative numbers are possible
+			pbq->cellv_latest[i] = CELLV_MINUS; // 65535;
+		}
+		else
+		{ // Good readings fall between 0 and 60000 when scaled
+//			pbq->cellv_latest[i] = *p * 10;
+			pbq->cellv_latest[i] = (uint16_t)((float)cellcts.vi[i].v * pbq->lc.cellcal[i] );
+		}
 
 		pbq->cellv_total += *p; // Sum cell readings
 		psort->v = *p; psort->idx = i; // Copy to struct for sorting
 		psort += 1;
 		p += 1; // Next cell
 	}
+
 //debugging: visually check duration between calls	
 morse_string("E",GPIO_PIN_1);
 
@@ -204,3 +219,10 @@ void bq_items_qsortV(struct BQCELLV* p)
 	return;
 }
 #endif
+/* *************************************************************************
+ * void bq_items_calibrationV(uint16_t* platest, union ADCCELLCOUNTS* pcnts);
+ * @brief	: Sort array by voltage
+ * @param   : p = pointer to NCELL cell struct array
+ * *************************************************************************/
+//void bq_items_calibrationV(uint16_t* platest, union ADCCELLCOUNTS* pcnts)
+

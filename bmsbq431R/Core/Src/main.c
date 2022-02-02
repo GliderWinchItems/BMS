@@ -1202,7 +1202,7 @@ void StartDefaultTask(void *argument)
 /* These #defines select uart output for monitoring. */
 //#define TESTSHUTDOWN_VIA_COMMAND // Test processor commanded BQ shutdown
   #define BQMonitor
-//  #define CANMBXTESTnFANMonitor
+  #define CANMBXTESTnFANMonitor
 //  #define ADCMonitor
 
   uint32_t mctr = 0;
@@ -1416,6 +1416,16 @@ extern uint8_t bq_initflag; // 1 = signal BQ to initialize
     { // Here, not getting valid I2C transfers from BQ
       yprintf(&pbuf1,"\n\r%5d: bqflag: %d",mctr++, bqflag); 
     }
+
+
+     /* Cell voltages for CAN. */
+      uint16_t* pv = &bqfunction.cellv_latest[0];
+      yprintf(&pbuf1,"\n\rlate");
+      for (i = 0; i < 16; i++)
+      {
+        yprintf(&pbuf1,"%7u",*pv++);
+      }
+
 #endif //BQMonitor
   }
   /* USER CODE END 5 */
