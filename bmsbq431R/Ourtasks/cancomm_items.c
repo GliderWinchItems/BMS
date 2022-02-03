@@ -88,15 +88,13 @@ void cancomm_items_uni_bms(struct CANRCVBUF* pcan)
 	switch(pcan->cd.uc[0])
 	{
 	case CMD_CMD_TYPE1: // Send Cell readings
-
-		// Here, either all respond or just our unit. Send current cell readings
-		{
-			cancomm_items_sendcell(pcan);
-		}
-
+		cancomm_items_sendcell(pcan);
 		break;
-	case CMD_CMD_TYPE2:
+
+	case CMD_CMD_TYPE2: // Respond to command
+		cancomm_items_sendcmdr(pcan);
 		break;
+
 	case CMD_CMD_TYPE3:
 		break;
 	}
@@ -195,8 +193,17 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pcan)
 	struct BQFUNCTION* p = &bqfunction;
 
 	/* Pointer to payload 4 byte value is used often. */
-	uint8_t* puc = &p->canmsg[CID_CMD_MISC].can.cd.uc[3];
-	
+	uint8_t* puc = &p->canmsg[CID_CMD_MISC].can.cd.uc[4];
+
+	/* Data in payload is always X4 (4 bytes, any format) */
+	p->canmsg[CID_CMD_MISC].can.dlc = 8;
+	// Return what was requested
+	p->canmsg[CID_CMD_MISC].can.cd.uc[0] = CMD_CMD_TYPE2;
+	// Code for response
+	p->canmsg[CID_CMD_MISC].can.cd.uc[1] = pcan->cd.uc[1];
+	// Item number, or thermistor number, or ...
+	p->canmsg[CID_CMD_MISC].can.cd.uc[2] = pcan->cd.uc[2];
+
 	/* Command code. */
 	switch(p->canmsg[CID_CMD_MISC].can.cd.uc[1])
 	{
@@ -247,7 +254,7 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pcan)
 		break;
 	}
 	/* Queue CAN msg response. */
-	returncmd(&p->canmsg[CID_CMD_MISC], pcan); // Return command bytes
+//	returncmd(&p->canmsg[CID_CMD_MISC], pcan); // Return command bytes
 	xQueueSendToBack(CanTxQHandle,&p->canmsg[CID_CMD_MISC],4);
 	return;
 }
@@ -300,15 +307,35 @@ static void cellv_adc(struct CANRCVBUF* pcan)
 }
 /* *************************************************************************
  * static void status_group(void);
- *	@brief	: Prepare and send a response to a received command
+ *	@brief	: Load data for status
  * *************************************************************************/
 static void status_group(void)
 {
+	/*
+#define BSTATUS_NOREADING (1 << 0)	// Exactly zero = no reading
+#define BSTATUS_OPENWIRE  (1 << 1)  // Negative or over 5v indicative of open wire
+#define BSTATUS_CELLTOOHI (1 << 2)  // One or more cells above max limit
+#define BSTATUS_CELLTOOLO (1 << 3)  // One or more cells below min limit
+#define BSTATUS_CELLBAL   (1 << 4)  // Cell balancing in progress
+#define BSTATUS_CHARGING  (1 << 5)  // Charging in progress
+#define BSTATUS_DUMPTOV   (1 << 6)  // Dump to a voltage in progress
+
+#define FET_DUMP     (1 << 0) // 1 = DUMP FET ON
+#define FET_HEATER   (1 << 1) // 1 = HEATER FET ON
+#define FET_DUMP2    (1 << 2) // 1 = DUMP2 FET ON (external charger)
+#define FET_CHGR     (1 << 3) // 1 = Charger FET enabled: Normal charge rate
+#define FET_CHGR_VLC (1 << 4) // 1 = Charger FET enabled: Very Low Charge rate
+
+	*/
 	struct BQFUNCTION* p = &bqfunction;
 
-	// Load status bytes
-	p->canmsg[CID_CMD_MISC].can.cd.uc[3] = p->battery_status;
-	p->canmsg[CID_CMD_MISC].can.cd.uc[4] = p->fet_status;
+	// Reserved byte
+	p->canmsg[CID_CMD_MISC].can.cd.uc[3] = 0;
+	// Status bytes (U8)
+	p->canmsg[CID_CMD_MISC].can.cd.uc[4] = p->battery_status;
+	p->canmsg[CID_CMD_MISC].can.cd.uc[5] = p->fet_status;
+	// Bits for discharge FETs (U16)
+	p->canmsg[CID_CMD_MISC].can.cd.us[3] = p->cellbal;
 	return;
 }
 /* *************************************************************************

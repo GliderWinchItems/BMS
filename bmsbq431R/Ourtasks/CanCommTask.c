@@ -79,11 +79,11 @@ void StartCanComm(void* argument)
 	}
 
 	/* Preload fixed data for sending "misc" readings. */
-	p->canmsg[CID_CMD_MISC].can.id = p->lc.cid_cmd_bms_miscq;
+	p->canmsg[CID_CMD_MISC].can.id = p->lc.cid_msg_bms_cellvsmr;
 	p->canmsg[CID_CMD_MISC].can.cd.uc[0] = p->ident_onlyus;
 
 	/* Pre-load dummy CAN msg request for requesting heartbeat. */
-	can_hb.cd.ull = 0;
+	can_hb.cd.ull = 0; // Clear entire payload
 	can_hb.cd.uc[0] = CMD_CMD_TYPE1;  // request code
 	can_hb.cd.uc[1] = 0;  // cell msg sequence number 
 	can_hb.cd.uc[4] = p->lc.cid_unit_bms01 >>  0; // Our CAN ID
@@ -146,18 +146,19 @@ extern CAN_HandleTypeDef hcan1;
 		/* Timeout notification. */
 		if (noteval == 0)
 		{ // Send heartbeat
-			  /* Queue CAN msg to send. */
-//			p->canmsg[CID_CMD_MISC].can.cd.uc[0] &= ~0xC0; 
-//			p->canmsg[CID_CMD_MISC].can.cd.uc[1]  = 0; 
-//			p->canmsg[CID_CMD_MISC].can.dlc    = 2; 
+			/* Use dummy CAN msg, then it looks the same as a request CAN msg. */
+			can_hb.cd.uc[0] = CMD_CMD_TYPE2;  // Misc subcommands code
+			can_hb.cd.uc[1] = MISCQ_STATUS;   // status code
+			cancomm_items_uni_bms(&can_hb);
 
 			/* Use dummy CAN msg, then it looks the same as a request CAN msg. */
+			can_hb.cd.uc[0] = CMD_CMD_TYPE1;  // cell readings code
+			can_hb.cd.uc[1] = (hbseq & 0x0f); // Group sequence number
 			cancomm_items_uni_bms(&can_hb);
 
 			/* Increment 4 bit CAN msg group sequence counter .*/
 			hbseq += 1;
-			can_hb.cd.uc[1] &= ~0x0f;
-			can_hb.cd.uc[1] |= (hbseq & 0x0f); // Ready for next heartbeat
+	
 
    	//		xQueueSendToBack(CanTxQHandle,&p->canmsg[CID_CMD_MISC],4);   
 		}	

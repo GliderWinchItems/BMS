@@ -8,7 +8,7 @@
 
 #include "can_iface.h"
 
-// payload [1] U8: Command code
+// payload [1] U8: TYPE2 Command code
  #define MISCQ_HEARTBEAT   0   // reserved for heartbeat
  #define MISCQ_STATUS      1 // status
  #define MISCQ_CELLV_CAL   2 // cell voltage: calibrated
