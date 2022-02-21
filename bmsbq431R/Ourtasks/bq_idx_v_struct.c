@@ -45,35 +45,34 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->tim1_ccr1_on_vlc =    2; // PWM ON count: Very Low Charge rate required
    p->tim1_arr_init    =   79; // At 16 MHz: count of 80 = 5 us PWM frame
 
-   p->cellv_max   = 3900;   // Max limit (mv) for charging any cell
+   p->cellv_max   = 3550;   // Max limit (mv) for charging any cell
    p->cellv_min   = 3200;   // Min limit (mv) for any discharging
    p->cellv_vlc   = 2900;   // Below this (mv) Very Low Charge (vlc)required
-   p->modulev_max = (16*4150); // Battery module max limit (mv)
-   p->modulev_min = (16*3450); // Battery module min limit (mv)
+   p->modulev_max = (16*3900); // Battery module max limit (mv)
+   p->modulev_min = (16*3200); // Battery module min limit (mv)
 
    p->balnummax   =  7;  // Max number of cells to discharge at one time
    p->cellbal_del =  2;  // Balance within lowest cellv + this delta (mv)
 
    /* Convert ADC counts to cell voltage */
-   p->cellcal[ 0] =  7.2233121E-07  ;
-   p->cellcal[ 1] =  7.2234845E-07  ;
-   p->cellcal[ 2] =  7.2234573E-07  ;
-   p->cellcal[ 3] =  7.2233483E-07  ;
-   p->cellcal[ 4] =  7.2235134E-07  ;
-   p->cellcal[ 5] =  7.2237960E-07  ;
-   p->cellcal[ 6] =  7.2238600E-07  ;
-   p->cellcal[ 7] =  7.2238046E-07  ;
-   p->cellcal[ 8] =  7.2240982E-07  ;
-   p->cellcal[ 9] =  7.2242603E-07  ;
-   p->cellcal[10] =  7.2256517E-07  ;
-   p->cellcal[11] =  7.2248220E-07  ;
-   p->cellcal[12] =  7.2252472E-07  ;
-   p->cellcal[13] =  7.2261882E-07  ;
-   p->cellcal[14] =  7.2265346E-07  ;
-   p->cellcal[15] =  7.2272802E-07  ;
-   p->cellcal[16] =  7.2247370E-04  ;
-   p->cellcal[17] =  7.2247370E-04  ;
-
+   p->cellcal[ 0] =  7.2233121E-07    ;
+   p->cellcal[ 1] =  7.2234845E-07    ;
+   p->cellcal[ 2] =  7.2234573E-07    ;
+   p->cellcal[ 3] =  7.2233483E-07    ;
+   p->cellcal[ 4] =  7.2235134E-07    ;
+   p->cellcal[ 5] =  7.2237960E-07    ;
+   p->cellcal[ 6] =  7.2238600E-07    ;
+   p->cellcal[ 7] =  7.2238046E-07    ;
+   p->cellcal[ 8] =  7.2240982E-07    ;
+   p->cellcal[ 9] =  7.2242603E-07    ;
+   p->cellcal[10] =  7.2256517E-07    ;
+   p->cellcal[11] =  7.2248220E-07    ;
+   p->cellcal[12] =  7.2252472E-07    ;
+   p->cellcal[13] =  7.2261882E-07    ;
+   p->cellcal[14] =  7.2265346E-07    ;
+   p->cellcal[15] =  7.2272802E-07    ;
+   p->cellcal[16] =  7.2247370E-04    ;
+   p->cellcal[17] =  7.2247370E-04    ;
 
    /* Rescale */
    uint8_t i;
@@ -82,19 +81,15 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
 
 
  
-// CAN ids levelwind sends
-   //                      CANID_HEX      CANID_NAME             CAN_MSG_FMT     DESCRIPTION
-   // Others receive
-//   p->cid_hb_levelwind  = 0xE4A00000;   // CANID_HB_LEVELWIND: U8_U32, Heartbeat Status, levelwind position accum');
-
 // List of CAN ID's for setting up hw filter for incoming msgs
+   //                      CANID_HEX      CANID_NAME             CAN_MSG_FMT     DESCRIPTION
    	// We receive: EMC
    p->cid_cmd_bms_cellvq = CANID_CMD_BMS_CELLVQ; // B0200000 
    p->cid_cmd_bms_miscq  = CANID_CMD_BMS_MISCQ;  // B0400000 request reading for many options
    p->cid_unit_bms01     = CANID_UNIT_BMS01;     // B0600000 universal, multi-purpose BQ76952  #01
-   p->cid_uni_bms_i      = CANID_UNI_BMS_I; // 'B0000000', 'BMSV1', 1,1,'U8_U8_U8_X4','BMSV1 UNIversal BMS Incoming msg to BMS: X4=target CANID
+   p->cid_uni_bms_i      = CANID_UNI_BMS_I;      // B0000000 UNIversal BMS Incoming msg to BMS: X4=target CANID
 
-// CAN ids BMS sends, other receive
+// CAN ids BMS sends, others receive
    p->cid_msg_bms_cellvsmr = CANID_MSG_BMS_CELLV11R; //'B0201114', U16_U16_U16_U16'
 	return;
 }

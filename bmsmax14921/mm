@@ -4,8 +4,8 @@
 
 export FLOAT_TYPE=hard
 
-rm build/bms1818.elf
+rm build/bms14921.elf
 make
 
-./script-all bms1818
+./script-all bms14921
 

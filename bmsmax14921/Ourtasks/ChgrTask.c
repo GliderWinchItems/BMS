@@ -30,6 +30,7 @@ TaskHandle_t ChgrTaskHandle = NULL;
 void StartChgrTask(void* argument)
 {
 //while(1==1) osDelay(100);
+//HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_RESET); // GRN LED
 
 	struct BQFUNCTION* p = &bqfunction; // convenience pointer
 

@@ -84,9 +84,18 @@ R7   - 1.8K [schematic calls for 1.5K]
 C4   - 10u 25v
 R9   - zero
 R23  - open
+
+(02/11/2022 the following are not correct
+ as stated earlier!)
 R119 - open
 R128 - 68K [schematic calls for 64K]
 R115 - 33K
+(These were measured and markings checked)
+R119 266K measured; marked 274 
+R115 - 10K measured, marked 103
+R128 - open
+
+
 
 17. Initial 
 

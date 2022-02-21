@@ -40,7 +40,6 @@ struct ADCDMATSKBLK adc1dmatskblk[ADCNUM];
 
 struct ADCDMATSKBLK* adctask_init(ADC_HandleTypeDef* phadc,\
 	uint32_t  notebit1,\
-	uint32_t  notebit2,\
 	uint32_t* pnoteval)
 {
 	uint16_t* pdma;
@@ -51,11 +50,8 @@ struct ADCDMATSKBLK* adctask_init(ADC_HandleTypeDef* phadc,\
 	if (ADC1IDX_ADCSCANSIZE != (phadc->Init.NbrOfConversion))
 		 morse_trap(61);//return NULL;
 
-	/* ADC DMA summation length must match 1/2 DMA buffer sizing. */
-//$	if (ADCFASTSUM16SIZE != ADC1DMANUMSEQ) morse_trap(62);
-
 	/* length = total number of uint16_t in dma buffer */
-	uint32_t length = ADC1DMANUMSEQ * 2 * ADC1IDX_ADCSCANSIZE;
+	uint32_t length = ADC1DMANUMSEQ * ADC1IDX_ADCSCANSIZE;
 
 
 	/* Calibration sequence before enabling ADC. */
@@ -90,10 +86,8 @@ struct ADCDMATSKBLK
 */
 	pblk->phadc    = phadc;
 	pblk->notebit1 = notebit1;
-	pblk->notebit2 = notebit2;
 	pblk->pnoteval = pnoteval;
 	pblk->pdma1    = pdma;
-	pblk->pdma2    = pdma + (ADC1DMANUMSEQ * phadc->Init.NbrOfConversion);
 	pblk->adctaskHandle = ADCTaskHandle;
 
 /**
@@ -107,7 +101,7 @@ struct ADCDMATSKBLK
 
 taskEXIT_CRITICAL();
 	
-	HAL_ADC_Start_DMA(pblk->phadc, (uint32_t*)pblk->pdma1, length);
+//	HAL_ADC_Start_DMA(pblk->phadc, (uint32_t*)pblk->pdma1, length);
 	return pblk;
 }
 

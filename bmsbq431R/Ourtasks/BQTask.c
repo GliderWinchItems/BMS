@@ -19,6 +19,10 @@
 #include "fetonoff.h"
 #include "bq_items.h"
 
+/* Quick hack or turning trickle charger off */
+//#define FASTREADIBNGS
+//#define NO_CHARGINGorDISCHARGING
+
 extern I2C_HandleTypeDef hi2c1;
 
 static uint8_t bqconfig(void);
@@ -289,14 +293,17 @@ fetonoff(FET_DUMP,0);
 			bq_items_seq(&cellv[(cvidx)][0]);
 
 			/* Set FETs accordingly. */
+#ifdef NO_CHARGINGorDISCHARGING			
+			fetonoff_status_set(0);	//Turn OFF all fets: charger(s), heater, etc.
+#else
 			fetonoff_status_set(pbq->fet_status);
-//			fetonoff_status_set(0);	//Turn OFF all fets: charger(s), heater, etc.
-
 			/* Set cell balancing fets.  */
 			// uint8_t subcmdW(uint16_t cmd, uint16_t data, uint8_t nd, uint8_t config)
 			ret = subcmdW(CB_ACTIVE_CELLS,(uint16_t)pbq->cellbal, 2, 0); // Active cells balancing
 			if (ret != 0) morse_string("BA",GPIO_PIN_1);
 osDelay(3);
+#endif
+
 			/* Cell balancing data. */
 			ret = subcmdR((uint8_t*)&blk_0x0083_u16[0], 3*2, 0x0083);
 			if (ret != 0) morse_string("C3",GPIO_PIN_1);	
@@ -305,17 +312,20 @@ osDelay(3);
 			ret = subcmdR((uint8_t*)&blk_0x9335_14, 14, BalancingConfiguration);
 			if (ret != 0) morse_string("CB3",GPIO_PIN_1);
 osDelay(3);
+#ifdef NO_CHARGINGorDISCHARGING			
+
 			ret = subcmdW(CB_ACTIVE_CELLS,(uint16_t)pbq->cellbal, 2, 0); // Active cells balancing
 			if (ret != 0) morse_string("BA",GPIO_PIN_1);
 
 			/* Update charging/discharging */
 			charger_update(pbq);	
+#endif
 
 			/* Trigger 'main.c' to display all the crap retrieved. */
 			xTaskNotify(defaultTaskHandle, DEFAULTTASKBIT01, eSetBits);
 
 			/* Delay loop. Approx 10 sec per loop. */
-			vTaskDelayUntil( &xLastWakeTime,pdMS_TO_TICKS(10000) );
+			vTaskDelayUntil( &xLastWakeTime,pdMS_TO_TICKS(15000) );
 			break;
 
 		case 1:	// DUMP discharge until cutoff voltage. 
@@ -353,8 +363,10 @@ osDelay(3);
 			/* Trigger 'main.c' to display all the crap retrieved. */
 			xTaskNotify(defaultTaskHandle, DEFAULTTASKBIT01, eSetBits);
 
+#ifndef FASTREADIBNGS
 			/* Fixed delay for loop. */
-			vTaskDelayUntil( &xLastWakeTime,pdMS_TO_TICKS(3000) );
+			vTaskDelayUntil( &xLastWakeTime,pdMS_TO_TICKS(6000) );
+#endif			
 
 			break;	
 		}

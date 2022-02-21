@@ -14,8 +14,41 @@
 #include "stm32l4xx_hal.h"
 #include "adcparams.h"
 
-#define ADCSEQNUM 1  // Number of ADC scans in 1/2 of the DMA buffer
-#define ADCSUMCT 16 // Number of ADC scans in sum
+struct ADCREADOUTCTL
+{
+	uint32_t* ptr;  // Pointer for storing adc data
+	uint32_t* endA; // Pointer for ending BMS cell sequence
+	uint32_t* endT; // Pointer for ending BMS thermister sequence
+	uint8_t   idxspi;  // Index of spi setup
+	uint8_t   spiflag; // 1 = spi busy; 0 = spi idle
+	uint8_t   adcflag; // 1 = adc busy; 0 = adc idle
+};
+
+
+struct ADCSPIALL
+{
+struct ADCREADOUTCTL adcctl;
+union SPI24 spitx24;
+union SPI24 spirx24;
+uint8_t* pspirx24;
+uint8_t cellnum;
+uint8_t adcstate;
+uint8_t timstate;
+uint8_t spistate;
+uint8_t readyflag;
+uint8_t adcidx;
+uint8_t spiidx;
+uint8_t updn;  // Readout "up" (cells 1->16) = 1; Down (cells 16->1) = 0
+};
+
+/* Queue for requesting a readout. */
+struct ADCREADREQ
+{
+	osThreadId	taskhandle; // Requesting task's handle
+	BaseType_t  tasknote;   // Requesting task's notification bit
+	uint32_t*   taskdata;   // Requesting task's pointer to buffer to receive data
+};
+
 
 /* *************************************************************************/
 osThreadId xADCTaskCreate(uint32_t taskpriority);
@@ -27,12 +60,11 @@ osThreadId xADCTaskCreate(uint32_t taskpriority);
 //extern osThreadId ADCTaskHandle;
 extern TaskHandle_t ADCTaskHandle;
 
-// Summation of ADC scan 
-extern uint32_t adcsumdb[2][ADC1IDX_ADCSCANSIZE + 2]; 
-// Filtered
-extern float adcsumfilt[2][ADC1IDX_ADCSCANSIZE + 2];
+// Read request queue
+extern osMessageQId ADCTaskReadReqQHandle;
 
-extern uint8_t  adcsumidx; // Index for currently being summed
+extern struct ADCSPIALL adcspiall;
+
 
 
 

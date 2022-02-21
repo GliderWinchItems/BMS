@@ -57,13 +57,14 @@ struct BQLC
     // BMS sends; EMC receives
    uint32_t cid_msg_bms_cellvsmr; // CANID_MSG_BMS_CELLV11R','B0201114', 'U8_U8_U16_U16_U16'
    uint32_t cid_cmd_bms_misc11r;  // CANID_CMD_BMS_MISC11R' ,'B0401114', 'U8_U8_U8_X4'
-   uint32_t cid_uni_bms_i;        // CANID_UNI_BMS_I',       'B0000000', 'BMSV1''U8_U8_U8_X4'
+ 
 
  // List of CAN ID's for setting up hw filter for incoming msgs
    // EMC sends; BMS receives
    uint32_t cid_cmd_bms_cellvq; // CANID_CMD_BMS_CELLVQ B0200000 request cell voltages
    uint32_t cid_cmd_bms_miscq;  // CANID_CMD_BMS_MISCQ  B0400000 request reading for many options
-   uint32_t cid_unit_bms01;     // CANID_UNIT_BMS01     B0600000 muli-purpose BQ76952  #01
+   uint32_t cid_unit_bms01;     // CANID_UNIT_BMS01     B0600000 multi-purpose BQ76952  #01
+   uint32_t cid_uni_bms_i;      // CANID_UNI_BMS_I      B0000000 multi-purpose universal BMS
 
  };
 

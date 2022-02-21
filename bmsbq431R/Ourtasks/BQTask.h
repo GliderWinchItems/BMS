@@ -121,7 +121,8 @@ struct BQFUNCTION
 	/* Pointers to incoming CAN msg mailboxes. */
 	struct MAILBOXCAN* pmbx_cid_cmd_bms_cellvq;// CANID_CMD_BMS_CELLVQ: BMSV1 U8: EMC requests to BMS to send cellv, cmd code
 	struct MAILBOXCAN* pmbx_cid_cmd_bms_miscq; // CANID_CMD_BMS_MISCQ: BMSV1 U8: EMC requests to BMS to value for given cmd code
-	struct MAILBOXCAN* pmbx_cid_unit_bms01;    //CANID_UNIT_BMS01 B0600000 UNIT_BMS01 U8_U8_U8_X4 BMS BQ76952  #01
+	struct MAILBOXCAN* pmbx_cid_unit_bms01;    // CANID_UNIT_BMS01 B0600000 UNIT_BMS01 U8_U8_U8_X4 BMS BQ76952  #01
+	struct MAILBOXCAN* pmbx_cid_uni_bms_i;     // CANID_UNI_BMS_I  B0000000 UNIversal BMS Incoming msg to BMS: X4=target CANID
 
 
 	uint8_t state;      // main state

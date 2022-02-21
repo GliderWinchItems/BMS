@@ -1,7 +1,7 @@
 /******************************************************************************
 * File Name          : chgr_items.h
-* Date First Issued  : 10/02/2021
-* Description        : routines associated with charging task
+* Date First Issued  : 02/11/2022
+* Description        : routines associated with charging
 *******************************************************************************/
 
 
@@ -12,9 +12,12 @@
 #include "FreeRTOS.h"
 #include "cmsis_os.h"
 #include "stm32l4xx_hal.h"
-#include "ChgrTask.h"
 #include "BQTask.h"
 
-
+/* *************************************************************************/
+ void chgr_items_init(struct BQFUNCTION* p);
+/*	@brief	: Initializations for charger
+ *  @param	: p = pointer to function working array
+ * *************************************************************************/
 
 #endif

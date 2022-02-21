@@ -268,7 +268,7 @@ int main(void)
   bq_func_init(&bqfunction);
 
   /* definition and creation of CanTxTask - CAN driver TX interface. */
-  QueueHandle_t QHret = xCanTxTaskCreate(1, 32); // CanTask priority, Number of msgs in queue
+  QueueHandle_t QHret = xCanTxTaskCreate(2, 32); // CanTask priority, Number of msgs in queue
   if (QHret == NULL) morse_trap(120); // Panic LED flashing
 
   /* definition and creation of CanRxTask - CAN driver RX interface. */
@@ -276,22 +276,19 @@ int main(void)
 //  Qidret = xCanRxTaskCreate(1, 32); // CanTask priority, Number of msgs in queue
 //  if (Qidret < 0) morse_trap(6); // Panic LED flashing
 
-  /* Setup CAN hardware filters to default to accept all ids. */
-  HAL_StatusTypeDef Cret;
-  Cret = canfilter_setup_first(0, &hcan1, 15); // CAN1
-  if (Cret == HAL_ERROR) morse_trap(122);
-
-  /* Remove "accept all" CAN msgs and add specific id & mask, or id here. */
-  // See canfilter_setup.h
-
   /* Create MailboxTask */
   xMailboxTaskCreate(2); // (arg) = priority
 
   /* Create Mailbox control block w 'take' pointer for each CAN module. */
   struct MAILBOXCANNUM* pmbxret;
   // (CAN1 control block pointer, size of circular buffer)
-  pmbxret = MailboxTask_add_CANlist(pctl0, 48);
-  if (pmbxret == NULL) morse_trap(123);
+  pmbxret = MailboxTask_add_CANlist(pctl0, 32);
+  if (pmbxret == NULL) morse_trap(215);
+
+  /* Setup CAN hardware filters to default to accept all ids. */
+  HAL_StatusTypeDef Cret;
+  Cret = canfilter_setup_first(0, &hcan1, 15); // CAN1
+  if (Cret == HAL_ERROR) morse_trap(122);
 
   /* CAN communication */
   retT = xCanCommCreate(osPriorityNormal);

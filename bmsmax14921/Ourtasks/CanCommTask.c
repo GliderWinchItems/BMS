@@ -34,24 +34,14 @@ uint8_t hbseq; // heartbeat CAN msg sequence number
 uint8_t rdyflag_cancomm = 0; // Initialization complete and ready = 1
 
 TaskHandle_t CanCommHandle = NULL;
+
 /* *************************************************************************
- * void StartCanComm(void const * argument);
+ * void CanComm_init(struct BQFUNCTION* p );
  *	@brief	: Task startup
  * *************************************************************************/
-void StartCanComm(void* argument)
+void CanComm_init(struct BQFUNCTION* p )
 {
-//while(1==1) osDelay(100);
-
-	/* We use the parameters from BQ for this task. */
-	struct BQFUNCTION* p = &bqfunction;
-	struct CANRCVBUF* pcan;
-
-	/* A notification copies the internal notification word to this. */
-	uint32_t noteval = 0;    // Receives notification word upon an API notify
-
 	uint8_t i;
-	uint8_t code;
-
 
 	/* Add CAN Mailboxes                               CAN     CAN ID             TaskHandle,Notify bit,Skip, Paytype */
     p->pmbx_cid_cmd_bms_cellvq = MailboxTask_add(pctl0,p->lc.cid_cmd_bms_cellvq, NULL, CANCOMMBIT00,0,U8); // Command: send cell voltages
@@ -103,7 +93,26 @@ void StartCanComm(void* argument)
 	can_hb.cd.uc[6] = p->lc.cid_msg_bms_cellvsmr >> 16;
 	can_hb.cd.uc[7] = p->lc.cid_msg_bms_cellvsmr >> 24;
 
-	while (CANTaskreadyflag == 0) osDelay(1);
+	return;
+}
+
+/* *************************************************************************
+ * void StartCanComm(void const * argument);
+ *	@brief	: Task startup
+ * *************************************************************************/
+void StartCanComm(void* argument)
+{
+//while(1==1) osDelay(100);
+
+	/* We use the parameters from BQ for this task. */
+	struct BQFUNCTION* p = &bqfunction;
+	struct CANRCVBUF* pcan;
+
+	/* A notification copies the internal notification word to this. */
+	uint32_t noteval = 0;    // Receives notification word upon an API notify
+	uint8_t code;
+
+//	while (CANTaskreadyflag == 0) osDelay(1);
 
 extern CAN_HandleTypeDef hcan1;
 	HAL_CAN_Start(&hcan1); // CAN1

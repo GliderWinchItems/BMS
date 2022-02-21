@@ -10,8 +10,6 @@
 #include "adcparams.h"
 #include "../../../../GliderWinchCommons/embed/svn_common/trunk/db/gen_db.h"
 
-extern uint16_t blk_0x0083_u16[3]; // BQ cell balancing
-
 void cancomm_items_sendcell(struct CANRCVBUF* pcan);
 
 static void loadfloat(uint8_t* puc, float* pf);
@@ -256,7 +254,7 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pcan)
  			break;
 
  	case MISCQ_FETBALBITS: // 12 FET on/off discharge bits
- 		loaduint32(&p->canmsg[CID_CMD_MISC].can.cd.uc[3],blk_0x0083_u16[0]);
+// 		loaduint32(&p->canmsg[CID_CMD_MISC].can.cd.uc[3],blk_0x0083_u16[0]);
 		break;
 	}
 	/* Queue CAN msg response. */

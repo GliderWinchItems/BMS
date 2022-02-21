@@ -4,19 +4,21 @@
 * Description        : CAN interface to FreeRTOS/ST HAL
 *******************************************************************************/
 
-#include "stm32f4xx_hal.h"
-#include "stm32f4xx_hal_can.h"
+#include "stm32l4xx_hal.h"
+#include "stm32l4xx_hal_can.h"
 #include "CanTask.h"
 #include "can_iface.h"
 #include "morse.h"
 
 #include "main.h"
 
-void StartCanTxTask(void const * argument);
-void StartCanRxTask(void const * argument);
+extern CAN_HandleTypeDef hcan1;
 
-osThreadId CanTxTaskHandle;
+//osThreadId CanTxTaskHandle;
+TaskHandle_t CanTxTaskHandle;
 QueueHandle_t CanTxQHandle;
+
+uint8_t CANTaskreadyflag = 0;
 
 /* ====== Tx ==============================================================*/
 /* *************************************************************************
@@ -44,33 +46,20 @@ void canmsg_expand(CAN_TxHeaderTypeDef *phal, uint8_t *pdat, struct CANRCVBUF *p
 	return;
 }
 
-/* *************************************************************************
- * QueueHandle_t  xCanTxTaskCreate(uint32_t taskpriority, int32_t queuesize);
- * @brief	: Create task; task handle created is global for all to enjoy!
- * @param	: taskpriority = Task priority (just as it says!)
- * @param	: queuesize = number of items in Tx queue
- * @return	: QueueHandle_t = queue handle
- * *************************************************************************/
-QueueHandle_t  xCanTxTaskCreate(uint32_t taskpriority, int32_t queuesize)
-{
- /* definition and creation of CanTask */
-  osThreadDef(CanTxTask, StartCanTxTask, osPriorityNormal, 0, 96);
-  CanTxTaskHandle = osThreadCreate(osThread(CanTxTask), NULL);
-	vTaskPrioritySet( CanTxTaskHandle, taskpriority );
 
-	/* FreeRTOS queue for task with data to send. */
-	CanTxQHandle = xQueueCreate(queuesize, sizeof(struct CANTXQMSG));
-	return CanTxQHandle;
-}
 /* *************************************************************************
  * void StartCanTxTask(void const * argument);
  *	@brief	: Task startup
  * *************************************************************************/
-void StartCanTxTask(void const * argument)
+void StartCanTxTask(void* argument)
 {
    BaseType_t Qret;	// queue receive return
 	struct CANTXQMSG txq;
 	int ret;
+
+	HAL_CAN_Start(&hcan1); // CAN1
+
+	CANTaskreadyflag = 1;
 
   /* Infinite RTOS Task loop */
   for(;;)
@@ -80,6 +69,7 @@ void StartCanTxTask(void const * argument)
 		if (Qret == pdPASS) // Break loop if not empty
 		{
 			ret = can_driver_put(txq.pctl, &txq.can, txq.maxretryct, txq.bits);
+				
 /* ===> Trap errors
  *				: -1 = Buffer overrun (no free slots for the new msg)
  *				: -2 = Bogus CAN id rejected
@@ -90,34 +80,42 @@ void StartCanTxTask(void const * argument)
 		}
   }
 }
-/* ====== Rx ==============================================================*/
-osThreadId CanRxTaskHandle;
-QueueHandle_t CanRxQHandle;
-
 /* *************************************************************************
- * QueueHandle_t xCanRxTaskCreate(uint32_t taskpriority, int32_t queuesize);
+ * QueueHandle_t  xCanTxTaskCreate(uint32_t taskpriority, int32_t queuesize);
  * @brief	: Create task; task handle created is global for all to enjoy!
  * @param	: taskpriority = Task priority (just as it says!)
- * @param	: queuesize = number of RX0 + RX1 msgs
- * @return	: CanRxQHandle
+ * @param	: queuesize = number of items in Tx queue
+ * @return	: QueueHandle_t = queue handle
  * *************************************************************************/
-QueueHandle_t xCanRxTaskCreate(uint32_t taskpriority, int32_t queuesize)
+QueueHandle_t  xCanTxTaskCreate(uint32_t taskpriority, int32_t queuesize)
 {
  /* definition and creation of CanTask */
-  osThreadDef(CanRxTask, StartCanRxTask, osPriorityNormal, 0, 96);
-  CanRxTaskHandle = osThreadCreate(osThread(CanRxTask), NULL);
-	vTaskPrioritySet( CanRxTaskHandle, taskpriority );
+//  osThreadDef(CanTxTask, StartCanTxTask, osPriorityNormal, 0, 96);
+//  CanTxTaskHandle = osThreadCreate(osThread(CanTxTask), NULL);
+//	vTaskPrioritySet( CanTxTaskHandle, taskpriority );
+
+	BaseType_t ret = xTaskCreate(StartCanTxTask, "CanTxTask",\
+     (96), NULL, taskpriority,\
+     &CanTxTaskHandle);
+	if (ret != pdPASS) return NULL;
+
 
 	/* FreeRTOS queue for task with data to send. */
-	CanRxQHandle = xQueueCreate(queuesize, sizeof(struct CANRCVBUFN));
-
-	return CanRxQHandle;
+	CanTxQHandle = xQueueCreate(queuesize, sizeof(struct CANTXQMSG));
+	return CanTxQHandle;
 }
+
+/* ====== Rx ==============================================================*/
+//osThreadId CanRxTaskHandle;
+TaskHandle_t CanRxTaskHandle;
+QueueHandle_t CanRxQHandle;
+
+
 /* *************************************************************************
  * void StartCanRxTask(void const * argument);
  *	@brief	: Task startup
  * *************************************************************************/
-void StartCanRxTask(void const * argument)
+void StartCanRxTask(void* argument)
 {
 /* NOTE:  Since there is just one receiving task, this task is not needed.
           However, the initialization to create the queue is needed.
@@ -136,4 +134,28 @@ osDelay(11000);
   }
   return;
 }
+/* *************************************************************************
+ * QueueHandle_t xCanRxTaskCreate(uint32_t taskpriority, int32_t queuesize);
+ * @brief	: Create task; task handle created is global for all to enjoy!
+ * @param	: taskpriority = Task priority (just as it says!)
+ * @param	: queuesize = number of RX0 + RX1 msgs
+ * @return	: CanRxQHandle
+ * *************************************************************************/
+QueueHandle_t xCanRxTaskCreate(uint32_t taskpriority, int32_t queuesize)
+{
+ /* definition and creation of CanTask */
+//  osThreadDef(CanRxTask, StartCanRxTask, osPriorityNormal, 0, 96);
+//  CanRxTaskHandle = osThreadCreate(osThread(CanRxTask), NULL);
+//	vTaskPrioritySet( CanRxTaskHandle, taskpriority );
 
+
+	BaseType_t ret = xTaskCreate(StartCanRxTask, "CanRxTask",\
+     (128), NULL, taskpriority,\
+     &CanRxTaskHandle);
+	if (ret != pdPASS) return NULL;
+
+	/* FreeRTOS queue for task with data to send. */
+	CanRxQHandle = xQueueCreate(queuesize, sizeof(struct CANRCVBUFN));
+
+	return CanRxQHandle;
+}
