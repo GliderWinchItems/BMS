@@ -22,12 +22,17 @@
 
 extern ADC_HandleTypeDef hadc1;
 
+struct ADCREADREQ* pssb; // Pointer to struct for request details
+
 /* Queue */
 #define QUEUESIZE 16	// Total size of bcb's tasks can queue up
 osMessageQId ADCTaskReadReqQHandle;
 
 struct ADCSPIALL adcspiall;
 
+uint8_t readyflag = 0;
+
+static struct ADCREADREQ adccalibreq;
 
 /* Summation of one ADC scan (with oversampling) */
 // One array being filled while other being processed
@@ -60,42 +65,71 @@ uint32_t dwt1,dwt2,dwtdiff;
 
 void StartADCTask(void *argument)
 {
-	#define TSK02BIT02	(1 << 0)  // Task notification bit for ADC dma 1st 1/2 (adctask.c)
-	#define TSK02BIT03	(1 << 1)  // Task notification bit for ADC dma end (adctask.c)
-
-	struct ADCREADREQ* pssb; // Pointer to "stuff" for read data request
-
 	uint16_t* pdma;
 	float ftmp;
+	uint32_t tmp;
 	
 	/* A notification copies the internal notification word to this. */
 	uint32_t noteval = 0;    // Receives notification word upon an API notify
 
-	/* Get buffers, "our" control block, and start ADC/DMA running. */
-	struct ADCDMATSKBLK* pblk = adctask_init(&hadc1,TSK02BIT02,TSK02BIT03,&noteval);
-	if (pblk == NULL) {morse_trap(15);}
+	/* Initialize params for ADC. */
+	adcparams_init();
 
-	/* Initialize MAX14921 */
-	adcspi_init();
+	/* Calibration sequence before enabling ADC. */
+	ret = HAL_ADCEx_Calibration_Start(phadc, ADC_SINGLE_ENDED);
+	if (ret == HAL_ERROR)  morse_trap(330);
+
+	/* Do initial self-calibration. */
+	// Setup dummy struct for request by this task.
+	pssb = &adccalibreq;
+	pssb->taskhandle = xTaskGetCurrentTaskHandle(); // Requesting task's handle
+	pssb->tasknote = TSKNOTEBIT00; // Requesting task's notification bit
+	pssb->taskdata = NULL;   // Requesting task's pointer to buffer to receive data
+	pssb->updn     = 0;      // see above 'struct ADCSPIALL'
+	pssb->reqcode  = REQ_OPENCELL; // Code for service requested
+	adcspi_calib();
 
   	/* Infinite loop */
   	for(;;)
   	{
-  		/* Wait for someone to requrest a reading, or just timeout. */
-		/* Skip over empty returns, and NULL pointers that would cause trouble */
+  		/* Wait for someone to requrest a reading. */
+		/* Skip over NULL pointers that would cause trouble */
 		do
 		{
-			xQueueReceive(ADCTaskReadReqQHandle ,&bqfunction.lc.adc_hb);
-		} while ((pssb->tskhandle == NULL) || (pssb->taskdata == NULL));
+			xQueueReceive(ADCTaskReadReqQHandle ,&pssb, portMAX_DELAY);
+if ((pssb->tskhandle == NULL)) morse_trap(802); // JIC debugging
+		} while (pssb->tskhandle == NULL);
 
-		// Start read sequence: supply pointer to received data buffer
-		adcbms_startread(pssb->taskdata);
+		/* Execute request. */
+		switch (pssb->reqcode)
+		{
+		case REQ_BOGUS: // JIC debug
+			morse_trap(811);
+			break;
+		case REQ_READBMS:   // Read MAX14921
+			adcspi_readbms();
+			break;
+		case REQ_CALIB:    // Execute a self-calib (MAX14921 Aout offset) cycle
+			adcspi_calib();
+			break;
+		case REQ_OPENCELL:// Do an open cell wire test
+			adcspi_opencell();
+			break;
+		case REQ_LOWPOWER:// Place MAX14921 into low power mode.
+			adcspi_lowpower();
+			break;
+		case REQ_READADC: // Read non-MAX14921 ADC inputs
+			adcspi_readadc();
+			break;
+		case REQ_SETFETS: // Set discharge FETs
+			adcspi_setfets();
+			break;
+		default:
+			morse_trap(806); // Debugging trap
+			break;
+		}
 
-		// Wait for sequence to complete
-		// Once started, sequence driven by interrupts until complete
-		xTaskNotifyWait(0,0xffffffff, &noteval, 10000);
-
-		// Notify requesting task that data readout has completed
+		// Notify requesting task that data request has completed
 		xTaskNotify(pssb->taskhandle, pssb->tasknote, eSetBits);
 
 		// Running count, jic
@@ -127,4 +161,3 @@ osThreadId xADCTaskCreate(uint32_t taskpriority)
 
    	return ADCTaskHandle;	
 }
-

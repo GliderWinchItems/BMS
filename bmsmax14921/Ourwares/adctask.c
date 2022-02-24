@@ -31,13 +31,6 @@ struct ADCDMATSKBLK adc1dmatskblk[ADCNUM];
  * @param	: pnoteval = pointer to word receiving notification word from OS
  * @return	: NULL = fail
  * *************************************************************************/
-/*
-   notebit1 notify at the halfway dma buffer point
-     associates with pdma (beginning of dma buffer)
-   notebit2 notify at the end of the dma buffer
-     associates with pdma + dmact * phadc->Init.NbrOfConversion
-*/
-
 struct ADCDMATSKBLK* adctask_init(ADC_HandleTypeDef* phadc,\
 	uint32_t  notebit1,\
 	uint32_t* pnoteval)
@@ -109,31 +102,6 @@ taskEXIT_CRITICAL();
    ADC DMA interrupt callbacks
    ####################################################################### */
 /* *************************************************************************
- * void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc);
- *	@brief	: Call back from stm32f4xx_hal_adc: Halfway point of dma buffer
- * *************************************************************************/
-/* *************************************************************************
- * void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc);
- *	@brief	: Call back from stm32f4xx_hal_adc: Halfway point of dma buffer
- * *************************************************************************/
-void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc)
-{
-//	morse_trap(222);
-	adcommon.dmact += 1; // Running count
-	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-	struct ADCDMATSKBLK* ptmp = &adc1dmatskblk[0];
-
-	/* Trigger Recieve Task to poll dma uarts */
-	if( ptmp->adctaskHandle == NULL) return; // Skip task has not been created
-	xTaskNotifyFromISR(ptmp->adctaskHandle, 
-		ptmp->notebit1,	/* 'or' bit assigned to buffer to notification value. */
-		eSetBits,      /* Set 'or' option */
-		&xHigherPriorityTaskWoken ); 
-
-	portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
-	return;
-}
-/* *************************************************************************
  * void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc);
  *	@brief	: Call back from stm32f4xx_hal_adc: End point of dma buffer
  * *************************************************************************/
@@ -153,4 +121,3 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 	portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
 	return;
 }
-
