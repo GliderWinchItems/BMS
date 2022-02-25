@@ -24,6 +24,9 @@ enum SPISTATE
 	SPISTATE_IDLE,
 	SPISTATE_SMPL,
 	SPISTATE_2;
+	SPISTATE_FETS;
+	SPISTATE_OPENCELL,
+	SPISTATE_LOWPOWER,
 	SPISTATE_TRAP
 };
 enum TIMSTATE
@@ -31,6 +34,7 @@ enum TIMSTATE
 	TIMSTATE_IDLE,
 	TIMSTATE_8MSTO,
 	TIMSTATE_2,
+	TIMSTATE_OPENCELL,
 	TIMSTATE_TRAP
 };
 enum ADCSTATE
@@ -77,6 +81,7 @@ struct ADCREADREQ
 	osThreadId	taskhandle; // Requesting task's handle
 	BaseType_t  tasknote;   // Requesting task's notification bit
 	uint32_t*   taskdata;   // Requesting task's pointer to buffer to receive data
+	uint32_t    cellbits;   // Depends on command: FET to set; Open cell wires
 	uint8_t     updn;       // see above 'struct ADCSPIALL'
 	uint8_t     reqcode;    // Code for service requested
 };

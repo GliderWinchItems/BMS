@@ -44,8 +44,10 @@ struct BQLC
    int16_t cellv_max;   // Max limit for charging any cell
    int16_t cellv_min;   // Min limit for any discharging
    int16_t cellv_vlc;   // Below this Very Low Charge (_vlc)required
+   uint16_t cellopenv;  // Below this cell wire is assumed open (mv)
    uint32_t modulev_max; // Battery module max limit
    uint32_t modulev_min; // Battery module min limit
+
 
    uint8_t balnummax;    // Max number of cells to discharge at one time
    int16_t cellbal_del;  // Balance within lowest cellv + this delta (mv)

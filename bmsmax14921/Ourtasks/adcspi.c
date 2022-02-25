@@ -4,7 +4,6 @@
 * Date First Issued  : 02/19/2022
 * Description        : ADC w SPI management with MAX1421 board
 *******************************************************************************/
-
 #include "FreeRTOS.h"
 #include "cmsis_os.h"
 #include "malloc.h"
@@ -18,8 +17,8 @@
 extern ADC_HandleTypeDef hadc1;
 extern SPI_HandleTypeDef hspi1;
 
-
-/* 24 bit control word sent to MAX14921 via SPI. 
+/* 24 bit control word sent to MAX14921 via SPI as 3 bytes
+MAX   BYTE:BIT 
 CB1  = [0]:7  Cell #1 BA: 1 = high; 0 = low 
 CB2  = [0]:6
 CB3  = [0]:5
@@ -37,28 +36,13 @@ CB14 = [1]:2
 CB15 = [1]:1
 CB16 = [1]:0 Cell #16 BA: 1 = high; 0 = low
 ECS  = [2]:7 1 = cell select enable
-SC0  = [2]:6 
+SC0  = [2]:6 LSB cell selection number
 SC1  = [2]:5 
 SC2  = [2]:4 
-SC3  = [2]:3 
+SC3  = [2]:3 MSB cell selection number
 /SMPL= [2]:2 1 = hold; 0 = sample if SMPL pin high
 DIAG = [2]:1 1 = 10 ua leakage on CV inputs
 LOPW = [2]:0 1 = Low power mode: Vp = 1 ua
-
-
-*/
-/*
-struct ADCSPIALL
-{
-union SPI24 spitx24;
-union SPI24 spirx24;
-uint8_t cellnum;
-uint8_t adcstate;
-uint8_t timstate;
-uint8_t spistate;
-uint8_t readyflag;
-};
-struct ADCSPIALL adcspiall;
 */
 
 #define TIM2MHZ 16  // Timer rate MHz
@@ -73,23 +57,22 @@ static uint32_t noteval1;
  * *************************************************************************/
 void adcspi_readbms(void)
 {
+	int i;
+
 	// Initialize and start read sequence
 	adcbms_startreadbms();
 
 	// Wait for sequence to complete
 	// Once started, sequence driven by interrupts until complete
 	xTaskNotifyWait(0,0xffffffff, &noteval, 3000);
-if (noteval1 != pssb->tasknote) morse_trap(814); // JIC debug
+	// Debugging trap for timeout (3 sec)
+	if (noteval1 != TSKNOTEBIT00) morse_trap(814); // JIC debug
 
 	/* Calibrate readings into requester's array. */
 	for (i = 0; i < ADCBMSMAX; i++)
 	{
 		*(pssb->taskdata+i) = adcparams_calibbms(i);
 	}
-
-// Debugging trap for timeout (3 sec)
-if (noteval != TSKNOTEBIT00) morse_trap(808);
-
 	return;
 }
 /* *************************************************************************
@@ -114,12 +97,13 @@ void adcspi_calib(void)
 	/* Set /CS (GPIOA PIN_15) low, then start SPI sending command. */
 	HAL_GPIO_WritePin(SPI1_NSS__CS_GPIO_Port,SPI1_NSS__CS_Pin,GPIO_PIN_RESET);
 	halret = HAL_SPI_TransmitReceive_DMA(&hspi1, &p->spiclear, &p->spirx24.uc[0], 3);
+	if (halret == HAL_ERROR) morse_trap(817);
 	/* SPI DMA interrupt callback routine (SPISTATE_CALIB) will cause /CS lo->hi 
 	   transition AND set an 8 ms delay in TIM2CH4 OC. The OC interrupt will 
 	   cause the following wait for notifcation to exit.   */
 	xTaskNotifyWait(0,0xffffffff, &noteval1, 3000);
 
-if (noteval1 != pssb->tasknote) morse_trap(813); // JIC debug
+	if (noteval1 != TSKNOTEBIT00) morse_trap(813); // JIC debug
 
 	/* Return will be to ADCTask.c and beginning of for (;;) loop waiting
 	   for others to load a readout request into the queue. */
@@ -128,10 +112,49 @@ if (noteval1 != pssb->tasknote) morse_trap(813); // JIC debug
 /* *************************************************************************
  * void adcspi_opencell(void);
  * @brief	: Check for open cell wires
- 
  * *************************************************************************/
 void adcspi_opencell(void)
 {
+	int i;
+	HAL_StatusTypeDef halret;
+	struct ADCSPIALL* p = &adcspiall; // Convenience pointer
+	uint32_t noteval1 = 0; // TaskNotifyWait notification word
+
+	// Load FET bits (lower two bytes)
+	p->spitx24.ui    = (uint32_t)(pssb->taskdata);
+	// Set command code
+	p->spitx24.uc[2] = 0x2; // Set DIAG: 10 ua discharge on all cells.
+
+	p->spistate = SPISTATE_OPENCELL;
+
+	/* Set /CS (GPIOA PIN_15) low, then start SPI sending command. */
+	HAL_GPIO_WritePin(SPI1_NSS__CS_GPIO_Port,SPI1_NSS__CS_Pin,GPIO_PIN_RESET);
+	halret = HAL_SPI_TransmitReceive_DMA(&hspi1, &p->spiclear, &p->spirx24.uc[0], 3);
+	if (halret == HAL_ERROR) morse_trap(816);
+
+	xTaskNotifyWait(0,0xffffffff, &noteval1, 3000);
+	if (noteval1 != TSKNOTEBIT00) morse_trap(815); // JIC debug
+
+	/* 10 ua cischarge complete. Start a readout of the cells. */
+	adcspi_readbms();
+
+	/* Wait for cellreadout to complete. */
+	xTaskNotifyWait(0,0xffffffff, &noteval1, 3000);
+	if (noteval1 != TSKNOTEBIT00) morse_trap(812); // JIC debug
+
+	/* Copy readings to requester's array, and
+	   check for cells with very low voltages. */
+	pssb->cellbits = 0;
+	for (i = 0; i < 16; i++)
+	{
+		// Calibrate 'raw'
+		*(pssb->taskdata+i) = adcparams_calibbms(i);
+		if (*(pssb->taskdata+i) < p->lc.cellopenv)
+		{
+			pssb->cellbits |= (1 << i);
+		}
+	}
+	return;
 }
 /* *************************************************************************
  * void adcspi_lowpower(void);
@@ -139,6 +162,24 @@ void adcspi_opencell(void)
  * *************************************************************************/
 void adcspi_lowpower(void)
 {
+	HAL_StatusTypeDef halret;
+	struct ADCSPIALL* p = &adcspiall; // Convenience pointer
+	uint32_t noteval1 = 0; // TaskNotifyWait notification word
+
+	// Clear bits
+	p->spitx24.ui    = 0;
+	// Set command code
+	p->spitx24.uc[2] = 0x1; // Set LOPW: 1 ua
+
+	p->spistate = SPISTATE_LOWPOWER,;
+
+	/* Set /CS (GPIOA PIN_15) low, then start SPI sending command. */
+	HAL_GPIO_WritePin(SPI1_NSS__CS_GPIO_Port,SPI1_NSS__CS_Pin,GPIO_PIN_RESET);
+	halret = HAL_SPI_TransmitReceive_DMA(&hspi1, &p->spiclear, &p->spirx24.uc[0], 3);
+	if (halret == HAL_ERROR) morse_trap(824);
+
+	xTaskNotifyWait(0,0xffffffff, &noteval1, 3000);
+	if (noteval1 != TSKNOTEBIT00) morse_trap(823); // JIC debug
 }
 /* *************************************************************************
  * void adcspi_readadc(void);
@@ -151,8 +192,41 @@ void adcspi_readadc(void)
  * void adcspi_setfets(void);
  * @brief	: Read selected ADCs (non-MAX14921)
  * *************************************************************************/
+/* 
+Command 
+Bits set to one turn on discharge FETs
+SPI sends bytes MSB
+.us[0] = 16 bit word with bits arranged for sending
+ bit 0 = cell 8
+ ...
+ bit 7 = cell 1
+ bit 8 = cell 16
+ ...
+ bit 15 = cell 9
+
+ .uc[2] = byte with command codes
+*/
 void adcspi_setfets(void)
 {
+	HAL_StatusTypeDef halret;
+	struct ADCSPIALL* p = &adcspiall; // Convenience pointer
+	uint32_t noteval1 = 0; // TaskNotifyWait notification word
+
+	// Load FET bits (lower two bytes)
+	p->spitx24.ui = pssb->cellbits;
+	// Set command code
+	p->spitx24.uc[2] = 0;
+
+	p->spistate = SPISTATE_FETS;
+
+	/* Set /CS (GPIOA PIN_15) low, then start SPI sending command. */
+	HAL_GPIO_WritePin(SPI1_NSS__CS_GPIO_Port,SPI1_NSS__CS_Pin,GPIO_PIN_RESET);
+	halret = HAL_SPI_TransmitReceive_DMA(&hspi1, &p->spiclear, &p->spirx24.uc[0], 3);
+	if (halret == HAL_ERROR) morse_trap(818);
+	xTaskNotifyWait(0,0xffffffff, &noteval1, 3000);
+	if (noteval1 != TSKNOTEBIT00) morse_trap(815); // JIC debug
+
+	return;
 }
 /* *************************************************************************
  * void adcspi_init(void);
@@ -213,7 +287,7 @@ void adcspi_tim2(TIM_TypeDef *pT2base)
 	case TIMSTATE_8MSTO: // 8 ms timeout
 		p->timestate = TIMSTATE_IDLE; // Set to idle, jic
 		// Notify ADCTask.c that self-calibration is complete.
-		xTaskNotifyFromISR(ADCTaskHandle, 0x1, eSetBits, xHPT );
+		xTaskNotifyFromISR(ADCTaskHandle, TSKNOTEBIT00, eSetBits, xHPT );
 	 return;
 
 	case TIMSTATE_2: // Here, selection command timeout complete
@@ -321,7 +395,12 @@ p->timestate = TIMSTATE_IDLE; // Set to idle, jic
 		}
 		break; // Break top level switch statement
 
-default: morse_trap(809); // Debug JIC
+	case TIMSTATE_OPENCELL: // Wait for DIAG to discharge completed
+		// Start a BMS readout cycle 
+		xTaskNotifyFromISR(ADCTaskHandle, TSKNOTEBIT00, eSetBits, xHPT );
+		break;
+
+	default: morse_trap(809); // Debug JIC
 	break;
 
 	}
@@ -402,6 +481,31 @@ void HAL_SPI_MasterRxCpltCallback(void)
 		p->timstate = TIMSTATE_2; // Set timer timeout state
 		break;
 
+	case SPISTATE_FETS: // Set discharge FETs
+		// Cause command values to latch
+		HAL_GPIO_WritePin(SPI1_NSS__CS_GPIO_Port,SPI1_NSS__CS_Pin,GPIO_PIN_SET);
+		// Notify 'adcspi_setfets' FET word has been sent and latched.
+		xTaskNotifyFromISR(ADCTaskHandle, TSKNOTEBIT00, eSetBits, xHPT );			
+		return;
+
+	case SPISTATE_OPENCELL:
+		// Cause command values to latch
+		HAL_GPIO_WritePin(SPI1_NSS__CS_GPIO_Port,SPI1_NSS__CS_Pin,GPIO_PIN_SET);
+
+		// Set time delay for DIAG 10ua current to discharge flying caps.
+		pT2base->CCR4 = pT2base->CNT + (DELAYUS * * 1000 * 500); // Set 500 ms timeout duration
+		p->timestate = TIMSTATE_OPENCELL; // Set timer interrupt handling.
+		pT2base->SR = 0x10; // Reset interrupt flag: CC4IF if it had come on.
+		break;
+
+// NOTE: This is the same as SPISTATE_FETS...
+	case SPISTATE_LOWPOWER:
+		// Cause command values to latch
+		HAL_GPIO_WritePin(SPI1_NSS__CS_GPIO_Port,SPI1_NSS__CS_Pin,GPIO_PIN_SET);
+		// Notify 'adcspi_lowpower' command complete
+		xTaskNotifyFromISR(ADCTaskHandle, TSKNOTEBIT00, eSetBits, xHPT );	
+		break;			
+
 	case SPISTATE_IDLE:
 		break;
 
@@ -436,7 +540,7 @@ void adcspi_adc_Handler(ADC_HandleTypeDef* phadc1)
 		p->adcidx += 1; 
 		if (p->adcidx >= ADCBMSMAX)
 		{ // Here end of 16 cells, 3 thermistors, 1 top-of-stack
-			xTaskNotifyFromISR(ADCTaskHandle, 0x1, eSetBits, xHPT );
+			xTaskNotifyFromISR(ADCTaskHandle, TSKNOTEBIT00, eSetBits, xHPT );
 		}
 		else
 		{ // More readings to be taken.
