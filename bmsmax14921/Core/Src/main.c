@@ -28,6 +28,7 @@
 #include "DTW_counter.h"
 #include "fetonoff.h"
 
+#include "adcparams.h"
 #include "SerialTaskSend.h"
 #include "SerialTaskReceive.h"
 #include "CanTask.h"
@@ -45,6 +46,7 @@
 #include "MailboxTask.h"
 #include "CanCommTask.h"
 #include "FanTask.h"
+
 
 #include "FreeRTOS.h"
 #include "semphr.h"
@@ -136,7 +138,7 @@ DMA_HandleTypeDef hdma_usart1_tx;
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
-  .stack_size = 384 * 4,
+  .stack_size = 448 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* USER CODE BEGIN PV */
@@ -252,8 +254,8 @@ int main(void)
   if (Thrdret == NULL) morse_trap(117);
   // Save HAL initialized settings ADC registers.
   // Used in adcbms.c for BMS readout sequence swapping
-  adc_smpr1 = hadc1->Instance->SMPR1;
-  adc_sqr1  = hadc1->Instance->SQR1;  
+  adc_smpr1 = hadc1.Instance->SMPR1;
+  adc_sqr1  = hadc1.Instance->SQR1;  
 
   /* Create serial task (priority) */
   // Task handle "osThreadId SerialTaskHandle" is global
@@ -415,12 +417,12 @@ static void MX_ADC1_Init(void)
   hadc1.Init.ScanConvMode = ADC_SCAN_ENABLE;
   hadc1.Init.EOCSelection = ADC_EOC_SEQ_CONV;
   hadc1.Init.LowPowerAutoWait = DISABLE;
-  hadc1.Init.ContinuousConvMode = ENABLE;
-  hadc1.Init.NbrOfConversion = 10;
+  hadc1.Init.ContinuousConvMode = DISABLE;
+  hadc1.Init.NbrOfConversion = 11;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
   hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
   hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
-  hadc1.Init.DMAContinuousRequests = ENABLE;
+  hadc1.Init.DMAContinuousRequests = DISABLE;
   hadc1.Init.Overrun = ADC_OVR_DATA_PRESERVED;
   hadc1.Init.OversamplingMode = ENABLE;
   hadc1.Init.Oversampling.Ratio = ADC_OVERSAMPLING_RATIO_16;
@@ -433,9 +435,9 @@ static void MX_ADC1_Init(void)
   }
   /** Configure Regular Channel
   */
-  sConfig.Channel = ADC_CHANNEL_2;
+  sConfig.Channel = ADC_CHANNEL_VREFINT;
   sConfig.Rank = ADC_REGULAR_RANK_1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_2CYCLES_5;
+  sConfig.SamplingTime = ADC_SAMPLETIME_247CYCLES_5;
   sConfig.SingleDiff = ADC_SINGLE_ENDED;
   sConfig.OffsetNumber = ADC_OFFSET_NONE;
   sConfig.Offset = 0;
@@ -445,7 +447,7 @@ static void MX_ADC1_Init(void)
   }
   /** Configure Regular Channel
   */
-  sConfig.Channel = ADC_CHANNEL_4;
+  sConfig.Channel = ADC_CHANNEL_TEMPSENSOR;
   sConfig.Rank = ADC_REGULAR_RANK_2;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
@@ -453,7 +455,7 @@ static void MX_ADC1_Init(void)
   }
   /** Configure Regular Channel
   */
-  sConfig.Channel = ADC_CHANNEL_5;
+  sConfig.Channel = ADC_CHANNEL_9;
   sConfig.Rank = ADC_REGULAR_RANK_3;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
@@ -461,16 +463,18 @@ static void MX_ADC1_Init(void)
   }
   /** Configure Regular Channel
   */
-  sConfig.Channel = ADC_CHANNEL_8;
+  sConfig.Channel = ADC_CHANNEL_12;
   sConfig.Rank = ADC_REGULAR_RANK_4;
+  sConfig.SamplingTime = ADC_SAMPLETIME_640CYCLES_5;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     Error_Handler();
   }
   /** Configure Regular Channel
   */
-  sConfig.Channel = ADC_CHANNEL_12;
+  sConfig.Channel = ADC_CHANNEL_2;
   sConfig.Rank = ADC_REGULAR_RANK_5;
+  sConfig.SamplingTime = ADC_SAMPLETIME_47CYCLES_5;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -479,6 +483,7 @@ static void MX_ADC1_Init(void)
   */
   sConfig.Channel = ADC_CHANNEL_13;
   sConfig.Rank = ADC_REGULAR_RANK_6;
+  sConfig.SamplingTime = ADC_SAMPLETIME_247CYCLES_5;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -493,16 +498,26 @@ static void MX_ADC1_Init(void)
   }
   /** Configure Regular Channel
   */
-  sConfig.Channel = ADC_CHANNEL_VREFINT;
+  sConfig.Channel = ADC_CHANNEL_4;
   sConfig.Rank = ADC_REGULAR_RANK_8;
+  sConfig.SamplingTime = ADC_SAMPLETIME_2CYCLES_5;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     Error_Handler();
   }
   /** Configure Regular Channel
   */
-  sConfig.Channel = ADC_CHANNEL_TEMPSENSOR;
+  sConfig.Channel = ADC_CHANNEL_5;
   sConfig.Rank = ADC_REGULAR_RANK_9;
+  sConfig.SamplingTime = ADC_SAMPLETIME_24CYCLES_5;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Configure Regular Channel
+  */
+  sConfig.Channel = ADC_CHANNEL_8;
+  sConfig.Rank = ADC_REGULAR_RANK_10;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -510,8 +525,7 @@ static void MX_ADC1_Init(void)
   /** Configure Regular Channel
   */
   sConfig.Channel = ADC_CHANNEL_1;
-  sConfig.Rank = ADC_REGULAR_RANK_10;
-  sConfig.SamplingTime = ADC_SAMPLETIME_24CYCLES_5;
+  sConfig.Rank = ADC_REGULAR_RANK_11;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -1139,7 +1153,7 @@ static void MX_DMA_Init(void)
 
   /* DMA interrupt init */
   /* DMA1_Channel1_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 6, 0);
+  HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
   /* DMA1_Channel2_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel2_IRQn, 5, 0);
@@ -1249,9 +1263,6 @@ void StartDefaultTask(void *argument)
   int32_t i;
   uint32_t mctr = 0;
   uint32_t lctr = 0;
-
-
-
   uint32_t noteval = 0; // TaskNotifyWait notification word
 
 /* These #defines select uart output for monitoring. */
@@ -1261,20 +1272,35 @@ void StartDefaultTask(void *argument)
   struct SERIALSENDTASKBCB* pbuf2 = getserialbuf(&HUARTMON,128);
   if (pbuf2 == NULL) morse_trap(125);
 
-
   yprintf(&pbuf1,"\n\n\rPROGRAM STARTS");
 
+  TickType_t tickcnt = xTaskGetTickCount();
 
   /* Infinite loop */
   for(;;)
   {
-    /* Wait for ADC new adc data (ADCTask.c) */
-    xTaskNotifyWait(0,0xffffffff, &noteval, 10000);
+    /* One second loop. */
+    vTaskDelayUntil( &tickcnt, 1000);
+    tickcnt = xTaskGetTickCount();
 
+    /* Display ADC/DMA readings. */
+    struct ADCFUNCTION* padc = &adc1;
+
+    yprintf(&pbuf1,"\n\n\rA %4i",mctr++);
+    for (i = 0; i < ADCDIRECTMAX; i++)
+    {
+      yprintf(&pbuf1,"%8i",padc->abs[i].sum);
+    }
+    yprintf(&pbuf1,"\n\rB     ");
+    for (i = 0; i < ADCDIRECTMAX; i++)
+    {
+      yprintf(&pbuf1,"%8.3f",padc->abs[i].f);
+    }
+continue;
+    /* Wait for ADC new adc data (ADCTask.c) */
+    xTaskNotifyWait(0,0xffffffff, &noteval, 500);
     if (noteval & DEFAULTTASKBIT02)
     {
-
-
       /* Header: device readings and cell numbers */
       lctr += 1;
       if (lctr > 1)

@@ -10,7 +10,7 @@
 #include "malloc.h"
 #include "adctask.h"
 #include "adcparams.h"
-#include "adcfastsum16.h"
+//#include "adcfastsum16.h"
 #include "ADCTask.h"
 
 #include "morse.h"

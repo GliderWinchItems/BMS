@@ -62,12 +62,12 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define BMS_Pin GPIO_PIN_0
 #define BMS_GPIO_Port GPIOC
-#define FET_CUR_RC_Pin GPIO_PIN_1
-#define FET_CUR_RC_GPIO_Port GPIOC
-#define FET_CUR_A2_Pin GPIO_PIN_3
-#define FET_CUR_A2_GPIO_Port GPIOC
-#define OPAMP_INP_Pin GPIO_PIN_0
-#define OPAMP_INP_GPIO_Port GPIOA
+#define BAT_CUR_Pin GPIO_PIN_1
+#define BAT_CUR_GPIO_Port GPIOC
+#define FET_CUR_0_1_Pin GPIO_PIN_3
+#define FET_CUR_0_1_GPIO_Port GPIOC
+#define FET_CUR_RC_OA_INP_Pin GPIO_PIN_0
+#define FET_CUR_RC_OA_INP_GPIO_Port GPIOA
 #define OPAMP_INM_Pin GPIO_PIN_1
 #define OPAMP_INM_GPIO_Port GPIOA
 #define OPAMP_OUT_Pin GPIO_PIN_3

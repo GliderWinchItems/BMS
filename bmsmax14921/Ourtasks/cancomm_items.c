@@ -9,6 +9,7 @@
 #include "cancomm_items.h"
 #include "adcparams.h"
 #include "../../../../GliderWinchCommons/embed/svn_common/trunk/db/gen_db.h"
+#include "ADCTask.h"
 
 void cancomm_items_sendcell(struct CANRCVBUF* pcan);
 
@@ -22,12 +23,14 @@ static void status_group(void);
  *	@brief	: Copy request bytes
  *  @param  : pmsg = pointer to CAN msg
  * *************************************************************************/
+#ifdef USE_RETURNCMD
 static void returncmd(struct CANTXQMSG* pmsg, struct CANRCVBUF* pcan)
 {
 	pmsg->can.cd.uc[1] = (pcan->cd.uc[0] & 0xC0) | (bqfunction.ident_onlyus);
 	pmsg->can.cd.uc[1] = pcan->cd.uc[1]; // Command code
 	return;
 }
+#endif
 /* *************************************************************************
  * static void loaduint32(uint8_t* puc, uint32_t n);
  *	@brief	: Prepare and send a response to a received command
@@ -187,7 +190,6 @@ payload [1] U8: Command code
   11 = Lowest cell voltage
   12 = FET on/off discharge bits
 */ 
-extern float adcsumfilt[2][ADC1IDX_ADCSCANSIZE]; 
 void cancomm_items_sendcmdr(struct CANRCVBUF* pcan)
 {
 	struct BQFUNCTION* p = &bqfunction;
@@ -230,11 +232,11 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pcan)
  			break;
 
  	case MISCQ_DCDC_V:      // 6 isolated dc-dc converter output voltage
- 		loadfloat(puc, &adcsumfilt[0][ADC1IDX_PA4_DC_DC]);
+ 		loadfloat(puc, &adc1.abs[ADC1IDX_PA4_DC_DC].filt);
  			break;
 
  	case MISCQ_CHGR_V:      // 7 charger hv voltage
- 		loadfloat(puc, &adcsumfilt[0][ADC1IDX_PA7_HV_DIV]);
+ 		loadfloat(puc, &adc1.abs[ADC1IDX_PA7_HV_DIV].filt);
  			break;
 
  	case MISCQ_HALL_CAL:    // 8 Hall sensor: calibrated

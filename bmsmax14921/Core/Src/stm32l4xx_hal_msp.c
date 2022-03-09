@@ -115,7 +115,7 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* hadc)
     PeriphClkInit.AdcClockSelection = RCC_ADCCLKSOURCE_PLLSAI1;
     PeriphClkInit.PLLSAI1.PLLSAI1Source = RCC_PLLSOURCE_HSI;
     PeriphClkInit.PLLSAI1.PLLSAI1M = 2;
-    PeriphClkInit.PLLSAI1.PLLSAI1N = 20;
+    PeriphClkInit.PLLSAI1.PLLSAI1N = 13;
     PeriphClkInit.PLLSAI1.PLLSAI1P = RCC_PLLP_DIV7;
     PeriphClkInit.PLLSAI1.PLLSAI1Q = RCC_PLLQ_DIV2;
     PeriphClkInit.PLLSAI1.PLLSAI1R = RCC_PLLR_DIV2;
@@ -141,13 +141,13 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* hadc)
     PC4     ------> ADC1_IN13
     PC5     ------> ADC1_IN14
     */
-    GPIO_InitStruct.Pin = BMS_Pin|FET_CUR_RC_Pin|FET_CUR_A2_Pin|Therm_spare1_Pin
+    GPIO_InitStruct.Pin = BMS_Pin|BAT_CUR_Pin|FET_CUR_0_1_Pin|Therm_spare1_Pin
                           |Therm_spare2_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-    GPIO_InitStruct.Pin = OPAMP_INP_Pin|OPAMP_OUT_Pin|dc_dc_15V_Pin|HV_div1_Pin;
+    GPIO_InitStruct.Pin = FET_CUR_RC_OA_INP_Pin|OPAMP_OUT_Pin|dc_dc_15V_Pin|HV_div1_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
@@ -207,10 +207,10 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef* hadc)
     PC4     ------> ADC1_IN13
     PC5     ------> ADC1_IN14
     */
-    HAL_GPIO_DeInit(GPIOC, BMS_Pin|FET_CUR_RC_Pin|FET_CUR_A2_Pin|Therm_spare1_Pin
+    HAL_GPIO_DeInit(GPIOC, BMS_Pin|BAT_CUR_Pin|FET_CUR_0_1_Pin|Therm_spare1_Pin
                           |Therm_spare2_Pin);
 
-    HAL_GPIO_DeInit(GPIOA, OPAMP_INP_Pin|OPAMP_OUT_Pin|dc_dc_15V_Pin|HV_div1_Pin);
+    HAL_GPIO_DeInit(GPIOA, FET_CUR_RC_OA_INP_Pin|OPAMP_OUT_Pin|dc_dc_15V_Pin|HV_div1_Pin);
 
     /* ADC1 DMA DeInit */
     HAL_DMA_DeInit(hadc->DMA_Handle);
@@ -601,7 +601,7 @@ void HAL_OPAMP_MspInit(OPAMP_HandleTypeDef* hopamp)
     PA1     ------> OPAMP1_VINM
     PA3     ------> OPAMP1_VOUT
     */
-    GPIO_InitStruct.Pin = OPAMP_INP_Pin|OPAMP_INM_Pin|OPAMP_OUT_Pin;
+    GPIO_InitStruct.Pin = FET_CUR_RC_OA_INP_Pin|OPAMP_INM_Pin|OPAMP_OUT_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
@@ -634,7 +634,7 @@ void HAL_OPAMP_MspDeInit(OPAMP_HandleTypeDef* hopamp)
     PA1     ------> OPAMP1_VINM
     PA3     ------> OPAMP1_VOUT
     */
-    HAL_GPIO_DeInit(GPIOA, OPAMP_INP_Pin|OPAMP_INM_Pin|OPAMP_OUT_Pin);
+    HAL_GPIO_DeInit(GPIOA, FET_CUR_RC_OA_INP_Pin|OPAMP_INM_Pin|OPAMP_OUT_Pin);
 
   /* USER CODE BEGIN OPAMP1_MspDeInit 1 */
 

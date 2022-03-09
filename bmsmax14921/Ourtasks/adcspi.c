@@ -6,16 +6,22 @@
 *******************************************************************************/
 #include "FreeRTOS.h"
 #include "cmsis_os.h"
+#include "task.h"
 #include "malloc.h"
 #include "adcspi.h"
 #include "adcparams.h"
-#include "adcfastsum16.h"
 #include "ADCTask.h"
+#include "adcbms.h"
+#include "main.h"
+#include "FanTask.h"
+#include "BQTask.h"
+#include "DTW_counter.h"
 
 #include "morse.h"
 
 extern ADC_HandleTypeDef hadc1;
 extern SPI_HandleTypeDef hspi1;
+extern DMA_HandleTypeDef hdma_adc1;
 
 /* 24 bit control word sent to MAX14921 via SPI as 3 bytes
 MAX   BYTE:BIT 
@@ -50,7 +56,76 @@ LOPW = [2]:0 1 = Low power mode: Vp = 1 ua
 #define DELAYUS    TIM2MHZ // 1 microsecond TIM2 OC increment
 
 static uint32_t noteval1;
+/* *************************************************************************
+ * void adcspi_readadc(void);
+ * @brief	: Read selected ADCs (non-MAX14921)
+ * *************************************************************************/
+uint32_t dbc;
+uint32_t dbd;
+uint32_t dbt1;
+uint32_t dbt2;
+uint32_t dbt3;
+void adcspi_readadc(void)
+{
+	struct ADCFUNCTION* p; // Convenience pointer
+	struct ADCABS* pabs; ; // Absolute readings
+	uint16_t* pdmabuf;     // DMA buffer
+	/* Configure ADC for reading non-MAX14921 ADC channels w DMA. */
+	adcbms_config_adc(); 
+if ((hadc1.Instance->CR & 0x1) == 0) morse_trap(667);
+	/* Start a one-shot scan w DMA. */
+	hadc1.Instance->CR |= (1 << 2); // Bit 2 ADSTART: ADC start of regular conversion
 
+if ((hadc1.Instance->CR & (1 << 2))	== 0) morse_trap(827);
+
+	p = &adc1; // Convenience pointer
+	pabs = &p->abs[0]; // Absolute readings
+	pdmabuf = &p->dmabuf[0];
+dbd += 1;
+dbt1 = DTWTIME;
+	/* Wait for DMA interrupt to signal completion. */
+	xTaskNotifyWait(0,0xffffffff, &noteval1, 5000);
+	if (noteval1 != TSKNOTEBIT00) morse_trap(825); // JIC debug
+dbt2 = dbt1;
+
+dbc += 1;
+dbt3 = DTWTIME;
+	/* Build a sum before doing computations */
+	(pabs+0)->sum += *(pdmabuf + 0);
+	(pabs+1)->sum += *(pdmabuf + 1);
+	(pabs+2)->sum += *(pdmabuf + 2);
+	(pabs+3)->sum += *(pdmabuf + 3);
+	(pabs+4)->sum += *(pdmabuf + 4);
+	(pabs+5)->sum += *(pdmabuf + 5);
+	(pabs+6)->sum += *(pdmabuf + 6);
+	(pabs+7)->sum += *(pdmabuf + 7);
+	(pabs+8)->sum += *(pdmabuf + 8);
+	(pabs+9)->sum += *(pdmabuf + 9);
+
+	p->sumctr += 1;
+	if (p->sumctr >= ADCSCANSUM)
+	{ // Here, time to calibrate and update.
+		p->sumctr = 0;
+
+		/* Calibrate and update array of struct ADCABSOLUTE. */
+		// The array is a global variable. Values highly filtered.
+		// Calibration zero'es .sum for next round.
+		adcparams_calibadc();
+
+	(pabs+0)->sum = 0;
+	(pabs+1)->sum = 0;
+	(pabs+2)->sum = 0;
+	(pabs+3)->sum = 0;
+	(pabs+4)->sum = 0;
+	(pabs+5)->sum = 0;
+	(pabs+6)->sum = 0;
+	(pabs+7)->sum = 0;
+	(pabs+8)->sum = 0;
+	(pabs+9)->sum = 0;
+
+	}
+	return;
+}
 /* *************************************************************************
  * void adcspi_readbms(void);
  * @brief	: Do a sequence for reading MA14921 plus direct ADC inputs
@@ -64,11 +139,11 @@ void adcspi_readbms(void)
 
 	// Wait for sequence to complete
 	// Once started, sequence driven by interrupts until complete
-	xTaskNotifyWait(0,0xffffffff, &noteval, 3000);
+	xTaskNotifyWait(0,0xffffffff, &noteval1, 3000);
 	// Debugging trap for timeout (3 sec)
 	if (noteval1 != TSKNOTEBIT00) morse_trap(814); // JIC debug
 
-	/* Calibrate readings into requester's array. */
+	/* Calibrate and store readings in requester's array (float). */
 	for (i = 0; i < ADCBMSMAX; i++)
 	{
 		*(pssb->taskdata+i) = adcparams_calibbms(i);
@@ -77,15 +152,14 @@ void adcspi_readbms(void)
 }
 /* *************************************************************************
  * void adcspi_calib(void);
- * @brief	: Execute a self-calibration sequence
+ * @brief	: Execute a self-calib sequence: nulls BMS output buffer offset.
  * *************************************************************************/
 static const uint32_t spiclear = 0;
 void adcspi_calib(void)
 {
 	HAL_StatusTypeDef halret;
 	struct ADCSPIALL* p = &adcspiall; // Convenience pointer
-	uint32_t noteval1 = 0; // TaskNotifyWait notification word
-
+	
 	/* All states start with zero. */
 	p->adcstate = ADCSTATE_IDLE;
 	p->timstate = TIMSTATE_IDLE;
@@ -94,20 +168,21 @@ void adcspi_calib(void)
 	/* Set MX14921 command to initiate self-calibration. */
 	p->spitx24.ui = 0x00400000; // Initiate offset calibration upon /CS lo->hi transition
 
-	/* Set /CS (GPIOA PIN_15) low, then start SPI sending command. */
-	HAL_GPIO_WritePin(SPI1_NSS__CS_GPIO_Port,SPI1_NSS__CS_Pin,GPIO_PIN_RESET);
-	halret = HAL_SPI_TransmitReceive_DMA(&hspi1, &p->spiclear, &p->spirx24.uc[0], 3);
+	/* Set /CS (GPIOA PIN_15) low, then start SPI sending command. */	
+	HAL_GPIO_WritePin(notCS_GPIO_Port,notCS_Pin,GPIO_PIN_RESET);
+
+	halret = HAL_SPI_TransmitReceive_DMA(&hspi1, &p->spitx24.uc[0], &p->spirx24.uc[0], 3);
 	if (halret == HAL_ERROR) morse_trap(817);
 	/* SPI DMA interrupt callback routine (SPISTATE_CALIB) will cause /CS lo->hi 
 	   transition AND set an 8 ms delay in TIM2CH4 OC. The OC interrupt will 
 	   cause the following wait for notifcation to exit.   */
-	xTaskNotifyWait(0,0xffffffff, &noteval1, 3000);
+	xTaskNotifyWait(0,0xffffffff, &noteval1, 10000);
 
 	if (noteval1 != TSKNOTEBIT00) morse_trap(813); // JIC debug
 
 	/* Return will be to ADCTask.c and beginning of for (;;) loop waiting
 	   for others to load a readout request into the queue. */
-	return.
+	return;
 }
 /* *************************************************************************
  * void adcspi_opencell(void);
@@ -118,7 +193,6 @@ void adcspi_opencell(void)
 	int i;
 	HAL_StatusTypeDef halret;
 	struct ADCSPIALL* p = &adcspiall; // Convenience pointer
-	uint32_t noteval1 = 0; // TaskNotifyWait notification word
 
 	// Load FET bits (lower two bytes)
 	p->spitx24.ui    = (uint32_t)(pssb->taskdata);
@@ -128,8 +202,8 @@ void adcspi_opencell(void)
 	p->spistate = SPISTATE_OPENCELL;
 
 	/* Set /CS (GPIOA PIN_15) low, then start SPI sending command. */
-	HAL_GPIO_WritePin(SPI1_NSS__CS_GPIO_Port,SPI1_NSS__CS_Pin,GPIO_PIN_RESET);
-	halret = HAL_SPI_TransmitReceive_DMA(&hspi1, &p->spiclear, &p->spirx24.uc[0], 3);
+	HAL_GPIO_WritePin(notCS_GPIO_Port,notCS_Pin,GPIO_PIN_RESET);
+	halret = HAL_SPI_TransmitReceive_DMA(&hspi1, &p->spitx24.uc[0], &p->spirx24.uc[0], 3);
 	if (halret == HAL_ERROR) morse_trap(816);
 
 	xTaskNotifyWait(0,0xffffffff, &noteval1, 3000);
@@ -149,7 +223,7 @@ void adcspi_opencell(void)
 	{
 		// Calibrate 'raw'
 		*(pssb->taskdata+i) = adcparams_calibbms(i);
-		if (*(pssb->taskdata+i) < p->lc.cellopenv)
+		if (*(pssb->taskdata+i) < bqfunction.lc.cellopenv)
 		{
 			pssb->cellbits |= (1 << i);
 		}
@@ -164,29 +238,21 @@ void adcspi_lowpower(void)
 {
 	HAL_StatusTypeDef halret;
 	struct ADCSPIALL* p = &adcspiall; // Convenience pointer
-	uint32_t noteval1 = 0; // TaskNotifyWait notification word
 
 	// Clear bits
 	p->spitx24.ui    = 0;
 	// Set command code
 	p->spitx24.uc[2] = 0x1; // Set LOPW: 1 ua
 
-	p->spistate = SPISTATE_LOWPOWER,;
+	p->spistate = SPISTATE_LOWPOWER;
 
 	/* Set /CS (GPIOA PIN_15) low, then start SPI sending command. */
-	HAL_GPIO_WritePin(SPI1_NSS__CS_GPIO_Port,SPI1_NSS__CS_Pin,GPIO_PIN_RESET);
-	halret = HAL_SPI_TransmitReceive_DMA(&hspi1, &p->spiclear, &p->spirx24.uc[0], 3);
+	HAL_GPIO_WritePin(notCS_GPIO_Port,notCS_Pin,GPIO_PIN_RESET);
+	halret = HAL_SPI_TransmitReceive_DMA(&hspi1, &p->spitx24.uc[0], &p->spirx24.uc[0], 3);
 	if (halret == HAL_ERROR) morse_trap(824);
 
 	xTaskNotifyWait(0,0xffffffff, &noteval1, 3000);
 	if (noteval1 != TSKNOTEBIT00) morse_trap(823); // JIC debug
-}
-/* *************************************************************************
- * void adcspi_readadc(void);
- * @brief	: Read selected ADCs (non-MAX14921)
- * *************************************************************************/
-void adcspi_readadc(void)
-{
 }
 /* *************************************************************************
  * void adcspi_setfets(void);
@@ -210,7 +276,6 @@ void adcspi_setfets(void)
 {
 	HAL_StatusTypeDef halret;
 	struct ADCSPIALL* p = &adcspiall; // Convenience pointer
-	uint32_t noteval1 = 0; // TaskNotifyWait notification word
 
 	// Load FET bits (lower two bytes)
 	p->spitx24.ui = pssb->cellbits;
@@ -220,8 +285,8 @@ void adcspi_setfets(void)
 	p->spistate = SPISTATE_FETS;
 
 	/* Set /CS (GPIOA PIN_15) low, then start SPI sending command. */
-	HAL_GPIO_WritePin(SPI1_NSS__CS_GPIO_Port,SPI1_NSS__CS_Pin,GPIO_PIN_RESET);
-	halret = HAL_SPI_TransmitReceive_DMA(&hspi1, &p->spiclear, &p->spirx24.uc[0], 3);
+	HAL_GPIO_WritePin(notCS_GPIO_Port,notCS_Pin,GPIO_PIN_RESET);
+	halret = HAL_SPI_TransmitReceive_DMA(&hspi1, &p->spitx24.uc[0], &p->spirx24.uc[0], 3);
 	if (halret == HAL_ERROR) morse_trap(818);
 	xTaskNotifyWait(0,0xffffffff, &noteval1, 3000);
 	if (noteval1 != TSKNOTEBIT00) morse_trap(815); // JIC debug
@@ -242,16 +307,14 @@ void adcspi_init(void)
 	/* All states start with zero. */
 	p->adcstate = ADCSTATE_IDLE;
 	p->timstate = TIMSTATE_IDLE;
-	p->spistate = SPISTATE_CALIB; // Self-calibration sequence before readouts
+	p->spistate = SPISTATE_CALIB1; // Self-calibration sequence before readouts
 
 	p->delayct = DELAYUS * 5; // 5 us delay
 
 	p->readyflag = 0; // Use for checking if TIM2 in FanTask is late.
 
-	return.
+	return;
 }
-
-
 /* #######################################################################
  * void adcspi_tim2(TIM_TypeDef  *pT2base);
  * @brief	: TIM2:CC4IF interrupt (arrives here from FanTask.c)
@@ -261,15 +324,18 @@ void adcspi_init(void)
 // ECS plus cell selection bits for cells 1-> 16, given indices [0]->[15]
 static const uint8_t bitorderUP[16] = {0x84,0XC4,0XA4,0XE4,0X94,0XD4,0XB4,0XE4,
 	                                   0X8C,0XCC,0XAC,0XEC,0X9C,0XDC,0XBC,0XFC};
-
 // ECS plus cell selection bits for cells 16-> 1, given indices [0]->[15]
 static const uint8_t bitorderDN[16] = {0xFC,0XBC,0XDC,0X9C,0XEC,0XAC,0XCC,0X8C,
 	                                   0XF4,0XB4,0XD4,0X94,0XE4,0XA4,0XC4,0X84};
 
-static const uin32_t spicalib2 = 0;
+static const uint32_t spicalib2 = 0;
 
 void adcspi_tim2(TIM_TypeDef *pT2base)
 {
+	struct ADCSPIALL* p = &adcspiall; // Convenience pointer
+	BaseType_t xHPT = pdFALSE;
+	HAL_StatusTypeDef halret;
+
 	/* JIC FAN task starts ahead of ADC task. */
 	if (p->readyflag == 0) return;
 
@@ -285,13 +351,14 @@ void adcspi_tim2(TIM_TypeDef *pT2base)
  	 return;
 
 	case TIMSTATE_8MSTO: // 8 ms timeout
-		p->timestate = TIMSTATE_IDLE; // Set to idle, jic
+		p->timstate = TIMSTATE_IDLE; // Set to idle, jic
 		// Notify ADCTask.c that self-calibration is complete.
-		xTaskNotifyFromISR(ADCTaskHandle, TSKNOTEBIT00, eSetBits, xHPT );
+		xTaskNotifyFromISR(ADCTaskHandle, TSKNOTEBIT00, eSetBits, &xHPT );
+		portYIELD_FROM_ISR( xHPT );
 	 return;
 
 	case TIMSTATE_2: // Here, selection command timeout complete
-p->timestate = TIMSTATE_IDLE; // Set to idle, jic
+p->timstate = TIMSTATE_IDLE; // Set to idle, jic
 
 		/* Prepare next MAX14921 command to select a cell for readout. */
 		// Use spi index to select MAX14921 command for cell selection readout
@@ -343,44 +410,58 @@ p->timestate = TIMSTATE_IDLE; // Set to idle, jic
 	 			The TIM2 timeout ended up here and the index shows the last command was sent
 	 			and the settling time completed. Start the last ADC conversion (for this
 	 			MAX14921 cell, thermistor, and top-of-stack readout sequence). */
-			if (p->adcflag != 0) morse_trap (805);
-			p->adcflag = 1; // Show ADC started
+				if (p->adcflag != 0) morse_trap (805);
+				p->adcflag = 1; // Show ADC started
 
-			// Setting ADSTART starts regular conversion
-			hadc1.Instance->CR |= (0x1 << 2);
+				// Setting ADSTART starts regular conversion
+				hadc1.Instance->CR |= (0x1 << 2);
 
-			p->spistate= SPISTATE_IDLE;
-
+				p->spistate= SPISTATE_IDLE; //JIC
+			}
 			break;
 
 		default: morse_trap(801);
 			break;
 		}
-
+	/***** TIMSTATE2 continues *****/
 		// First SPI cell select command does not overlap ADC conversions. No need to
 		// check if ADC is still busy with previous conversion.
 		if (p->spiidx == 0)
 		{ // Ground reference time delay completed, send first cell selection command
 			p->spistate = SPISTATE_2;
 
-			// Enable /CS and start SPI sending first cell selection
-			HAL_GPIO_WritePin(SPI1_NSS__CS_GPIO_Port,SPI1_NSS__CS_Pin,GPIO_PIN_RESET);
-			halret = HAL_SPI_TransmitReceive_DMA(&hspi1, &p->spitx24.uc[0], &p->spirx24.uc[0], 3);
-
+			if (p->noverlap == 0)
+			{ // Here, do not overlap SPI sending with ADC conversion
+				// Enable /CS and start SPI sending first cell selection
+				HAL_GPIO_WritePin(notCS_GPIO_Port,notCS_Pin,GPIO_PIN_RESET);
+				halret = HAL_SPI_TransmitReceive_DMA(&hspi1, &p->spitx24.uc[0], &p->spirx24.uc[0], 3);
+				if (halret != HAL_OK) morse_trap (826);
+			}
+			else
+			{
+				// Setting ADSTART starts regular conversion
+				p->adcflag = 1; // Show ADC started
+				hadc1.Instance->CR |= (0x1 << 2); // Start ADC
+			}
 			// Next TIM2 will prepare command to select cell #2.
 			p->spiidx = 1;
-
-			break; // Break top level
+			break; // Break TIMESTATE_2
 		}
 
 		// Prepare and start next SPI selection command
 		p->spiidx += 1; // Index is "one ahead"
 
-		if (p->adcrestart == 0)
+		if (p->noverlap == 1)
+		{ // Here, do not overlap SPI sending with ADC conversions
+			// Setting ADSTART starts regular conversion
+			p->adcflag = 1; // Show ADC started
+			hadc1.Instance->CR |= (0x1 << 2); // Start ADC
+		}
+		else if (p->adcrestart == 0)
 		{ /* Here, ADC was not busy when SPI completed sending the command. SPI interrupt 
 		 	raised /CR to latch the command and started TIM2 timeout for settling.
 		 	The TIM2 timeout ended up here. */
-	if (p->adcflag != 0) morse_trap (804);
+	if (p->adcflag != 0) morse_trap (804); // Debug
 
 
 			// Setting ADSTART starts regular conversion
@@ -389,19 +470,21 @@ p->timestate = TIMSTATE_IDLE; // Set to idle, jic
 
 			p->spistate= SPISTATE_2; // Necessary?
 
-			// Send SPI msg to clear everything
-			HAL_GPIO_WritePin(SPI1_NSS__CS_GPIO_Port,SPI1_NSS__CS_Pin,GPIO_PIN_RESET);
-			halret = HAL_SPI_TransmitReceive_DMA(&hspi1, &spicalib2, &p->spirx24.uc[0], 3);
+			// Start SPI sending command
+			HAL_GPIO_WritePin(notCS_GPIO_Port,notCS_Pin,GPIO_PIN_RESET);
+			halret = HAL_SPI_TransmitReceive_DMA(&hspi1, &spitx24.uc[0], &p->spirx24.uc[0], 3);
 		}
-		break; // Break top level switch statement
+		break; // Break TIMESTATE_2
+	/***** TIMSTATE_2 ENDS ******/
 
 	case TIMSTATE_OPENCELL: // Wait for DIAG to discharge completed
 		// Start a BMS readout cycle 
-		xTaskNotifyFromISR(ADCTaskHandle, TSKNOTEBIT00, eSetBits, xHPT );
+		xTaskNotifyFromISR(ADCTaskHandle, TSKNOTEBIT00, eSetBits, &xHPT );
+		portYIELD_FROM_ISR( xHPT );
 		break;
 
 	default: morse_trap(809); // Debug JIC
-	break;
+		break;
 
 	}
 	return;
@@ -412,33 +495,32 @@ p->timestate = TIMSTATE_IDLE; // Set to idle, jic
    ####################################################################### */
 void HAL_SPI_MasterRxCpltCallback(void)
 {
+	struct ADCSPIALL* p = &adcspiall; // Convenience pointer
 	BaseType_t xHPT = pdFALSE;
-	uint32_t tmp;
-
-	// Show others that SPI is not busy
-	p->spiflag = 0;
+	HAL_StatusTypeDef halret;
 
 	switch (p->spistate)
 	{
 	case SPISTATE_CALIB1: // Command to clear registers complete
 		// Set /CS high to latch the command
-		HAL_GPIO_WritePin(SPI1_NSS__CS_GPIO_Port,SPI1_NSS__CS_Pin,GPIO_PIN_SET);
+		HAL_GPIO_WritePin(notCS_GPIO_Port,notCS_Pin,GPIO_PIN_SET);
 
 		// Set timout delay for ground reference transfer to complete & settle.
 		// Doing this here allows some response time for the GPIO pin
 		pT2base->CCR4 = pT2base->CNT + (DELAYUS * 50); // Set 50 us timeout duration
-		p->timestate = 	TIMSTATE_8MSTO; // Set next step when timer interrupt takes place
+		p->timstate = 	TIMSTATE_8MSTO; // Set next step when timer interrupt takes place
 		pT2base->SR = 0x10; // Reset interrupt flag: CC4IF if had come on.
 
 		/* Set /CS (GPIOA PIN_15) low, then start SPI sending command. */
-		HAL_GPIO_WritePin(SPI1_NSS__CS_GPIO_Port,SPI1_NSS__CS_Pin,GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(notCS_GPIO_Port,notCS_Pin,GPIO_PIN_RESET);
 		halret = HAL_SPI_TransmitReceive_DMA(&hspi1, &p->spitx24.uc[0], &p->spirx24.uc[0], 3);
+if (halret != HAL_OK)	morse_trap(831);
 		p->spistate = SPISTATE_CALIB2;
 		break;
 
 	case SPISTATE_CALIB2: // Self-calibration command completed except for /CS
 		// Setting /CS high initiates self-calibration
-		HAL_GPIO_WritePin(SPI1_NSS__CS_GPIO_Port,SPI1_NSS__CS_Pin,GPIO_PIN_SET);
+		HAL_GPIO_WritePin(notCS_GPIO_Port,notCS_Pin,GPIO_PIN_SET);
 		// TIM2 8MS timeout will complete the sequence.
 		break;
 
@@ -446,11 +528,11 @@ void HAL_SPI_MasterRxCpltCallback(void)
 		/* There is a 50 us timeout for it to settle. After this the first selection
 			command will be sent. */
 		// Raise /CS to latch command bits and begin ground reference transfer
-		HAL_GPIO_WritePin(SPI1_NSS__CS_GPIO_Port,SPI1_NSS__CS_Pin,GPIO_PIN_SET);
+		HAL_GPIO_WritePin(notCS_GPIO_Port,notCS_Pin,GPIO_PIN_SET);
 
 		// Set time delay for settling
 		pT2base->CCR4 = pT2base->CNT + (DELAYUS * 50); // Set 50 us timeout duration
-		p->timestate = TIMSTATE_2; // Set timer interrupt handling.
+		p->timstate = TIMSTATE_2; // Set timer interrupt handling.
 		pT2base->SR = 0x10; // Reset interrupt flag: CC4IF if it had come on.
 		break;
 
@@ -461,7 +543,8 @@ void HAL_SPI_MasterRxCpltCallback(void)
 		the selection, and set a settling time timeout. 
 
 		   The TIM2 timeout interrupt will then start the ADC conversions, and launch the
-		 next SPI command.
+		 next SPI command, unless it is a non-overlapped request, in which case, the
+		 ADC interrupt will start the next SPI.
 		*/
 		if (p->adcflag != 0)
 		{ // Here, ADC coversion is not complete
@@ -471,7 +554,7 @@ void HAL_SPI_MasterRxCpltCallback(void)
 		}
 		// 'else' Latch selection command and start time delay
 		// Cause command values to latch
-		HAL_GPIO_WritePin(SPI1_NSS__CS_GPIO_Port,SPI1_NSS__CS_Pin,GPIO_PIN_SET);
+		HAL_GPIO_WritePin(notCS_GPIO_Port,notCS_Pin,GPIO_PIN_SET);
 
 		p->adcrestart = 0; // JIC
 
@@ -483,27 +566,29 @@ void HAL_SPI_MasterRxCpltCallback(void)
 
 	case SPISTATE_FETS: // Set discharge FETs
 		// Cause command values to latch
-		HAL_GPIO_WritePin(SPI1_NSS__CS_GPIO_Port,SPI1_NSS__CS_Pin,GPIO_PIN_SET);
+		HAL_GPIO_WritePin(notCS_GPIO_Port,notCS_Pin,GPIO_PIN_SET);
 		// Notify 'adcspi_setfets' FET word has been sent and latched.
-		xTaskNotifyFromISR(ADCTaskHandle, TSKNOTEBIT00, eSetBits, xHPT );			
+		xTaskNotifyFromISR(ADCTaskHandle, TSKNOTEBIT00, eSetBits, &xHPT );	
+		portYIELD_FROM_ISR( xHPT);		
 		return;
 
 	case SPISTATE_OPENCELL:
 		// Cause command values to latch
-		HAL_GPIO_WritePin(SPI1_NSS__CS_GPIO_Port,SPI1_NSS__CS_Pin,GPIO_PIN_SET);
+		HAL_GPIO_WritePin(notCS_GPIO_Port,notCS_Pin,GPIO_PIN_SET);
 
 		// Set time delay for DIAG 10ua current to discharge flying caps.
-		pT2base->CCR4 = pT2base->CNT + (DELAYUS * * 1000 * 500); // Set 500 ms timeout duration
-		p->timestate = TIMSTATE_OPENCELL; // Set timer interrupt handling.
+		pT2base->CCR4 = pT2base->CNT + (DELAYUS * 1000 * 500); // Set 500 ms timeout duration
+		p->timstate = TIMSTATE_OPENCELL; // Set timer interrupt handling.
 		pT2base->SR = 0x10; // Reset interrupt flag: CC4IF if it had come on.
 		break;
 
 // NOTE: This is the same as SPISTATE_FETS...
 	case SPISTATE_LOWPOWER:
 		// Cause command values to latch
-		HAL_GPIO_WritePin(SPI1_NSS__CS_GPIO_Port,SPI1_NSS__CS_Pin,GPIO_PIN_SET);
+		HAL_GPIO_WritePin(notCS_GPIO_Port,notCS_Pin,GPIO_PIN_SET);
 		// Notify 'adcspi_lowpower' command complete
-		xTaskNotifyFromISR(ADCTaskHandle, TSKNOTEBIT00, eSetBits, xHPT );	
+		xTaskNotifyFromISR(ADCTaskHandle, TSKNOTEBIT00, eSetBits, &xHPT );	
+		portYIELD_FROM_ISR( xHPT );
 		break;			
 
 	case SPISTATE_IDLE:
@@ -520,11 +605,10 @@ default: morse_trap(810);
 }
 /* #######################################################################
  * ADC interrupt (from stm32l4xx_it.c)
- * void adcspi_adc_Handler(ADC_HandleTypeDef* phadc1);
+ * void adcspi_adc_IRQHandler(ADC_HandleTypeDef* phadc1);
    ####################################################################### */
-void adcspi_adc_Handler(ADC_HandleTypeDef* phadc1)
+void adcspi_adc_IRQHandler(ADC_HandleTypeDef* phadc1)
 {
-
 	ADC_TypeDef* pADCbase = hadc1.Instance; // Convenience pointer
 	struct ADCSPIALL* p = &adcspiall; // Convenience pointer
 	BaseType_t xHPT = pdFALSE;
@@ -540,7 +624,8 @@ void adcspi_adc_Handler(ADC_HandleTypeDef* phadc1)
 		p->adcidx += 1; 
 		if (p->adcidx >= ADCBMSMAX)
 		{ // Here end of 16 cells, 3 thermistors, 1 top-of-stack
-			xTaskNotifyFromISR(ADCTaskHandle, TSKNOTEBIT00, eSetBits, xHPT );
+			xTaskNotifyFromISR(ADCTaskHandle, TSKNOTEBIT00, eSetBits, &xHPT );
+			portYIELD_FROM_ISR( xHPT );
 		}
 		else
 		{ // More readings to be taken.
@@ -555,13 +640,57 @@ void adcspi_adc_Handler(ADC_HandleTypeDef* phadc1)
 			    p->adcrestart = 0; // Is this needed?
 
 				// Latch command by raising /CR
-				HAL_GPIO_WritePin(SPI1_NSS__CS_GPIO_Port,SPI1_NSS__CS_Pin,GPIO_PIN_SET);
+				HAL_GPIO_WritePin(notCS_GPIO_Port,notCS_Pin,GPIO_PIN_SET);
 
 				// Set settling time for MUX & Aout
 				pT2base->CCR4 = pT2base->CNT + p->delayct; // Set 5 us (usually) timeout duration
-				p->timestate = TIMSTATE_2;
+				p->timstate = TIMSTATE_2;
+			}
+			else
+			{
+				if (p->noverlap == 1)
+				{ // Here, end of ADC (and not TIM2) starts next spi
+					// Enable by lowering /CS
+					HAL_GPIO_WritePin(notCS_GPIO_Port,notCS_Pin,GPIO_PIN_RESET);
+
+					p->spistate = SPISTATE_2;					
+				}
 			}
 		}
 	}
+	return;
+}
+/* #######################################################################
+ * DMA CH1 interrupt (from stm32l4xx_it.c)
+ * void  adcspi_dma_handler(void);
+   ####################################################################### */
+ /* USER CODE BEGIN DMA1_Channel1_IRQn 0 */
+void  adcspi_dma_handler(void)
+{
+	BaseType_t xHPT = pdFALSE;
+
+	/* Clear DMA Channel 1 interrupt. */
+
+/*	Ref Manual: 11.6.2
+
+	Bit 3 CTEIF1: transfer error flag clear for channel 1
+		Bit 2 CHTIF1: half transfer flag clear for channel 1
+		Bit 1 CTCIF1: transfer complete flag clear for channel 1
+		Bit 0 CGIF1: global interrupt flag clear for channel 1
+
+Setting any individual clear bit among CTEIFx, CHTIFx, CTCIFx in this DMA_IFCR register,
+causes the DMA hardware to clear the corresponding individual flag and the global flag
+GIFx in the DMA_ISR register, provided that none of the two other individual flags is set.
+*/
+	hdma_adc1.DmaBaseAddress->IFCR |= 0xf;
+
+	/* Disable DMA1:CH1. */
+	hdma_adc1.Instance->CCR &= ~0x1;	
+
+	/* Notify ADCTask.c: adcspi.c: adcspi_readadc operation is complete. */
+	xTaskNotifyFromISR(ADCTaskHandle, TSKNOTEBIT00, eSetBits, &xHPT );
+	portYIELD_FROM_ISR( xHPT );
+//morse_trap(668);	
+
 	return;
 }
