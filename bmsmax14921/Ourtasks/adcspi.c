@@ -51,20 +51,22 @@ DIAG = [2]:1 1 = 10 ua leakage on CV inputs
 LOPW = [2]:0 1 = Low power mode: Vp = 1 ua
 */
 
-#define TIM2MHZ 16  // Timer rate MHz
-#define DELAY8MS  (TIM2MHZ * 1000 * 8) // 8 millisecond TIM2 OC increment
-#define DELAYUS    TIM2MHZ // 1 microsecond TIM2 OC increment
+#define TIM15MHZ 16  // Timer rate MHz
+#define DELAY8MS  (TIM15MHZ * 1000 * 8) // 8 millisecond TIM2 OC increment
+#define DELAYUS    TIM15MHZ // 1 microsecond TIM2 OC increment
 
 static uint32_t noteval1;
 /* *************************************************************************
  * void adcspi_readadc(void);
  * @brief	: Read selected ADCs (non-MAX14921)
  * *************************************************************************/
-uint32_t dbc;
 uint32_t dbd;
 uint32_t dbt1;
 uint32_t dbt2;
 uint32_t dbt3;
+uint32_t dbt4;
+uint32_t dbt5;
+
 void adcspi_readadc(void)
 {
 	struct ADCFUNCTION* p; // Convenience pointer
@@ -86,11 +88,10 @@ dbt1 = DTWTIME;
 	/* Wait for DMA interrupt to signal completion. */
 	xTaskNotifyWait(0,0xffffffff, &noteval1, 5000);
 	if (noteval1 != TSKNOTEBIT00) morse_trap(825); // JIC debug
-dbt2 = dbt1;
+dbt2 = DTWTIME;
+dbt3 = dbt2-dbt1;
 
-dbc += 1;
-dbt3 = DTWTIME;
-	/* Build a sum before doing computations */
+	/* Accumulate readings before doing computations */
 	(pabs+0)->sum += *(pdmabuf + 0);
 	(pabs+1)->sum += *(pdmabuf + 1);
 	(pabs+2)->sum += *(pdmabuf + 2);
@@ -109,20 +110,7 @@ dbt3 = DTWTIME;
 
 		/* Calibrate and update array of struct ADCABSOLUTE. */
 		// The array is a global variable. Values highly filtered.
-		// Calibration zero'es .sum for next round.
 		adcparams_calibadc();
-
-	(pabs+0)->sum = 0;
-	(pabs+1)->sum = 0;
-	(pabs+2)->sum = 0;
-	(pabs+3)->sum = 0;
-	(pabs+4)->sum = 0;
-	(pabs+5)->sum = 0;
-	(pabs+6)->sum = 0;
-	(pabs+7)->sum = 0;
-	(pabs+8)->sum = 0;
-	(pabs+9)->sum = 0;
-
 	}
 	return;
 }
@@ -309,35 +297,33 @@ void adcspi_init(void)
 	p->timstate = TIMSTATE_IDLE;
 	p->spistate = SPISTATE_CALIB1; // Self-calibration sequence before readouts
 
-	p->delayct = DELAYUS * 5; // 5 us delay
-
-	p->readyflag = 0; // Use for checking if TIM2 in FanTask is late.
+	p->delayct = (DELAYUS * 5); // 5 us delay
 
 	return;
 }
 /* #######################################################################
- * void adcspi_tim2(TIM_TypeDef  *pT2base);
- * @brief	: TIM2:CC4IF interrupt (arrives here from FanTask.c)
- * @param	: pT2base = pointer to TIM2 register base
+ * void adcspi_tim15_IRQHandler(void);
+ * @brief	: TIM15 interrupt shares with TIM1 break;
    ####################################################################### */
-
 // ECS plus cell selection bits for cells 1-> 16, given indices [0]->[15]
 static const uint8_t bitorderUP[16] = {0x84,0XC4,0XA4,0XE4,0X94,0XD4,0XB4,0XE4,
 	                                   0X8C,0XCC,0XAC,0XEC,0X9C,0XDC,0XBC,0XFC};
 // ECS plus cell selection bits for cells 16-> 1, given indices [0]->[15]
 static const uint8_t bitorderDN[16] = {0xFC,0XBC,0XDC,0X9C,0XEC,0XAC,0XCC,0X8C,
 	                                   0XF4,0XB4,0XD4,0X94,0XE4,0XA4,0XC4,0X84};
-
 static const uint32_t spicalib2 = 0;
 
-void adcspi_tim2(TIM_TypeDef *pT2base)
+void adcspi_tim15_IRQHandler(void)
 {
 	struct ADCSPIALL* p = &adcspiall; // Convenience pointer
 	BaseType_t xHPT = pdFALSE;
 	HAL_StatusTypeDef halret;
 
-	/* JIC FAN task starts ahead of ADC task. */
-	if (p->readyflag == 0) return;
+/* Debug: only this flag should have brought us here. */
+if ((TIM15->SR & (1 << 1)) == 0) morse_trap(831);
+
+	/* Clear interrupt flag. */
+	TIM15->SR = ~(1 << 1); // Bit 1 CC1IF: Capture/Compare 1 interrupt flag
 
 	if (p->spiidx >= ADCBMSMAX)
 	{ // Done with SPI sending commands & TIM2 delay for settling 
@@ -350,7 +336,11 @@ void adcspi_tim2(TIM_TypeDef *pT2base)
 	case TIMSTATE_IDLE: // Idle. Ignore interrupt
  	 return;
 
-	case TIMSTATE_8MSTO: // 8 ms timeout
+	case TIMSTATE_8MSTO: // 8 ms timeout w 16b timer
+		// Count rollover timeouts (65536/16MHz = 4096 us)
+		p->tim15ctr -= 1;
+		if (p->tim15ctr > 0) return;
+		// Here, slightly more than 8 milliseconds.
 		p->timstate = TIMSTATE_IDLE; // Set to idle, jic
 		// Notify ADCTask.c that self-calibration is complete.
 		xTaskNotifyFromISR(ADCTaskHandle, TSKNOTEBIT00, eSetBits, &xHPT );
@@ -430,7 +420,7 @@ p->timstate = TIMSTATE_IDLE; // Set to idle, jic
 		{ // Ground reference time delay completed, send first cell selection command
 			p->spistate = SPISTATE_2;
 
-			if (p->noverlap == 0)
+			if (p->noverlap != 0)
 			{ // Here, do not overlap SPI sending with ADC conversion
 				// Enable /CS and start SPI sending first cell selection
 				HAL_GPIO_WritePin(notCS_GPIO_Port,notCS_Pin,GPIO_PIN_RESET);
@@ -438,7 +428,7 @@ p->timstate = TIMSTATE_IDLE; // Set to idle, jic
 				if (halret != HAL_OK) morse_trap (826);
 			}
 			else
-			{
+			{ // Here, overlap sending SPI with ADC conversion
 				// Setting ADSTART starts regular conversion
 				p->adcflag = 1; // Show ADC started
 				hadc1.Instance->CR |= (0x1 << 2); // Start ADC
@@ -463,16 +453,16 @@ p->timstate = TIMSTATE_IDLE; // Set to idle, jic
 		 	The TIM2 timeout ended up here. */
 	if (p->adcflag != 0) morse_trap (804); // Debug
 
-
 			// Setting ADSTART starts regular conversion
 			p->adcflag = 1; // Show ADC started
 			hadc1.Instance->CR |= (0x1 << 2); // Start ADC
 
 			p->spistate= SPISTATE_2; // Necessary?
 
-			// Start SPI sending command
+			// Enable: /CS low, then start SPI sending command
 			HAL_GPIO_WritePin(notCS_GPIO_Port,notCS_Pin,GPIO_PIN_RESET);
-			halret = HAL_SPI_TransmitReceive_DMA(&hspi1, &spitx24.uc[0], &p->spirx24.uc[0], 3);
+			halret = HAL_SPI_TransmitReceive_DMA(&hspi1, &p->spitx24.uc[0], &p->spirx24.uc[0], 3);
+			if (halret != HAL_OK) morse_trap (828);
 		}
 		break; // Break TIMESTATE_2
 	/***** TIMSTATE_2 ENDS ******/
@@ -493,7 +483,7 @@ p->timstate = TIMSTATE_IDLE; // Set to idle, jic
  * SPI DMA RX complete callback
  * RX lags TX slightly, so RX is used
    ####################################################################### */
-void HAL_SPI_MasterRxCpltCallback(void)
+void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 {
 	struct ADCSPIALL* p = &adcspiall; // Convenience pointer
 	BaseType_t xHPT = pdFALSE;
@@ -505,12 +495,6 @@ void HAL_SPI_MasterRxCpltCallback(void)
 		// Set /CS high to latch the command
 		HAL_GPIO_WritePin(notCS_GPIO_Port,notCS_Pin,GPIO_PIN_SET);
 
-		// Set timout delay for ground reference transfer to complete & settle.
-		// Doing this here allows some response time for the GPIO pin
-		pT2base->CCR4 = pT2base->CNT + (DELAYUS * 50); // Set 50 us timeout duration
-		p->timstate = 	TIMSTATE_8MSTO; // Set next step when timer interrupt takes place
-		pT2base->SR = 0x10; // Reset interrupt flag: CC4IF if had come on.
-
 		/* Set /CS (GPIOA PIN_15) low, then start SPI sending command. */
 		HAL_GPIO_WritePin(notCS_GPIO_Port,notCS_Pin,GPIO_PIN_RESET);
 		halret = HAL_SPI_TransmitReceive_DMA(&hspi1, &p->spitx24.uc[0], &p->spirx24.uc[0], 3);
@@ -518,10 +502,14 @@ if (halret != HAL_OK)	morse_trap(831);
 		p->spistate = SPISTATE_CALIB2;
 		break;
 
-	case SPISTATE_CALIB2: // Self-calibration command completed except for /CS
+	case SPISTATE_CALIB2: // Self-calibration command has been sent.
 		// Setting /CS high initiates self-calibration
 		HAL_GPIO_WritePin(notCS_GPIO_Port,notCS_Pin,GPIO_PIN_SET);
-		// TIM2 8MS timeout will complete the sequence.
+		// Set timout delay for calibration to approx 8 ms.
+		p->tim15ctr    = 2; // Count TIM15 OC rollovers (4096 us per rollover)
+		TIM15->CCR1 = TIM15->CNT; // Set for max OC count from "now"
+		TIM15->SR   &= ~0x02; // Reset TIM15CH1 interrupt flag if CC1IF had come on 
+		p->timstate    = TIMSTATE_8MSTO; // Set state for next timer interrupt 
 		break;
 
 	case SPISTATE_SMPL: // Command to switch flying caps to ground has been sent.
@@ -531,9 +519,9 @@ if (halret != HAL_OK)	morse_trap(831);
 		HAL_GPIO_WritePin(notCS_GPIO_Port,notCS_Pin,GPIO_PIN_SET);
 
 		// Set time delay for settling
-		pT2base->CCR4 = pT2base->CNT + (DELAYUS * 50); // Set 50 us timeout duration
+		TIM15->CCR1 = TIM15->CNT + (DELAYUS * 50); // Set 50 us timeout duration
 		p->timstate = TIMSTATE_2; // Set timer interrupt handling.
-		pT2base->SR = 0x10; // Reset interrupt flag: CC4IF if it had come on.
+		TIM15->SR = ~(1 << 1); // Reset TIM15CH1:OC interrupt flag: CC1IF if it had come on.
 		break;
 
 	case SPISTATE_2: // Command has been sent
@@ -553,15 +541,13 @@ if (halret != HAL_OK)	morse_trap(831);
 			break;
 		}
 		// 'else' Latch selection command and start time delay
-		// Cause command values to latch
+		// Raise /CR to cause command values just sent to latch
 		HAL_GPIO_WritePin(notCS_GPIO_Port,notCS_Pin,GPIO_PIN_SET);
-
-		p->adcrestart = 0; // JIC
-
-		// Set a 5 us time delay (for most) for MAX14921 mux switch and Aout settling
-		pT2base->SR = 0x10; // Reset interrupt flag: CC4IF if had come on.
-		pT2base->CCR4 = pT2base->CNT + p->delayct; // Set timeout duration
+		// Set a 5 us time delay for MAX14921 mux switch and Aout settling
+		TIM15->CCR1 = TIM15->CNT + (DELAYUS * 5); // Set timeout duration
+//		TIM15->SR = ~(1 << 1); // Reset TIM15CH1:OC interrupt flag: CC1IF if had come on.
 		p->timstate = TIMSTATE_2; // Set timer timeout state
+		p->adcrestart = 0; // JIC
 		break;
 
 	case SPISTATE_FETS: // Set discharge FETs
@@ -577,9 +563,9 @@ if (halret != HAL_OK)	morse_trap(831);
 		HAL_GPIO_WritePin(notCS_GPIO_Port,notCS_Pin,GPIO_PIN_SET);
 
 		// Set time delay for DIAG 10ua current to discharge flying caps.
-		pT2base->CCR4 = pT2base->CNT + (DELAYUS * 1000 * 500); // Set 500 ms timeout duration
+		TIM15->CCR1 = TIM15->CNT + (DELAYUS * 1000 * 500); // Set 500 ms timeout duration
 		p->timstate = TIMSTATE_OPENCELL; // Set timer interrupt handling.
-		pT2base->SR = 0x10; // Reset interrupt flag: CC4IF if it had come on.
+		TIM15->SR = ~(1 << 1); // Reset TIM15CH1:OC interrupt flag: CC1IF if had come on.
 		break;
 
 // NOTE: This is the same as SPISTATE_FETS...
@@ -612,11 +598,12 @@ void adcspi_adc_IRQHandler(ADC_HandleTypeDef* phadc1)
 	ADC_TypeDef* pADCbase = hadc1.Instance; // Convenience pointer
 	struct ADCSPIALL* p = &adcspiall; // Convenience pointer
 	BaseType_t xHPT = pdFALSE;
+	HAL_StatusTypeDef halret;
 
 	p->adcflag = 0; // Show ADC complete
 
 	// ISR Bit 2 EOC: End of conversion flag
-	if ((pADCbase->ISR & (1 << 2)) != 0)
+	if ((pADCbase->ISR & (1 << 2)) != 0) // Bit 2 EOC: End of conversion flag
 	{ // Here, conversion complete
 		pADCbase->ISR = (1 << 2); // Reset interrupt flag
 
@@ -643,16 +630,17 @@ void adcspi_adc_IRQHandler(ADC_HandleTypeDef* phadc1)
 				HAL_GPIO_WritePin(notCS_GPIO_Port,notCS_Pin,GPIO_PIN_SET);
 
 				// Set settling time for MUX & Aout
-				pT2base->CCR4 = pT2base->CNT + p->delayct; // Set 5 us (usually) timeout duration
+				TIM15->CCR1 = TIM15->CNT + p->delayct; // Set 5 us (usually) timeout duration
 				p->timstate = TIMSTATE_2;
 			}
 			else
 			{
 				if (p->noverlap == 1)
 				{ // Here, end of ADC (and not TIM2) starts next spi
-					// Enable by lowering /CS
+					// Enable: /CS low, then start SPI sending command
 					HAL_GPIO_WritePin(notCS_GPIO_Port,notCS_Pin,GPIO_PIN_RESET);
-
+					halret = HAL_SPI_TransmitReceive_DMA(&hspi1, &p->spitx24.uc[0], &p->spirx24.uc[0], 3);
+					if (halret != HAL_OK) morse_trap (828);
 					p->spistate = SPISTATE_2;					
 				}
 			}
@@ -667,6 +655,8 @@ void adcspi_adc_IRQHandler(ADC_HandleTypeDef* phadc1)
  /* USER CODE BEGIN DMA1_Channel1_IRQn 0 */
 void  adcspi_dma_handler(void)
 {
+dbt4 = DTWTIME;
+dbt5 = dbt4-dbt1;
 	BaseType_t xHPT = pdFALSE;
 
 	/* Clear DMA Channel 1 interrupt. */

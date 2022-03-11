@@ -34,7 +34,7 @@ PC0	BMS	        IN1 	 24.5	N/A
 extern ADC_HandleTypeDef hadc1;
 extern SPI_HandleTypeDef hspi1;
 extern DMA_HandleTypeDef hdma_adc1;
-
+extern TIM_HandleTypeDef htim15;
 
 /* Save Hardware registers setup with 'MX for later restoration. */
 static uint32_t adc_smpr1;
@@ -72,6 +72,18 @@ static uint32_t adc_cfgr2;
 	if ((hdma_adc1.Instance->CCR & 0x1) != 0) morse_trap(844);
 	hdma_adc1.Instance->CPAR = (uint32_t)hadc1.Instance + 0x40;
 
+	/* DMA: Memory Address Register. */
+	hdma_adc1.Instance->CMAR  =  (uint32_t)&adc1.dmabuf[0]; // DMA stores into this array
+
+	/* TIM15 OC interrupt does nothing. */
+	adcspiall.timstate = TIMSTATE_IDLE;
+
+	/* Make use of TIM15:CH1 OC for timing BMS delays. */
+	// ARR default is 0xFFFF (max count-1)
+	TIM15->SR = 0;          // Clear any interrupt flags
+	TIM15->DIER = (1 << 1); // Bit 1 CC1IE: Capture/Compare 1 interrupt enable
+	TIM15->CR1 |= 1; // Start counter
+
 	return;
 }
 /* *************************************************************************
@@ -82,35 +94,33 @@ static uint32_t adc_cfgr2;
  {
  	struct ADCSPIALL* p = &adcspiall; // Convenience pointer
 
- 	/* Skip if already configured for ADC scan with DMA. */
- //	if (p->config == 0) return;
+ 	/* Skip most if already configured for ADC scan with DMA. */
+ 	if (p->config != 0)
+ 	{
+	 	/* Here, either not initially configured or configured for BMS. */
+	 	p->config = 0; // Show it is configured for DMA.
 
- 	/* Here, either not initially configured or configured for BMS. */
- 	p->config = 0; // Show it is configured for DMA.
+		// Cannot set registers if ADSTART is not 0.
+	 	if ((hadc1.Instance->CR & (0x1 << 2)) != 0) morse_trap(850);
 
-	// Cannot set registers if ADSTART is not 0.
- 	if ((hadc1.Instance->CR & (0x1 << 2)) != 0) morse_trap(850);
+		/* ADC nterrupt */
+		hadc1.Instance->IER &= ~0x7FF; // Clear all interrupt enables
 
-	/* ADC nterrupt */
-	hadc1.Instance->IER &= ~0x7FF; // Clear all interrupt enables
+		// Enable ADC
+	 	hadc1.Instance->CR &= ~0x3F;
+	// Debug: check bit config required to allow setting enable bit 	
+	if ((hadc1.Instance->CR & (0x1 << 28)) == 0) morse_trap(867);
+	//if ((hadc1.Instance->CR & 0x3F) != 0) morse_trap(866);
 
-	// Enable ADC
- 	hadc1.Instance->CR &= ~0x3F;
-// Debug: check bit config required to allow setting enable bit 	
-if ((hadc1.Instance->CR & (0x1 << 28)) == 0) morse_trap(867);
-//if ((hadc1.Instance->CR & 0x3F) != 0) morse_trap(866);
+		hadc1.Instance->CR |= 0x1; // Enable
 
-	hadc1.Instance->CR |= 0x1; // Enable
-
- 	/* Restore registers to 'MX & HAL initialized settings, saved in
- 	   'adcbms_preinit' (with SQR1 modified for 1 less channel in scan). */
-	hadc1.Instance->SMPR1 = adc_smpr1;
-	hadc1.Instance->SQR1  = adc_sqr1;
-	hadc1.Instance->CFGR  = adc_cfgr;
-	hadc1.Instance->CFGR2 = adc_cfgr2;
-
-	/* DMA: Memory Address Register. */
-	hdma_adc1.Instance->CMAR  =  (uint32_t)&adc1.dmabuf[0]; // DMA stores into this array
+	 	/* Restore registers to 'MX & HAL initialized settings, saved in
+	 	   'adcbms_preinit' (with SQR1 modified for 1 less channel in scan). */
+		hadc1.Instance->SMPR1 = adc_smpr1;
+		hadc1.Instance->SQR1  = adc_sqr1;
+		hadc1.Instance->CFGR  = adc_cfgr;
+		hadc1.Instance->CFGR2 = adc_cfgr2;
+	}
 
 	/* DMA_CNDTR: number of data to transfer register */
 	// VERY IMPORTANT: DMA count be identical to ADC scan count. When the ADC
@@ -135,7 +145,7 @@ if ((hadc1.Instance->CR & (0x1 << 28)) == 0) morse_trap(867);
 
 	/* Setup ADC registers for cell readouts. */
  	// Cannot set registers if ADSTART is not 0.
- 	if ((hadc1.Instance->CR & (0x1 << 2)) == 0) morse_trap(840);
+ 	if ((hadc1.Instance->CR & (0x1 << 2)) != 0) morse_trap(840);
 
   	/* Set oversample count */
  	// Set: oversample enabled | oversample count = 32 | right shift count = 1;

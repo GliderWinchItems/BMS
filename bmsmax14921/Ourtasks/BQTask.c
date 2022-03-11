@@ -71,25 +71,14 @@ for (i = 0; i < NCELLMAX; i++)
 	/* CAN communications parameter init. */
 	CanComm_init(p);
 
-			/* Wink green led */
-	for (i = 0; i < 2; i++)
-	{
-		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_RESET); // GRN LED
-		osDelay(15); 	
-		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_SET); // GRN LED
-		osDelay(985); 	
-	}
-	HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_RESET); // GRN LED
-
 	for (;;)
 	{
-		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_RESET); // GRN LED
-		TIM1->CCR1 = p->tim1_ccr1; // Set charge rate
-		osDelay(5000);
-		TIM1->CCR1 = 0; // Set charge rate
-		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_SET); // GRN LED
-		osDelay(1000);
-
+		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_RESET); // GRN LED ON
+//	TIM1->CCR1 = p->tim1_ccr1; // Set charge rate
+		osDelay(20);
+	TIM1->CCR1 = 0; // Set charge rate
+		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_SET); // GRN LED OFF
+		osDelay(2000-20);
 	}
 }
 /* *************************************************************************
@@ -114,7 +103,6 @@ TaskHandle_t xBQTaskCreate(uint32_t taskpriority)
  * *************************************************************************/
 static uint8_t getcellv(void)
 {
-
 
 	return 0;
 }

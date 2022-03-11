@@ -250,7 +250,7 @@ int main(void)
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
 
-  Thrdret = xADCTaskCreate(1); // (arg) = priority
+  Thrdret = xADCTaskCreate(osPriorityNormal+1); // (arg) = priority
   if (Thrdret == NULL) morse_trap(117);
   // Save HAL initialized settings ADC registers.
   // Used in adcbms.c for BMS readout sequence swapping
@@ -289,7 +289,7 @@ int main(void)
   bq_func_init(&bqfunction);
 
   /* definition and creation of CanTxTask - CAN driver TX interface. */
-  QueueHandle_t QHret = xCanTxTaskCreate(2, 32); // CanTask priority, Number of msgs in queue
+  QueueHandle_t QHret = xCanTxTaskCreate(osPriorityNormal, 32); // CanTask priority, Number of msgs in queue
   if (QHret == NULL) morse_trap(120); // Panic LED flashing
 
   /* definition and creation of CanRxTask - CAN driver RX interface. */
@@ -298,7 +298,7 @@ int main(void)
 //  if (Qidret < 0) morse_trap(6); // Panic LED flashing
 
   /* Create MailboxTask */
-  xMailboxTaskCreate(2); // (arg) = priority
+  xMailboxTaskCreate(osPriorityNormal); // (arg) = priority
 
   /* Create Mailbox control block w 'take' pointer for each CAN module. */
   struct MAILBOXCANNUM* pmbxret;
@@ -1019,10 +1019,6 @@ static void MX_TIM2_Init(void)
   {
     Error_Handler();
   }
-  if (HAL_TIM_OC_Init(&htim2) != HAL_OK)
-  {
-    Error_Handler();
-  }
   sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
   if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
@@ -1042,11 +1038,6 @@ static void MX_TIM2_Init(void)
   sConfigIC.ICPrescaler = TIM_ICPSC_DIV1;
   sConfigIC.ICFilter = 0;
   if (HAL_TIM_IC_ConfigChannel(&htim2, &sConfigIC, TIM_CHANNEL_3) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sConfigOC.OCMode = TIM_OCMODE_TIMING;
-  if (HAL_TIM_OC_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
   {
     Error_Handler();
   }
@@ -1073,6 +1064,8 @@ static void MX_TIM15_Init(void)
 
   TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+  TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig = {0};
 
   /* USER CODE BEGIN TIM15_Init 1 */
 
@@ -1093,9 +1086,35 @@ static void MX_TIM15_Init(void)
   {
     Error_Handler();
   }
+  if (HAL_TIM_OC_Init(&htim15) != HAL_OK)
+  {
+    Error_Handler();
+  }
   sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
   if (HAL_TIMEx_MasterConfigSynchronization(&htim15, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_TIMING;
+  sConfigOC.Pulse = 0;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
+  sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
+  if (HAL_TIM_OC_ConfigChannel(&htim15, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sBreakDeadTimeConfig.OffStateRunMode = TIM_OSSR_DISABLE;
+  sBreakDeadTimeConfig.OffStateIDLEMode = TIM_OSSI_DISABLE;
+  sBreakDeadTimeConfig.LockLevel = TIM_LOCKLEVEL_OFF;
+  sBreakDeadTimeConfig.DeadTime = 0;
+  sBreakDeadTimeConfig.BreakState = TIM_BREAK_DISABLE;
+  sBreakDeadTimeConfig.BreakPolarity = TIM_BREAKPOLARITY_HIGH;
+  sBreakDeadTimeConfig.AutomaticOutput = TIM_AUTOMATICOUTPUT_DISABLE;
+  if (HAL_TIMEx_ConfigBreakDeadTime(&htim15, &sBreakDeadTimeConfig) != HAL_OK)
   {
     Error_Handler();
   }
@@ -1165,7 +1184,7 @@ static void MX_DMA_Init(void)
   HAL_NVIC_SetPriority(DMA1_Channel4_IRQn, 7, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel4_IRQn);
   /* DMA1_Channel5_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel5_IRQn, 5, 0);
+  HAL_NVIC_SetPriority(DMA1_Channel5_IRQn, 7, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel5_IRQn);
   /* DMA2_Channel6_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA2_Channel6_IRQn, 6, 0);
@@ -1289,13 +1308,23 @@ void StartDefaultTask(void *argument)
     yprintf(&pbuf1,"\n\n\rA %4i",mctr++);
     for (i = 0; i < ADCDIRECTMAX; i++)
     {
-      yprintf(&pbuf1,"%8i",padc->abs[i].sum);
+      yprintf(&pbuf1,"%8i",padc->abs[i].sumsave);
     }
     yprintf(&pbuf1,"\n\rB     ");
     for (i = 0; i < ADCDIRECTMAX; i++)
     {
       yprintf(&pbuf1,"%8.3f",padc->abs[i].f);
     }
+    yprintf(&pbuf1,"%8.3f", adc1.common.degC);
+    yprintf(&pbuf1,"\n\rC     ");
+    for (i = 0; i < ADCDIRECTMAX; i++)
+    {
+      yprintf(&pbuf1,"%8.3f",padc->abs[i].filt);
+    }
+    extern uint32_t dbt3;
+    extern uint32_t dbt5;
+    yprintf(&pbuf1," %d %d",dbt3/16, dbt5/16);
+
 continue;
     /* Wait for ADC new adc data (ADCTask.c) */
     xTaskNotifyWait(0,0xffffffff, &noteval, 500);

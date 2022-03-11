@@ -66,8 +66,8 @@ void chgr_items_init(struct BQFUNCTION* p)
 	/* Working value for FET ON duration in PWM frame */
 	bqfunction.tim1_ccr1 = bqfunction.lc.tim1_ccr1_on; 
 
-	TIM1->CCR1 = 0; // Initialize to OFF
-
+//	TIM1->CCR1 = 0; // Initialize to OFF
+TIM1->CCR1 = bqfunction.tim1_ccr1;
 	return;
 }
 

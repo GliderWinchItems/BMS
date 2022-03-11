@@ -52,22 +52,23 @@ enum ADCSTATE
 /* Conglomerates variables for this mess. */
 struct ADCSPIALL
 {
-	union SPI24 spitx24;
-	union SPI24 spirx24;
+	union SPI24 spitx24; // SPI command sent to BMS
+ 	union SPI24 spirx24; // SPI monitor received from BMS
 	uint32_t delayct;
 	uint16_t raw[ADCDIRECTMAX]; // Raw readings
 	uint8_t cellnum;
-	uint8_t adcstate;
-	uint8_t timstate;
-	uint8_t spistate;
+	uint8_t adcstate;  // State for ISR handling: ADC
+	uint8_t timstate;  // State for ISR handling: TIM
+	uint8_t spistate;  // State for ISR handling: SPI
 	uint8_t adcidx;
 	uint8_t spiidx;
 	uint8_t adcflag;    // 1 = adc busy; 0 = adc idle
 	uint8_t adcrestart; // ADC conversion start initiated by: 0 = TIM2; 1= ADC
-	uint8_t readyflag;  //
+//	uint8_t readyflag;  //
 	uint8_t updn;  // Readout "up" (cells 1->16) = 1; Down (cells 16->1) = 0
-	uint8_t config;     // Current ADC configuration: 0 = DMA; 1 = BMS; 2 = not configured
-	uint8_t noverlap;    // Overlapping SPI with ADC: 0 = overlapped; 1 = not overlapped
+	uint8_t config;    // Current ADC configuration: 0 = DMA; 1 = BMS; 2 = not configured
+	uint8_t noverlap;  // Overlapping SPI with ADC: 0 = overlapped; 1 = not overlapped
+	int8_t  tim15ctr;   // TIM15CH1:OC turnover counter
 };
 
 /* Request Codes for ADCTask services. */

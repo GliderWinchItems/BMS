@@ -50,7 +50,7 @@ void adcspi_init(void);
 /* @brief	: TIM2:CC4IF interrupt (arrives here from FanTask.c)
  * @param	: pT2base = pointer to TIM2 register base
 * ####################################################################### */
-void HAL_SPI_MasterRxCpltCallback(void);
+void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi);
 /* SPI DMA RX complete callback
  * RX lags TX slightly, so RX is used
 * ####################################################################### */
@@ -60,12 +60,8 @@ void adcspi_adc_IRQHandler(ADC_HandleTypeDef* phadc1);
  * DMA CH1 interrupt (from stm32l4xx_it.c) */
 void  adcspi_dma_handler(void);
  /*  ####################################################################### */
-void adcspi_tim2(TIM_TypeDef  *pT2base);
-/* @brief	: TIM2:CC4IF interrupt (arrives here from FanTask.c)
- * @param	: pT2base = pointer to TIM2 register base
+void adcspi_tim15_IRQHandler(void);
+/* @brief	: TIM15 interrupt shares with TIM1 break;
    ####################################################################### */
-
-extern union SPI24 spitx24;
-extern union SPI24 spirx24;
 
 #endif

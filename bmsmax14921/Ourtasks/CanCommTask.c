@@ -28,12 +28,16 @@ static void canfilt(uint16_t mm, struct MAILBOXCAN* p);
 #define CANCOMMBIT00 (1 << 0) // Send cell voltage  command
 #define CANCOMMBIT01 (1 << 1) // Send misc reading command
 #define CANCOMMBIT02 (1 << 2) // Multi-purpose incoming command
+#define CANCOMMBIT03 (1 << 3) // ADCTask completed BMS read 
 
 struct CANRCVBUF  can_hb; // Dummy heart-beat request CAN msg
 uint8_t hbseq; // heartbeat CAN msg sequence number
 uint8_t rdyflag_cancomm = 0; // Initialization complete and ready = 1
 
 TaskHandle_t CanCommHandle = NULL;
+
+static struct ADCREADREQ adcreadreq;
+static float fbms[ADCBMSMAX]; // (16+3+1) = 20; Number of MAX14921 (cells+thermistors+tos)     
 
 /* *************************************************************************
  * void CanComm_init(struct BQFUNCTION* p );
@@ -104,6 +108,10 @@ void StartCanComm(void* argument)
 {
 //while(1==1) osDelay(100);
 
+	BaseType_t qret;
+	uint32_t noteval2;
+	struct ADCREADREQ* padcreadreq = &adcreadreq;
+
 	/* We use the parameters from BQ for this task. */
 	struct BQFUNCTION* p = &bqfunction;
 	struct CANRCVBUF* pcan;
@@ -112,7 +120,16 @@ void StartCanComm(void* argument)
 	uint32_t noteval = 0;    // Receives notification word upon an API notify
 	uint8_t code;
 
-//	while (CANTaskreadyflag == 0) osDelay(1);
+//	while (CANTaskreadyflag == 0) osDelay(1); // Debug
+
+	/* Pre-load BMS readout request queue block. */	
+	adcreadreq.taskhandle = CanCommHandle;// Requesting task's handle
+	adcreadreq.tasknote   = CANCOMMBIT03;// ADCTask completed BMS read 
+	adcreadreq.taskdata   = &fbms[0];    // Requesting task's pointer to buffer to receive data
+	adcreadreq.cellbits   = 0;           // Depends on command: FET to set; Open cell wires
+	adcreadreq.updn       = 0;           // BMS readout direction high->low cell numbers
+	adcreadreq.reqcode    = REQ_READBMS; // Read MAX1921 cells, thermistor, Top-of-stack
+	adcreadreq.noverlap   = 0;           // Overlap spi with ADC conversions
 
 extern CAN_HandleTypeDef hcan1;
 	HAL_CAN_Start(&hcan1); // CAN1
@@ -167,6 +184,15 @@ extern CAN_HandleTypeDef hcan1;
 		/* Timeout notification. */
 		if (noteval == 0)
 		{ // Send heartbeat
+
+			/* Queue a read BMS request to ADCTask.c */
+			qret = xQueueSendToBack(ADCTaskReadReqQHandle, &padcreadreq, 5000);
+if (qret != pdPASS) morse_trap(720); // JIC debug
+
+			/* Wait for ADCTask to complete. */
+			xTaskNotifyWait(0,0xffffffff, &noteval2, 5000);
+if (noteval2 != CANCOMMBIT03) morse_trap(721); // JIC debug
+
 			/* Use dummy CAN msg, then it looks the same as a request CAN msg. */
 			can_hb.cd.uc[0] = CMD_CMD_TYPE2;  // Misc subcommands code
 			can_hb.cd.uc[1] = MISCQ_STATUS;   // status code

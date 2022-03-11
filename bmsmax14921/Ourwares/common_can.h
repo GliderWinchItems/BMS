@@ -32,19 +32,19 @@ union CANDATA	// Unionize for easier cooperation amongst types
    unsigned long long ull;
    signed long long   sll;
    double             dbl;
-	u32 	   ui[2];
-	u16 	   us[4];
-	u8 	   uc[8];
-	u8	   u8[8];
-	s32        si[2];
-	s16        ss[4];
-	s8         sc[8];
-	float	    f[2];
+	uint32_t 	   ui[2];
+	uint16_t 	   us[4];
+	uint8_t 	   uc[8];
+	uint8_t 	   u8[8];
+	int32_t        si[2];
+	int16_t        ss[4];
+	int8_t         sc[8];
+	float	        f[2];
 };
 struct CANRCVBUF		// Combine CAN msg ID and data fields
 { //                               offset  name:     verbose desciption
-	u32 id;			// 0x00 CAN_TIxR: mailbox receive register ID p 662
-	u32 dlc;		// 0x04 CAN_TDTxR: time & length p 660
+	uint32_t id;			// 0x00 CAN_TIxR: mailbox receive register ID p 662
+	uint32_t dlc;		// 0x04 CAN_TDTxR: time & length p 660
 	union CANDATA cd;	// 0x08,0x0C CAN_TDLxR,CAN_TDLxR: Data payload (low, high)
 };
 struct CANRCVTIMBUF		// CAN data plus timer ticks
@@ -55,39 +55,39 @@ struct CANRCVTIMBUF		// CAN data plus timer ticks
 struct CANRCVSTAMPEDBUF
 {
 	union LL_L_S	U;	// Linux time, offset, in 1/64th ticks
-	u32 id;			// 0x00 CAN_TIxR: mailbox receive register ID p 662
-	u32 dlc;		// 0x04 CAN_TDTxR: time & length p 660
+	uint32_t id;			// 0x00 CAN_TIxR: mailbox receive register ID p 662
+	uint32_t dlc;		// 0x04 CAN_TDTxR: time & length p 660
 	union CANDATA cd;	// 0x08,0x0C CAN_TDLxR,CAN_TDLxR: Data payload (low, high)	
 };
 
 struct PP
 {
 	char 	*p;
-	u32	ct;
+	uint32_t	ct;
 };
 
 #define GPSSAVESIZE	80	// Max size of saved GPS line (less than 256)
 struct GPSPACKETHDR
 {
 	union LL_L_S	U;	// Linux time, offset, in 1/64th ticks
-	u32 		id;	// Fake msg ID for non-CAN messages, such as GPS
-	u8 c[GPSSAVESIZE];	// 1st byte is count; remaining bytes are data
+	uint32_t 		id;	// Fake msg ID for non-CAN messages, such as GPS
+	uint8_t c[GPSSAVESIZE];	// 1st byte is count; remaining bytes are data
 };
 
 union CANPC
 {
 	struct CANRCVBUF	can;		// Binary msg
-	u8 c[sizeof(struct CANRCVBUF)+2];	// Allow for chksum w longest msg
+	uint8_t c[sizeof(struct CANRCVBUF)+2];	// Allow for chksum w longest msg
 };
 
 struct CANPCWRAP	// Used with gateway (obsolete except for old code)
 {
 	union CANPC can;
-	u32	chk;
-	u8	*p;
-	u8	prev;
-	u8	c1;
-	s16 	ct;
+	uint32_t	chk;
+	uint8_t	*p;
+	uint8_t	prev;
+	uint8_t	c1;
+	int16_t 	ct;
 };
 
 /* The following are used in the PC program and USART1_PC_gateway.  (Easier to find them here.) */
@@ -107,24 +107,24 @@ struct CANPCWRAP	// Used with gateway (obsolete except for old code)
 /* Compressed msg  */
 struct PCTOGATECOMPRESSED
 {
-	u8 	cm[PCTOGATEWAYSIZE/2];	// seq + id + dlc + payload bytes + jic spares
-	u8*	p;			// Pointer into cm[]
-	s16	ct;			// Byte count of compressed result (not including checksum)
-	u8	seq;			// Message count
-	u8	chk;			// Checksum
+	uint8_t 	cm[PCTOGATEWAYSIZE/2];	// seq + id + dlc + payload bytes + jic spares
+	uint8_t*	p;			// Pointer into cm[]
+	int16_t	ct;			// Byte count of compressed result (not including checksum)
+	uint8_t	seq;			// Message count
+	uint8_t	chk;			// Checksum
 };
 
 struct PCTOGATEWAY	// Used in PC<->gateway asc-binary conversion & checking
 {
 	char asc[PCTOGATEWAYSIZE];	// ASCII "line" is built here
-//	u8	*p;			// Ptr into buffer
+//	uint8_t	*p;			// Ptr into buffer
 	char	*pasc;			// Ptr into buffer
-	u32	chk;			// Checksum
-	s16	ct;			// Byte ct (0 = msg not complete; + = byte ct)
-	s16	ctasc;			// ASC char ct
-	u8	prev;			// Used for binary byte stuffing
-	u8	seq;			// Sequence number (CAN msg counter)
-	u8	mode_link;		// PC<->gateway mode (binary, ascii, ...)
+	uint32_t chk;			// Checksum
+	int16_t	ct;			// Byte ct (0 = msg not complete; + = byte ct)
+	int16_t	ctasc;			// ASC char ct
+	uint8_t	prev;			// Used for binary byte stuffing
+	uint8_t	seq;			// Sequence number (CAN msg counter)
+	uint8_t	mode_link;		// PC<->gateway mode (binary, ascii, ...)
 	struct PCTOGATECOMPRESSED cmprs; // Easy way to make call to 'send'
 };
 
@@ -134,22 +134,22 @@ struct PCTOGATEWAY	// Used in PC<->gateway asc-binary conversion & checking
 /* Error counts for monitoring. */
 struct CANWINCHPODCOMMONERRORS
 {
-	u32 can_txerr; 		// Count: total number of msgs returning a TERR flags (including retries)
-	u32 can_tx_bombed;	// Count: number of times msgs failed due to too many TXERR
-	u32 can_tx_alst0_err; 	// Count: arbitration failure total
-	u32 can_tx_alst0_nart_err;// Count: arbitration failure when NART is on
-	u32 can_msgovrflow;	// Count: Buffer overflow when adding a msg
-	u32 can_spurious_int;	// Count: TSR had no RQCPx bits on (spurious interrupt)
-	u32 can_no_flagged;	// Count: 
-	u32 can_pfor_bk_one;	// Count: Instances that pfor was adjusted in TX interrupt
-	u32 can_pxprv_fwd_one;	// Count: Instances that pxprv was adjusted in 'for' loop
-	u32 can_rx0err;		// Count: FIFO 0 overrun
-	u32 can_rx1err;		// Count: FIFO 1 overrun
-	u32 can_cp1cp2;		// Count: (RQCP1 | RQCP2) unexpectedly ON
-	u32 error_fifo1ctr;	// Count: 'systickphasing' unexpected 'default' in switch
-	u32 nosyncmsgctr;	// Count: 'systickphasing',lost sync msgs 
-	u32 txint_emptylist;	// Count: TX interrupt with pending list empty
-	u32 disable_ints_ct;	// Count: while in disable ints looped
+	uint32_t can_txerr; 		// Count: total number of msgs returning a TERR flags (including retries)
+	uint32_t can_tx_bombed;	// Count: number of times msgs failed due to too many TXERR
+	uint32_t can_tx_alst0_err; 	// Count: arbitration failure total
+	uint32_t can_tx_alst0_nart_err;// Count: arbitration failure when NART is on
+	uint32_t can_msgovrflow;	// Count: Buffer overflow when adding a msg
+	uint32_t can_spurious_int;	// Count: TSR had no RQCPx bits on (spurious interrupt)
+	uint32_t can_no_flagged;	// Count: 
+	uint32_t can_pfor_bk_one;	// Count: Instances that pfor was adjusted in TX interrupt
+	uint32_t can_pxprv_fwd_one;	// Count: Instances that pxprv was adjusted in 'for' loop
+	uint32_t can_rx0err;		// Count: FIFO 0 overrun
+	uint32_t can_rx1err;		// Count: FIFO 1 overrun
+	uint32_t can_cp1cp2;		// Count: (RQCP1 | RQCP2) unexpectedly ON
+	uint32_t error_fifo1ctr;	// Count: 'systickphasing' unexpected 'default' in switch
+	uint32_t nosyncmsgctr;	// Count: 'systickphasing',lost sync msgs 
+	uint32_t txint_emptylist;	// Count: TX interrupt with pending list empty
+	uint32_t disable_ints_ct;	// Count: while in disable ints looped
 };
 
 struct PARAMIDPTR {

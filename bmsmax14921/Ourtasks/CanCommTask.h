@@ -12,6 +12,7 @@
 #include "stm32l4xx_hal.h"
 #include "cancomm_items.h"
 #include "BQTask.h"
+#include "ADCTask.h"
 
 /* *************************************************************************/
  void CanComm_init(struct BQFUNCTION* p );

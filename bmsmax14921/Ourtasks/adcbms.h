@@ -29,5 +29,4 @@ void adcbms_config_adc(void);
 /* @brief	: Set up and start a readout sequence
  * *************************************************************************/
 
-
 #endif
