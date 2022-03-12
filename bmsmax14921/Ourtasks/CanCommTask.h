@@ -26,5 +26,6 @@
 
 extern TaskHandle_t CanCommHandle;
 extern uint8_t rdyflag_cancomm;  // Initialization complete and ready = 1
+extern float fbms[ADCBMSMAX]; // (16+3+1) = 20; Number of MAX14921 (cells+thermistors+tos)
 
 #endif

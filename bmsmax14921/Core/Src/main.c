@@ -1325,29 +1325,21 @@ void StartDefaultTask(void *argument)
     extern uint32_t dbt5;
     yprintf(&pbuf1," %d %d",dbt3/16, dbt5/16);
 
-continue;
-    /* Wait for ADC new adc data (ADCTask.c) */
-    xTaskNotifyWait(0,0xffffffff, &noteval, 500);
-    if (noteval & DEFAULTTASKBIT02)
+    if (readbmsflag != 0)
     {
+      readbmsflag = 0;
       /* Header: device readings and cell numbers */
-      lctr += 1;
-      if (lctr > 1)
+      yprintf(&pbuf1,"\n\n\rH ");
+      for (i = 1; i < 17; i++)
       {
-        lctr = 0;
-
-        yprintf(&pbuf1,"\n\n\r%d",mctr++);
-        for (i = 1; i < 17; i++)
-          yprintf(&pbuf1,"%7d",i); // Cell number column heading
-          yprintf(&pbuf1," TOPSTACK PACKPIN    LD  CC2"); //Additional 
+        yprintf(&pbuf1,"%8d",i); // Cell number column heading
       }
+        yprintf(&pbuf1,"      T1      T2      T3     TOS\n\rV "); //Additional 
 
-     /* Cell voltages for CAN. */
-      uint16_t* pv = &bqfunction.cellv_latest[0];
-      yprintf(&pbuf1,"\n\rlate");
-      for (i = 0; i < 16; i++)
+     /* BMS readout (cells, thermistors, top-of-stack) */
+      for (i = 0; i < ADCBMSMAX; i++)
       {
-        yprintf(&pbuf1,"%7u",*pv++);
+        yprintf(&pbuf1," %7.4f",fbms[i]);
       }
     }
   }

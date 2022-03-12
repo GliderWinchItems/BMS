@@ -64,4 +64,6 @@ void adcspi_tim15_IRQHandler(void);
 /* @brief	: TIM15 interrupt shares with TIM1 break;
    ####################################################################### */
 
+extern uint8_t readbmsflag; // Let main know a BMS reading was made
+
 #endif

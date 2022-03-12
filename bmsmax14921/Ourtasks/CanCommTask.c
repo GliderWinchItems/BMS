@@ -37,7 +37,7 @@ uint8_t rdyflag_cancomm = 0; // Initialization complete and ready = 1
 TaskHandle_t CanCommHandle = NULL;
 
 static struct ADCREADREQ adcreadreq;
-static float fbms[ADCBMSMAX]; // (16+3+1) = 20; Number of MAX14921 (cells+thermistors+tos)     
+float fbms[ADCBMSMAX]; // (16+3+1) = 20; Number of MAX14921 (cells+thermistors+tos)     
 
 /* *************************************************************************
  * void CanComm_init(struct BQFUNCTION* p );

@@ -12,6 +12,13 @@
 #define __BQ_IDX_V_STRUCT
 
 #define NCELLMAX 18  // Largest array size allowed
+#define CELLNONE 0xFF // Code for no cell in cell box position
+
+/* 16b codes for impossible voltage readings. */
+#define CELLVBAD   65535 // Yet to be defined
+#define CELLVNONE  65534 // Cell position not installed
+#define CELLVOPEN  65533 // Installed, but wire appears open
+
 
 /* Parameters levelwind instance (LC = Local Copy) */
 struct BQLC
@@ -48,13 +55,12 @@ struct BQLC
    uint32_t modulev_max; // Battery module max limit
    uint32_t modulev_min; // Battery module min limit
 
-
    uint8_t balnummax;    // Max number of cells to discharge at one time
    int16_t cellbal_del;  // Balance within lowest cellv + this delta (mv)
 
    uint8_t ncell;       // Number of series cells in module
-
-   float cellcal[NCELLMAX]; // cell[n] voltage = ADC count * cellcal[n] (100 uv
+   uint8_t npositions;  // Number of cell positions in module "box"
+    int8_t cellpos[NCELLMAX]; // Cell position - 1 given index [cell number - 1]
 
  // CAN ids ...........................................................................
    //                                  CANID_NAME            CANID       PAYLOAD FORMAT

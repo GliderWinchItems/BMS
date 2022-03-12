@@ -58,33 +58,28 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->balnummax   =  7;  // Max number of cells to discharge at one time
    p->cellbal_del =  2;  // Balance within lowest cellv + this delta (mv)
 
-   /* Convert ADC counts to cell voltage */
-   p->cellcal[ 0] =  7.2233121E-07    ;
-   p->cellcal[ 1] =  7.2234845E-07    ;
-   p->cellcal[ 2] =  7.2234573E-07    ;
-   p->cellcal[ 3] =  7.2233483E-07    ;
-   p->cellcal[ 4] =  7.2235134E-07    ;
-   p->cellcal[ 5] =  7.2237960E-07    ;
-   p->cellcal[ 6] =  7.2238600E-07    ;
-   p->cellcal[ 7] =  7.2238046E-07    ;
-   p->cellcal[ 8] =  7.2240982E-07    ;
-   p->cellcal[ 9] =  7.2242603E-07    ;
-   p->cellcal[10] =  7.2256517E-07    ;
-   p->cellcal[11] =  7.2248220E-07    ;
-   p->cellcal[12] =  7.2252472E-07    ;
-   p->cellcal[13] =  7.2261882E-07    ;
-   p->cellcal[14] =  7.2265346E-07    ;
-   p->cellcal[15] =  7.2272802E-07    ;
-   p->cellcal[16] =  7.2247370E-04    ;
-   p->cellcal[17] =  7.2247370E-04    ;
+   p->npositions  = 18;  // Number of cell =>positions<= in module "box"
 
-   /* Rescale */
-   uint8_t i;
-   for (i = 0; i < NCELLMAX; i++)
-      p->cellcal[i] *= 10000.0f;
+   /* Relate cell numbers to cell positions. (indices are ("number"-1) */
+   p->cellpos[ 0]  =  0; // Cell #1 installed in cell position #1
+   p->cellpos[ 1]  =  1; // ...
+   p->cellpos[ 2]  =  2; // 
+   p->cellpos[ 3]  =  3; // 
+   p->cellpos[ 4]  =  4; // 
+   p->cellpos[ 5]  =  5; // 
+   p->cellpos[ 6]  =  6; // 
+   p->cellpos[ 7]  =  7; // Cel #8 is installed in cell position #8
+   p->cellpos[ 8]  =  CELLNONE; // No cell in cell position 8
+   p->cellpos[ 9]  =  CELLNONE; // No cell in cell position 9
+   p->cellpos[10]  =  8; // Cell #8 is installed in cell position 10
+   p->cellpos[11]  =  9; // ...
+   p->cellpos[12]  = 10; 
+   p->cellpos[13]  = 11; 
+   p->cellpos[14]  = 12; 
+   p->cellpos[15]  = 13; 
+   p->cellpos[16]  = 14; 
+   p->cellpos[17]  = 15; // Cell #16 is installed in cell position #18
 
-
- 
 // List of CAN ID's for setting up hw filter for incoming msgs
    //                      CANID_HEX      CANID_NAME             CAN_MSG_FMT     DESCRIPTION
    	// We receive: EMC

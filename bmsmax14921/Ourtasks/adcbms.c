@@ -163,7 +163,7 @@ static uint32_t adc_cfgr2;
 
 	/* Set number of sampling cycles for channel scanned first. */
 	hadc1.Instance->SMPR1 &= ~(0X7 << 0); // Clear old value
-	hadc1.Instance->SMPR1 |= ~(0X3 << 0); // 011: 24.5 ADC clock cycles
+	hadc1.Instance->SMPR1 |=  (0X3 << 0); // 011: 24.5 ADC clock cycles
 
  	/* Scan sequence. */
  	// Set Length of scan sequence to 1 conversion. (code = 0)

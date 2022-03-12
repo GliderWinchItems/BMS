@@ -55,7 +55,7 @@ struct ADCSPIALL
 	union SPI24 spitx24; // SPI command sent to BMS
  	union SPI24 spirx24; // SPI monitor received from BMS
 	uint32_t delayct;
-	uint16_t raw[ADCDIRECTMAX]; // Raw readings
+	uint16_t raw[ADCBMSMAX]; // Raw readings from BMS sequence
 	uint8_t cellnum;
 	uint8_t adcstate;  // State for ISR handling: ADC
 	uint8_t timstate;  // State for ISR handling: TIM

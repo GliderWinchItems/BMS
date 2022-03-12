@@ -52,10 +52,11 @@ LOPW = [2]:0 1 = Low power mode: Vp = 1 ua
 */
 
 #define TIM15MHZ 16  // Timer rate MHz
-#define DELAY8MS  (TIM15MHZ * 1000 * 8) // 8 millisecond TIM2 OC increment
-#define DELAYUS    TIM15MHZ // 1 microsecond TIM2 OC increment
+#define DELAY8MS  (TIM15MHZ * 1000 * 8) // 8 millisecond TIM15 OC increment
+#define DELAYUS    TIM15MHZ // 1 microsecond TIM15 OC increment
 
 static uint32_t noteval1;
+uint8_t readbmsflag; // Let main know a BMS reading was made
 /* *************************************************************************
  * void adcspi_readadc(void);
  * @brief	: Read selected ADCs (non-MAX14921)
@@ -118,24 +119,48 @@ dbt3 = dbt2-dbt1;
  * void adcspi_readbms(void);
  * @brief	: Do a sequence for reading MA14921 plus direct ADC inputs
  * *************************************************************************/
+uint32_t dbbms1; // Debug: check timing
+uint32_t dbbms2;
+uint32_t dbbms3;
+
 void adcspi_readbms(void)
 {
+	struct ADCSPIALL* p = &adcspiall; // Convenience pointer
 	int i;
-
+dbbms1 = DTWTIME;
 	// Initialize and start read sequence
 	adcbms_startreadbms();
 
 	// Wait for sequence to complete
 	// Once started, sequence driven by interrupts until complete
 	xTaskNotifyWait(0,0xffffffff, &noteval1, 3000);
+dbbms2 = DTWTIME;
+dbbms3 = dbbms2-dbbms1;
+
 	// Debugging trap for timeout (3 sec)
 	if (noteval1 != TSKNOTEBIT00) morse_trap(814); // JIC debug
 
 	/* Calibrate and store readings in requester's array (float). */
-	for (i = 0; i < ADCBMSMAX; i++)
+	for (i = 0; i < 16; i++)
 	{
-		*(pssb->taskdata+i) = adcparams_calibbms(i);
+		// Readout "up" (cells 1->16) = 1; Down (cells 16->1) = 0
+		if (p->updn == 0)
+		{ // Here, cell number readout sequence was 16->1
+			*(pssb->taskdata+i) = adcparams_calibbms(15-i);
+		}
+		else
+		{ // Here, cell sequence readout was 1->16
+			*(pssb->taskdata+i) = adcparams_calibbms(i);
+		}
 	}
+	// Thermistors and top-of-stack
+	for (i = 16; i < ADCBMSMAX; i++)
+	{
+			*(pssb->taskdata+i) = adcparams_calibbms(i);
+	}
+
+	readbmsflag = 1;
+	// Upon this return ADCTask will notify requester.
 	return;
 }
 /* *************************************************************************
@@ -162,7 +187,7 @@ void adcspi_calib(void)
 	halret = HAL_SPI_TransmitReceive_DMA(&hspi1, &p->spitx24.uc[0], &p->spirx24.uc[0], 3);
 	if (halret == HAL_ERROR) morse_trap(817);
 	/* SPI DMA interrupt callback routine (SPISTATE_CALIB) will cause /CS lo->hi 
-	   transition AND set an 8 ms delay in TIM2CH4 OC. The OC interrupt will 
+	   transition AND set an 8 ms delay in TIM15CH1 OC. The OC interrupt will 
 	   cause the following wait for notifcation to exit.   */
 	xTaskNotifyWait(0,0xffffffff, &noteval1, 10000);
 
@@ -313,6 +338,7 @@ static const uint8_t bitorderDN[16] = {0xFC,0XBC,0XDC,0X9C,0XEC,0XAC,0XCC,0X8C,
 	                                   0XF4,0XB4,0XD4,0X94,0XE4,0XA4,0XC4,0X84};
 static const uint32_t spicalib2 = 0;
 
+uint32_t dbisr;
 void adcspi_tim15_IRQHandler(void)
 {
 	struct ADCSPIALL* p = &adcspiall; // Convenience pointer
@@ -320,13 +346,17 @@ void adcspi_tim15_IRQHandler(void)
 	HAL_StatusTypeDef halret;
 
 /* Debug: only this flag should have brought us here. */
-if ((TIM15->SR & (1 << 1)) == 0) morse_trap(831);
+if ((TIM15->SR & (1 << 1)) == 0) 
+{
+	dbisr = TIM15->SR;
+	morse_trap(831);
+}
 
 	/* Clear interrupt flag. */
 	TIM15->SR = ~(1 << 1); // Bit 1 CC1IF: Capture/Compare 1 interrupt flag
 
 	if (p->spiidx >= ADCBMSMAX)
-	{ // Done with SPI sending commands & TIM2 delay for settling 
+	{ // Done with SPI sending commands & TIM15 delay for settling 
 		p->timstate = TIMSTATE_IDLE; 
 		return;
 	}
@@ -354,14 +384,14 @@ p->timstate = TIMSTATE_IDLE; // Set to idle, jic
 		// Use spi index to select MAX14921 command for cell selection readout
 		switch (p->spiidx)
 		{ 
-		// Select cells 			
+		// Select cells		
 		case  0: case  1: case  2: case  3:
 		case  4: case  5: case  6: case  7:
 		case  8: case  9: case 10: case 11:
 		case 12: case 13: case 14: case 15:
 			// Cell select: ECS = 1, SC0,1,2,3 selects cell number
 			// Look up cell selection number since bit order in command is reversed.
-			// Allow for comparing up and down readout sequence results
+			// Allow for selecting up or down readout sequence (check "slump")
 			if (p->updn == 0)
 			{ // Preferred seq: read highest cells first
 				p->spitx24.uc[2] = bitorderDN[p->spiidx];
@@ -389,15 +419,15 @@ p->timstate = TIMSTATE_IDLE; // Set to idle, jic
 			break;
 
 		// End of sending SPS commands for BMS readouts
-		// ADC completion ends full BMS readout sequence
+		// ADC completion will end full BMS readout sequence
 		case 20:
 			/* Next: reconfigure ADC and readout non-BMS ADC inputs
 			   after ADC has finished converting the top-of-stack
 			   (and last) selection. */
 			if (p->adcrestart == 0)
 			{ /* Here, ADC was not busy when SPI completed sending the command. SPI interrupt 
-	 			raised /CR to latch the command and started TIM2 timeout for settling.
-	 			The TIM2 timeout ended up here and the index shows the last command was sent
+	 			raised /CR to latch the command and started TIM15 timeout for settling.
+	 			The TIM15 timeout ended up here and the index shows the last command was sent
 	 			and the settling time completed. Start the last ADC conversion (for this
 	 			MAX14921 cell, thermistor, and top-of-stack readout sequence). */
 				if (p->adcflag != 0) morse_trap (805);
@@ -407,33 +437,32 @@ p->timstate = TIMSTATE_IDLE; // Set to idle, jic
 				hadc1.Instance->CR |= (0x1 << 2);
 
 				p->spistate= SPISTATE_IDLE; //JIC
+				p->timstate = TIMSTATE_IDLE; // More JIC'ing
 			}
 			break;
 
-		default: morse_trap(801);
+		default: morse_trap(801); // Yes, this did catch a queue mistake!
 			break;
 		}
-	/***** TIMSTATE2 continues *****/
+	/***** TIMSTATE_2 continues *****/
 		// First SPI cell select command does not overlap ADC conversions. No need to
 		// check if ADC is still busy with previous conversion.
 		if (p->spiidx == 0)
 		{ // Ground reference time delay completed, send first cell selection command
 			p->spistate = SPISTATE_2;
 
-			if (p->noverlap != 0)
-			{ // Here, do not overlap SPI sending with ADC conversion
-				// Enable /CS and start SPI sending first cell selection
-				HAL_GPIO_WritePin(notCS_GPIO_Port,notCS_Pin,GPIO_PIN_RESET);
-				halret = HAL_SPI_TransmitReceive_DMA(&hspi1, &p->spitx24.uc[0], &p->spirx24.uc[0], 3);
-				if (halret != HAL_OK) morse_trap (826);
-			}
-			else
-			{ // Here, overlap sending SPI with ADC conversion
+			if (p->noverlap == 0) // No Overlap?
+			{ // Here, no no-overlap, i.e. yes, overlap sending SPI with ADC conversion
 				// Setting ADSTART starts regular conversion
-				p->adcflag = 1; // Show ADC started
+				p->adcflag = 1; // Show ADC started (or later busy check)
 				hadc1.Instance->CR |= (0x1 << 2); // Start ADC
 			}
-			// Next TIM2 will prepare command to select cell #2.
+			/* Start SPI sending command for selecting cell #1 (spiidx = 0) */
+			HAL_GPIO_WritePin(notCS_GPIO_Port,notCS_Pin,GPIO_PIN_RESET);
+			halret = HAL_SPI_TransmitReceive_DMA(&hspi1, &p->spitx24.uc[0], &p->spirx24.uc[0], 3);
+			if (halret != HAL_OK) morse_trap (826);
+
+			// Next TIM15 interrupt will prepare command to select cell #2.
 			p->spiidx = 1;
 			break; // Break TIMESTATE_2
 		}
@@ -449,8 +478,8 @@ p->timstate = TIMSTATE_IDLE; // Set to idle, jic
 		}
 		else if (p->adcrestart == 0)
 		{ /* Here, ADC was not busy when SPI completed sending the command. SPI interrupt 
-		 	raised /CR to latch the command and started TIM2 timeout for settling.
-		 	The TIM2 timeout ended up here. */
+		 	raised /CR to latch the command and started TIM15 timeout for settling.
+		 	The TIM15 timeout ended up here. */
 	if (p->adcflag != 0) morse_trap (804); // Debug
 
 			// Setting ADSTART starts regular conversion
@@ -498,7 +527,7 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 		/* Set /CS (GPIOA PIN_15) low, then start SPI sending command. */
 		HAL_GPIO_WritePin(notCS_GPIO_Port,notCS_Pin,GPIO_PIN_RESET);
 		halret = HAL_SPI_TransmitReceive_DMA(&hspi1, &p->spitx24.uc[0], &p->spirx24.uc[0], 3);
-if (halret != HAL_OK)	morse_trap(831);
+if (halret != HAL_OK)	morse_trap(833);
 		p->spistate = SPISTATE_CALIB2;
 		break;
 
@@ -530,7 +559,7 @@ if (halret != HAL_OK)	morse_trap(831);
 		   Set adcflag so that the ADC completion interrupt will raise /CR to latch 
 		the selection, and set a settling time timeout. 
 
-		   The TIM2 timeout interrupt will then start the ADC conversions, and launch the
+		   The TIM15 timeout interrupt will then start the ADC conversions, and launch the
 		 next SPI command, unless it is a non-overlapped request, in which case, the
 		 ADC interrupt will start the next SPI.
 		*/
@@ -618,10 +647,10 @@ void adcspi_adc_IRQHandler(ADC_HandleTypeDef* phadc1)
 		{ // More readings to be taken.
 			if (p->adcrestart != 0)
 			{ /* SPI command was sent, but the command was not latched when the following
-			    TIM2 timeout took place because the ADC was busy. TIM2 interrupt set adcrestart
-			    so that the ADC completion will latch the command bits and set the TIM2 
+			    TIM15 timeout took place because the ADC was busy. TIM15 interrupt set adcrestart
+			    so that the ADC completion will latch the command bits and set the TIM15 
 			    timeout delay for the mux and Aout to settle.
-			    The end of the TIM2 timeout will start the ADC, and start the next
+			    The end of the TIM15 timeout will start the ADC, and start the next
 			    SPI command sending (if there are more readings to be taken). */
 
 			    p->adcrestart = 0; // Is this needed?
@@ -636,7 +665,7 @@ void adcspi_adc_IRQHandler(ADC_HandleTypeDef* phadc1)
 			else
 			{
 				if (p->noverlap == 1)
-				{ // Here, end of ADC (and not TIM2) starts next spi
+				{ // Here, end of ADC (and not TIM15) starts next spi
 					// Enable: /CS low, then start SPI sending command
 					HAL_GPIO_WritePin(notCS_GPIO_Port,notCS_Pin,GPIO_PIN_RESET);
 					halret = HAL_SPI_TransmitReceive_DMA(&hspi1, &p->spitx24.uc[0], &p->spirx24.uc[0], 3);
@@ -646,6 +675,8 @@ void adcspi_adc_IRQHandler(ADC_HandleTypeDef* phadc1)
 			}
 		}
 	}
+	else
+		morse_trap(736); // JIC debug
 	return;
 }
 /* #######################################################################
