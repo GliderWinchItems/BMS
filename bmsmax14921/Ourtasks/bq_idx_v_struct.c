@@ -32,7 +32,7 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->modulenum    = 1; // Module number on string (1-16)
    if ((p->modulenum == 0) || (p->modulenum > 16)) morse_trap(702);
 
-   p->hbct_t       = 3800;   // Heartbeat ct: milliseconds between sending 
+   p->hbct_t       = 1001;   // Heartbeat ct: milliseconds between sending 
    p->hbct         = 64;    // Number of swctr ticks between heartbeats
 
    p->adc_hb       = 64;     // Number of ticks for heartbeat ADC readout

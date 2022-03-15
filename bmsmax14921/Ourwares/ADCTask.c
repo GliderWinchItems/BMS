@@ -67,10 +67,8 @@ void StartADCTask(void *argument)
 	pssb->updn     = 0;      // see above 'struct ADCSPIALL'
 	pssb->reqcode  = REQ_OPENCELL; // Code for service requested
 
-#define SKIP_UNTIL_14921_INSTALLED	
-#ifndef  SKIP_UNTIL_14921_INSTALLED
-	adcspi_calib();
-#endif
+// $$$$$$	adcspi_calib();
+
 	// Default to overlapped spi commands with ADC conversions
 	p->noverlap = 0;
 

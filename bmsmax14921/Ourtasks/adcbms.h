@@ -29,4 +29,6 @@ void adcbms_config_adc(void);
 /* @brief	: Set up and start a readout sequence
  * *************************************************************************/
 
+extern uint32_t* pspi; // SPI register base pointer.
+
 #endif

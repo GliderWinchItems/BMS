@@ -32,8 +32,12 @@ PC0	BMS	        IN1 	 24.5	N/A
 #include "morse.h"
 
 extern ADC_HandleTypeDef hadc1;
-extern SPI_HandleTypeDef hspi1;
 extern DMA_HandleTypeDef hdma_adc1;
+
+extern SPI_HandleTypeDef hspi1;
+extern DMA_HandleTypeDef hdma_spi1_rx;
+extern DMA_HandleTypeDef hdma_spi1_tx;
+
 extern TIM_HandleTypeDef htim15;
 
 /* Save Hardware registers setup with 'MX for later restoration. */
@@ -42,14 +46,16 @@ static uint32_t adc_sqr1;
 static uint32_t adc_cfgr; 
 static uint32_t adc_cfgr2;
 
+
+uint32_t* pspi; // SPI register base pointer.
+uint32_t  spitmp; // Temp for debugging
+
 /* *************************************************************************
  * void adcbms_preinit(void);
  * @brief	: Save some things used later.
  * *************************************************************************/
  void adcbms_preinit(void)
 {
-	//struct ADCFUNCTION* p = &adc1; // Convenience pointer
-
 	/* Change number of channels scanned to 10 (from 11) */
  	// MX & HAL initialization sets length of scan sequence 
  	// to 11 conversions but the 11th in the sequence is ADC_IN1 
@@ -68,12 +74,19 @@ static uint32_t adc_cfgr2;
 	// Bit 1 DMACFG: Direct memory access configuration 0: DMA One Shot mode selected
 	adc_cfgr  |= 0x1;
 
-	/* DMA peripheral address. */
+	/* DMA1 CH1 peripheral and memory address: ADC */
 	if ((hdma_adc1.Instance->CCR & 0x1) != 0) morse_trap(844);
 	hdma_adc1.Instance->CPAR = (uint32_t)hadc1.Instance + 0x40;
-
-	/* DMA: Memory Address Register. */
 	hdma_adc1.Instance->CMAR  =  (uint32_t)&adc1.dmabuf[0]; // DMA stores into this array
+
+	/* DMA1 CH3 (SPI write) peripheral aand memory addresses: */
+	hdma_spi1_tx.Instance->CPAR = (uint32_t)hspi1.Instance + 0x0C; // SPI DR adddress
+	hdma_spi1_tx.Instance->CMAR = (uint32_t)&adcspiall.spitx24.uc[0]; // DMA stores from this array
+	hdma_spi1_tx.Instance->CCR |= (1 << 1); // TCIE: enable DMA interrupt
+
+	/* DMA1 CH2 (SPI read) peripheral and memory addresses: */
+	hdma_spi1_rx.Instance->CPAR = (uint32_t)hspi1.Instance + 0x0C; // SPI DR address
+	hdma_spi1_rx.Instance->CMAR = (uint32_t)&adcspiall.spirx24.uc[0]; // DMA stores from this array
 
 	/* TIM15 OC interrupt does nothing. */
 	adcspiall.timstate = TIMSTATE_IDLE;
@@ -83,6 +96,10 @@ static uint32_t adc_cfgr2;
 	TIM15->SR = 0;          // Clear any interrupt flags
 	TIM15->DIER = (1 << 1); // Bit 1 CC1IE: Capture/Compare 1 interrupt enable
 	TIM15->CR1 |= 1; // Start counter
+
+	/* SPI tinkering. */
+	// Device configuration register
+	pspi = hspi1.Instance; // Bits 10:8 CSHT[2:0]: Chip select high time
 
 	return;
 }
@@ -173,6 +190,14 @@ static uint32_t adc_cfgr2;
  	hadc1.Instance->SQR1 = (1 << 6); 
 
 	p->config = 1; // Show ADC is configured for BMS.
+
+	/* DMA1 CH3 interrupt. */
+	// DMA channel x configuration register (DMA_CCRx) */
+	// Bit 0 EN: channel enable | Bit 1 TCIE: transfer complete interrupt enable
+	// Bit 8 GIF3: global interrupt flag for channel 3
+//	*((uint32_t*)hdma_spi1_tx.Instance+0x8+(0x14 * 2) ) |= (1<<8);
+	hdma_spi1_tx.Instance->CCR  |= (1<<1);
+	hdma_spi1_rx.Instance->CCR  |= (1<<1);
 	
 	return;
  }
@@ -187,7 +212,6 @@ static uint32_t adc_cfgr2;
 
  void adcbms_startreadbms(void)
  {
- 	HAL_StatusTypeDef halret;
  	struct ADCSPIALL* p = &adcspiall; // Convenience pointer
 
  	p->adcflag = 0; // ADC is idle
@@ -207,21 +231,27 @@ static uint32_t adc_cfgr2;
  	// Configure ADC registers for BMS readout
  	adcbms_config_bms();
 
+ 	// Set /CS (GPIOA PIN_15) low to enable MAX14921.
+	notCS_GPIO_Port->BSRR = (notCS_Pin<<16); // Reset: /CS set low
+
  	// SPI interrupt will set a 50 us TIM2 delay to allow switch & settling.
 	p->spistate = SPISTATE_SMPL; // 
 
 	// uc[0] = 0; uc[1] = 0; uc[2] = 0x04 uc[3] = not used
 	p->spitx24.ui = 0x00040000; // /SMPL bit set high
 
- 	// Set /CS (GPIOA PIN_15) low to enable MAX14921.
-	HAL_GPIO_WritePin(notCS_GPIO_Port,notCS_Pin,GPIO_PIN_RESET);
+ 	// Bit 1 TXDMAEN: Tx buffer DMA enable
+ 	SPI1->CR2 |= (1<<1);
 
-	// Start transmission of command: set /SMPL bit high
-	halret = HAL_SPI_TransmitReceive_DMA(&hspi1, &p->spitx24.uc[0], &p->spirx24.uc[0], 3);
-	if (halret != HAL_OK) morse_trap(832);
+	// Bit 6 SPE: SPI enable
+	SPI1->CR1 |= (1 << 6);
 
-	// SPI interrupt will continue sequence.
-	// see: adcspi.c : HAL_SPI_MasterRxCpltCallback : SPISTATE_SMPL
+	/* Start transmission of command: set /SMPL bit high */
+	// DMA_CNDTR: number of data to transfer register */
+	hdma_spi1_tx.Instance->CNDTR = 3; // Number to DMA transfer
+	hdma_spi1_tx.Instance->CCR |= 1;  // Enable channel
+
+	// DMA1 CH3 (SPI tx) interrupt will continue sequence.
 	return;
  }
 

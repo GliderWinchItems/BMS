@@ -1281,7 +1281,6 @@ void StartDefaultTask(void *argument)
   /* USER CODE BEGIN 5 */
   int32_t i;
   uint32_t mctr = 0;
-  uint32_t lctr = 0;
   uint32_t noteval = 0; // TaskNotifyWait notification word
 
 /* These #defines select uart output for monitoring. */
@@ -1325,6 +1324,7 @@ void StartDefaultTask(void *argument)
     extern uint32_t dbt5;
     yprintf(&pbuf1," %d %d",dbt3/16, dbt5/16);
 
+    /* BMS readout */
     if (readbmsflag != 0)
     {
       readbmsflag = 0;
@@ -1342,6 +1342,11 @@ void StartDefaultTask(void *argument)
         yprintf(&pbuf1," %7.4f",fbms[i]);
       }
     }
+    /* Other misc. */
+    extern uint32_t dbadcspit3;
+    extern uint32_t dbbms3;
+    yprintf(&pbuf1,"\n\rT %d %d",dbadcspit3,dbbms3);
+
   }
   /* USER CODE END 5 */
 }
