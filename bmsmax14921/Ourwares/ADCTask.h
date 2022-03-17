@@ -20,25 +20,31 @@
 // Task notification bit for end of sequence (adctask.c)
 #define TSKNOTEBIT00	(1 << 0)  
 
-enum SPISTATE
-{
-	SPISTATE_CALIB1,
-	SPISTATE_CALIB2,
-	SPISTATE_IDLE,
-	SPISTATE_SMPL,
-	SPISTATE_2,
-	SPISTATE_FETS,
-	SPISTATE_OPENCELL,
-	SPISTATE_LOWPOWER,
-	SPISTATE_TRAP
-};
+#define TIM15MHZ 16  // Timer rate MHz
+#define DELAY8MS  (TIM15MHZ * 1000 * 8) // 8 millisecond TIM15 OC increment
+#define DELAYUS    TIM15MHZ // 1 microsecond TIM15 OC increment
+
+/* Number of TIM15 ticks for SPI to send 3 bytes. */
+// (16 MHz timer / 2 MHz SPI clk) * 24 bits
+#define SPIDELAY ((16/2)*24)
 enum TIMSTATE
 {
 	TIMSTATE_IDLE,
 	TIMSTATE_8MSTO,
+	TIMSTATE_SMPL,
 	TIMSTATE_2,
+	TIMSTATE_3,
+	TIMSTATE_N,
 	TIMSTATE_OPENCELL,
-	TIMSTATE_TRAP
+	TIMSTATE_TRAP,
+
+	SPISTATE_CALIB1,
+	SPISTATE_CALIB2,
+	SPISTATE_IDLE,
+	SPISTATE_FETS,
+	SPISTATE_OPENCELL,
+	SPISTATE_LOWPOWER,
+	SPISTATE_TRAP
 };
 enum ADCSTATE
 {
@@ -57,9 +63,9 @@ struct ADCSPIALL
 	uint32_t delayct;
 	uint16_t raw[ADCBMSMAX]; // Raw readings from BMS sequence
 	uint8_t cellnum;
-	uint8_t adcstate;  // State for ISR handling: ADC
+//	uint8_t adcstate;  // State for ISR handling: ADC
 	uint8_t timstate;  // State for ISR handling: TIM
-	uint8_t spistate;  // State for ISR handling: SPI
+//	uint8_t spistate;  // State for ISR handling: SPI
 	uint8_t adcidx;
 	uint8_t spiidx;
 	uint8_t adcflag;    // 1 = adc busy; 0 = adc idle

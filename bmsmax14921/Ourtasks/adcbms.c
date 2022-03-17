@@ -46,10 +46,6 @@ static uint32_t adc_sqr1;
 static uint32_t adc_cfgr; 
 static uint32_t adc_cfgr2;
 
-
-uint32_t* pspi; // SPI register base pointer.
-uint32_t  spitmp; // Temp for debugging
-
 /* *************************************************************************
  * void adcbms_preinit(void);
  * @brief	: Save some things used later.
@@ -91,15 +87,14 @@ uint32_t  spitmp; // Temp for debugging
 	/* TIM15 OC interrupt does nothing. */
 	adcspiall.timstate = TIMSTATE_IDLE;
 
+	/* MX may have these setup */
+	hdma_spi1_tx.Instance->CCR &= ~0x2;  // Disable channel interrupt
+
 	/* Make use of TIM15:CH1 OC for timing BMS delays. */
 	// ARR default is 0xFFFF (max count-1)
 	TIM15->SR = 0;          // Clear any interrupt flags
 	TIM15->DIER = (1 << 1); // Bit 1 CC1IE: Capture/Compare 1 interrupt enable
 	TIM15->CR1 |= 1; // Start counter
-
-	/* SPI tinkering. */
-	// Device configuration register
-	pspi = hspi1.Instance; // Bits 10:8 CSHT[2:0]: Chip select high time
 
 	return;
 }
@@ -178,7 +173,7 @@ uint32_t  spitmp; // Temp for debugging
 	hadc1.Instance->ISR = 0x7FF; // Clear all ADC interrupt flags
 	hadc1.Instance->IER = (1 << 2); // Enable the one we want
 
-	/* Set number of sampling cycles for channel scanned first. */
+	/* Set number of sampling cycles for first channel sequence. */
 	hadc1.Instance->SMPR1 &= ~(0X7 << 0); // Clear old value
 	hadc1.Instance->SMPR1 |=  (0X3 << 0); // 011: 24.5 ADC clock cycles
 
@@ -191,13 +186,13 @@ uint32_t  spitmp; // Temp for debugging
 
 	p->config = 1; // Show ADC is configured for BMS.
 
-	/* DMA1 CH3 interrupt. */
+	/* DMA1 CH2 CH3 interrupt enable. */
 	// DMA channel x configuration register (DMA_CCRx) */
 	// Bit 0 EN: channel enable | Bit 1 TCIE: transfer complete interrupt enable
 	// Bit 8 GIF3: global interrupt flag for channel 3
 //	*((uint32_t*)hdma_spi1_tx.Instance+0x8+(0x14 * 2) ) |= (1<<8);
-	hdma_spi1_tx.Instance->CCR  |= (1<<1);
-	hdma_spi1_rx.Instance->CCR  |= (1<<1);
+//	hdma_spi1_tx.Instance->CCR  |= (1<<1);
+//	hdma_spi1_rx.Instance->CCR  |= (1<<1);
 	
 	return;
  }
@@ -219,7 +214,6 @@ uint32_t  spitmp; // Temp for debugging
  	p->adcidx = 0; 
  	p->spiidx = 0;
 
- 	p->adcstate = ADCSTATE_IDLE;
  	p->timstate = TIMSTATE_IDLE;
 
  	p->adcrestart = 0; // ADC conversion start initiated by: 0 = TIM2; 1= ADC
@@ -231,11 +225,11 @@ uint32_t  spitmp; // Temp for debugging
  	// Configure ADC registers for BMS readout
  	adcbms_config_bms();
 
+ 	/* Delay except for SMPL, and TOP-OF_STACK */
+ 	p->delayct = (DELAYUS * 5);
+
  	// Set /CS (GPIOA PIN_15) low to enable MAX14921.
 	notCS_GPIO_Port->BSRR = (notCS_Pin<<16); // Reset: /CS set low
-
- 	// SPI interrupt will set a 50 us TIM2 delay to allow switch & settling.
-	p->spistate = SPISTATE_SMPL; // 
 
 	// uc[0] = 0; uc[1] = 0; uc[2] = 0x04 uc[3] = not used
 	p->spitx24.ui = 0x00040000; // /SMPL bit set high
@@ -247,11 +241,18 @@ uint32_t  spitmp; // Temp for debugging
 	SPI1->CR1 |= (1 << 6);
 
 	/* Start transmission of command: set /SMPL bit high */
-	// DMA_CNDTR: number of data to transfer register */
+	// DMA_CNDTR: number of data to transfer register
+	hdma_spi1_tx.Instance->CCR &= ~1; // Disable channel
 	hdma_spi1_tx.Instance->CNDTR = 3; // Number to DMA transfer
 	hdma_spi1_tx.Instance->CCR |= 1;  // Enable channel
 
-	// DMA1 CH3 (SPI tx) interrupt will continue sequence.
+	// Set time duration for SPI to send 24b command
+	TIM15->CCR1 = TIM15->CNT + SPIDELAY; // Set SPI xmit duration
+
+	// SPI (timed) interrupt will set a 50 us TIM2 delay to allow switch & settling.
+	p->timstate = TIMSTATE_SMPL; // 
+
+	// TIM15 interrupt will continue sequence.
 	return;
  }
 

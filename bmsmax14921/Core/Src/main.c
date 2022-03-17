@@ -1281,7 +1281,7 @@ void StartDefaultTask(void *argument)
   /* USER CODE BEGIN 5 */
   int32_t i;
   uint32_t mctr = 0;
-  uint32_t noteval = 0; // TaskNotifyWait notification word
+//  uint32_t noteval = 0; // TaskNotifyWait notification word
 
 /* These #defines select uart output for monitoring. */
 

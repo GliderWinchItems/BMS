@@ -61,4 +61,6 @@ V    R1    R2     Vr
   had a +/- 16v which does't leave headroom)
 
 
-
+- ITEM: Vl connected to 3.3v would eliminate the need
+  for the level shifting.
+  
