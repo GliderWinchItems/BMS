@@ -282,7 +282,8 @@ void adcspi_lowpower(void)
 /* 
 Command 
 Bits set to one turn on discharge FETs
-SPI sends bytes MSB
+SPI sends bytes MSB. MAX14921 expects LSB of the 
+24b command first.
 .us[0] = 16 bit word with bits arranged for sending
  bit 0 = cell 8
  ...
@@ -297,12 +298,10 @@ void adcspi_setfets(void)
 {
 	struct ADCSPIALL* p = &adcspiall; // Convenience pointer
 
-	// Load FET bits (lower two bytes)
-	p->spitx24.ui = pssb->cellbits;
+	// Load FET bits (lower two bytes) from requester's struct
+	p->spitx24.us[0] = pssb->cellbits;
 	// Set command code
 	p->spitx24.uc[2] = 0;
-
-	p->timstate = SPISTATE_FETS;
 
 	/* Set /CS (GPIOA PIN_15) low, then start SPI sending command. */
 	notCS_GPIO_Port->BSRR = (notCS_Pin<<16); // Reset: /CS set low
@@ -311,6 +310,11 @@ void adcspi_setfets(void)
 	hdma_spi1_tx.Instance->CCR  &= ~1; // Disable channel
 	hdma_spi1_tx.Instance->CNDTR = 3; // Number to DMA transfer
 	hdma_spi1_tx.Instance->CCR |= 1;  // Enable channel
+
+	/* Set time delay for SPI to send 3 bytes. */
+	TIM15->CCR1 = TIM15->CNT + SPIDELAY; // Set SPI xmit duration	
+
+	p->timstate = SPISTATE_FETS;
 
 	xTaskNotifyWait(0,0xffffffff, &noteval1, 3000);
 	if (noteval1 != TSKNOTEBIT00) morse_trap(815); // JIC debug
@@ -336,6 +340,8 @@ void adcspi_init(void)
  * void adcspi_tim15_IRQHandler(void);
  * @brief	: TIM15 interrupt shares with TIM1 break;
    ####################################################################### */
+// In the following two lookup tables, the last item, bitorderxx[20],
+//   clears the /SMPL bit which returns the flying caps to the cell inputs.
 // ECS plus cell selection bits for cells 1-> 16,
 // selection bits for T1, T2, T3, TOS, ZERO, given indices [0]->[20] and
 static const uint8_t bitorderUP[21] = {0x84,0XC4,0XA4,0XE4,0X94,0XD4,0XB4,0XE4,
@@ -346,8 +352,6 @@ static const uint8_t bitorderUP[21] = {0x84,0XC4,0XA4,0XE4,0X94,0XD4,0XB4,0XE4,
 static const uint8_t bitorderDN[21] = {0xFC,0XBC,0XDC,0X9C,0XEC,0XAC,0XCC,0X8C,
 	                                   0XF4,0XB4,0XD4,0X94,0XE4,0XA4,0XC4,0X84,
 	                                   0x58,0x38,0x78,0x78, 0x00};
-static const uint32_t spicalib2 = 0;
-
 uint32_t dbisr15;
 uint32_t dbisr1;
 uint32_t dbdier1;
@@ -369,7 +373,6 @@ if ((TIM15->SR & (1 << 1)) == 0)
 		morse_trap(831);
 	}
 }
-
 	/* Clear interrupt flag. */
 	TIM15->SR = ~(1 << 1); // Bit 1 CC1IF: Capture/Compare 1 interrupt flag
 
@@ -377,8 +380,6 @@ if ((TIM15->SR & (1 << 1)) == 0)
 	{
 	case TIMSTATE_IDLE: // Idle. Ignore interrupt
  	 return;
-
-
 
 	case TIMSTATE_SMPL: // Command to switch flying caps to ground has been sent.
 		// Raise /CS to latch command bits and begin ground reference transfer
@@ -443,13 +444,26 @@ dbt1 = DTWTIME;
 			p->spitx24.uc[2] = bitorderUP[p->spiidx];
 		}			
 
-		p->spiidx += 1; // Index to select cells (and others) is "one ahead"
 		/* SPI sends next command while ADC does conversions on latched command. */
 		// 
 		/* Loading starts SPI transfer. */
 		hdma_spi1_tx.Instance->CCR  &= ~1; // Disable channel
 		hdma_spi1_tx.Instance->CNDTR = 3;  // Set number to DMA transfer
-		hdma_spi1_tx.Instance->CCR  |= 1;  // Enable channel
+		hdma_spi1_tx.Instance->CCR  |= 1;  // Enable channel		
+
+		/* End of sequence command restores discharge FETs, if applicable. */
+		// 0 = clear fets; fets remain clear after read sequence
+		// 1 = fet setting remains in place during read sequence
+		// 2 = new fet setting (from cellbits) applied after read sequence
+		// 3 = save fet setting; clear for read; restore after read
+		if ((p->readbmsfets > 1) && (p->spiidx == 20))
+		{
+			p->spitx24.us[0] = p->cellbitssave;
+		}
+
+		p->spiidx += 1; // Index to select cells (and others) is "one ahead"
+
+
 		
 		// ADC interrupt will start next SPI and TIM
 		break;
@@ -502,6 +516,7 @@ dbt1 = DTWTIME;
 		break;
 
 	case SPISTATE_FETS: // Set discharge FETs
+		p->timstate = TIMSTATE_IDLE; // Set to idle, jic
 		// Cause command values to latch
 		notCS_GPIO_Port->BSRR = notCS_Pin; // Set: /CS set high
 		// Notify 'adcspi_setfets' FET word has been sent and latched.
@@ -621,7 +636,7 @@ GIFx in the DMA_ISR register, provided that none of the two other individual fla
 	return;
 }
 /* #######################################################################
- * SPI tx & rs dma transfer complete
+ * SPI tx & rs dma transfer complete (if enabled!)
    ####################################################################### */
 void adcspi_spidmarx_IRQHandler(DMA_HandleTypeDef* phdma_spi1_rx)
 {

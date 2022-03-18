@@ -60,20 +60,17 @@ struct ADCSPIALL
 {
 	union SPI24 spitx24; // SPI command sent to BMS
  	union SPI24 spirx24; // SPI monitor received from BMS
-	uint32_t delayct;
 	uint16_t raw[ADCBMSMAX]; // Raw readings from BMS sequence
-	uint8_t cellnum;
-//	uint8_t adcstate;  // State for ISR handling: ADC
+	uint16_t cellbitssave; // Depends on readbmsfets code
 	uint8_t timstate;  // State for ISR handling: TIM
-//	uint8_t spistate;  // State for ISR handling: SPI
 	uint8_t adcidx;
 	uint8_t spiidx;
 	uint8_t adcflag;    // 1 = adc busy; 0 = adc idle
 	uint8_t adcrestart; // ADC conversion start initiated by: 0 = TIM2; 1= ADC
-//	uint8_t readyflag;  //
 	uint8_t updn;  // Readout "up" (cells 1->16) = 1; Down (cells 16->1) = 0
 	uint8_t config;    // Current ADC configuration: 0 = DMA; 1 = BMS; 2 = not configured
 	uint8_t noverlap;  // Overlapping SPI with ADC: 0 = overlapped; 1 = not overlapped
+	uint8_t readbmsfets; // See below
 	int8_t  tim15ctr;   // TIM15CH1:OC turnover counter
 };
 
@@ -91,10 +88,15 @@ struct ADCREADREQ
 	osThreadId	taskhandle; // Requesting task's handle
 	BaseType_t  tasknote;   // Requesting task's notification bit
 	float*      taskdata;   // Requesting task's pointer to buffer to receive data
-	uint32_t    cellbits;   // Depends on command: FET to set; Open cell wires
+	uint16_t    cellbits;   // Depends on command: FET to set; Open cell wires
 	uint8_t     updn;       // see above 'struct ADCSPIALL'
 	uint8_t     reqcode;    // Code for service requested
 	uint8_t     noverlap;   // see above
+	uint8_t     readbmsfets;// Code for handline discharge fets during read:
+				// 0 = clear fets; fets remain clear after read sequence
+				// 1 = fet setting remains in place during read sequence
+				// 2 = new fet setting (from cellbits) applied after read sequence
+				// 3 = save fet setting; clear for read; restore after read
 };
 
 /* *************************************************************************/

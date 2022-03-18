@@ -130,6 +130,7 @@ void StartCanComm(void* argument)
 	adcreadreq.updn       = 0;           // BMS readout direction high->low cell numbers
 	adcreadreq.reqcode    = REQ_READBMS; // Read MAX1921 cells, thermistor, Top-of-stack
 	adcreadreq.noverlap   = 0;           // Overlap spi with ADC conversions
+	adcreadreq.readbmsfets= 0;           // Clear discharge fets before readbms.	
 
 extern CAN_HandleTypeDef hcan1;
 	HAL_CAN_Start(&hcan1); // CAN1

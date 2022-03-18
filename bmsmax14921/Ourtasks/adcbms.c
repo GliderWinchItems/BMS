@@ -213,26 +213,44 @@ static uint32_t adc_cfgr2;
 
  	p->adcidx = 0; 
  	p->spiidx = 0;
-
- 	p->timstate = TIMSTATE_IDLE;
-
  	p->adcrestart = 0; // ADC conversion start initiated by: 0 = TIM2; 1= ADC
 
- 	// Save (for fast ISR use) 
+ 	p->timstate = TIMSTATE_IDLE; // JIC
+
+ 	// Save (for faster ISR use) 
  	p->updn = pssb->updn; //up/down cell readout order requested
  	p->noverlap = pssb->noverlap; // not overlap spi with adc
+ 	p->readbmsfets = pssb->readbmsfets;
 
  	// Configure ADC registers for BMS readout
  	adcbms_config_bms();
 
- 	/* Delay except for SMPL, and TOP-OF_STACK */
- 	p->delayct = (DELAYUS * 5);
-
  	// Set /CS (GPIOA PIN_15) low to enable MAX14921.
 	notCS_GPIO_Port->BSRR = (notCS_Pin<<16); // Reset: /CS set low
 
+	// 
 	// uc[0] = 0; uc[1] = 0; uc[2] = 0x04 uc[3] = not used
-	p->spitx24.ui = 0x00040000; // /SMPL bit set high
+		// Load FET bits (lower two bytes) from requester's struct
+	switch (pssb->readbmsfets)
+	{
+	case 0: // 0 = clear fets; fets remain clear after read sequence
+		p->spitx24.us[0] = 0;
+		break;
+	case 1: // 1 = fet setting remains in place during & after read sequence
+		break;
+	case 2: // 2 = new fet setting (from cellbits) applied after read sequence
+		p->cellbitssave	 = pssb->cellbits;
+		p->spitx24.us[0] = 0;
+		break;
+	case 3: // 3 = save present fet settings; clear for read; restore after read	
+		p->cellbitssave	 = p->spitx24.us[0];
+		p->spitx24.us[0] = 0;
+		break;
+	default:
+		morse_trap(731);
+	}
+		
+	p->spitx24.uc[2] = 0x04; // /SMPL bit set high
 
  	// Bit 1 TXDMAEN: Tx buffer DMA enable
  	SPI1->CR2 |= (1<<1);
