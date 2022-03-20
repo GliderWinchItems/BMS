@@ -19,6 +19,9 @@
 extern ADC_HandleTypeDef hadc1;
 extern osThreadId_t defaultTaskHandle;
 
+extern uint32_t	dbisrflag;
+
+
 /* Queue */
 #define QUEUESIZE 16	// Total size of bcb's tasks can queue up
 osMessageQId ADCTaskReadReqQHandle;

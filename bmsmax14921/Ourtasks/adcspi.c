@@ -30,6 +30,7 @@ extern DMA_HandleTypeDef hdma_spi1_tx;
 uint32_t dbadcspit1;
 uint32_t dbadcspit2;
 uint32_t dbadcspit3;
+uint8_t dbisrflag;
 
 /* 24 bit control word sent to MAX14921 via SPI as 3 bytes
 MAX   BYTE:BIT 
@@ -73,6 +74,7 @@ uint32_t dbt2;
 uint32_t dbt3;
 uint32_t dbt4;
 uint32_t dbt5;
+uint32_t dbbmst[21];
 
 void adcspi_readadc(void)
 {
@@ -84,7 +86,7 @@ void adcspi_readadc(void)
 if ((hadc1.Instance->CR & 0x1) == 0) morse_trap(667);
 	/* Start a one-shot scan w DMA. */
 	hadc1.Instance->CR |= (1 << 2); // Bit 2 ADSTART: ADC start of regular conversion
-dbadcspit1 = DTWTIME;	
+	
 
 if ((hadc1.Instance->CR & (1 << 2))	== 0) morse_trap(827);
 
@@ -136,14 +138,20 @@ void adcspi_readbms(void)
 	// Initialize and start read sequence
 	adcbms_startreadbms();
 
+dbadcspit1 = DTWTIME; 
+
 	// Wait for sequence to complete
 	// Once started, sequence driven by interrupts until complete
 	xTaskNotifyWait(0,0xffffffff, &noteval1, 3000);
 
-	// Debugging trap for timeout (3 sec)
+// Total time (cells, thermistors, top-of-stack)
+dbadcspit3 = DTWTIME - dbadcspit1;
+
+	// Debugging trap for timeout (3 sec) (interrupt sequence hangs)
 	if (noteval1 != TSKNOTEBIT00) morse_trap(814); // JIC debug
 
 	/* Calibrate and store readings in requester's array (float). */
+	// Adjust cells 1-16 order to account for up or down readout. */
 	for (i = 0; i < 16; i++)
 	{
 		// Readout "up" (cells 1->16) = 1; Down (cells 16->1) = 0
@@ -162,6 +170,7 @@ void adcspi_readbms(void)
 			*(pssb->taskdata+i) = adcparams_calibbms(i);
 	}
 
+	/* Signal 'main.c' that there is a bms reading. */
 	readbmsflag = 1;
 	// Upon this return ADCTask will notify requester.
 	return;
@@ -362,17 +371,6 @@ void adcspi_tim15_IRQHandler(void)
 	struct ADCSPIALL* p = &adcspiall; // Convenience pointer
 	BaseType_t xHPT = pdFALSE;
 
-/* Debug: only this flag should have brought us here. */
-if ((TIM15->SR & (1 << 1)) == 0) 
-{
-	if ((TIM1->SR & TIM1->DIER) != 0)
-	{
-		dbisr15 = TIM15->SR;
-		dbisr1  = TIM1->SR;
-		dbdier1 = TIM1->DIER;
-		morse_trap(831);
-	}
-}
 	/* Clear interrupt flag. */
 	TIM15->SR = ~(1 << 1); // Bit 1 CC1IF: Capture/Compare 1 interrupt flag
 
@@ -384,8 +382,12 @@ if ((TIM15->SR & (1 << 1)) == 0)
 	case TIMSTATE_SMPL: // Command to switch flying caps to ground has been sent.
 		// Raise /CS to latch command bits and begin ground reference transfer
 		// and set a 50 us settline time delay.
+dbbms2 = DTWTIME;
+dbbms3 = dbbms2 - dbbms1;	
+
 		notCS_GPIO_Port->BSRR = notCS_Pin; // Set: /CS set high to latch bits
-dbt1 = DTWTIME;		
+
+dbt1 = DTWTIME;	
 	
 		// Set time delay for settling
 		TIM15->CCR1 = TIM15->CNT + (DELAYUS * 50); // Set 50 us timeout duration
@@ -425,12 +427,14 @@ dbt1 = DTWTIME;
 
 		TIM15->CCR1 = TIM15->CNT + (DELAYUS * 5);
 		p->timstate = TIMSTATE_N;
+dbbmst[p->adcidx] = DTWTIME;
 		break;
 
 	case TIMSTATE_N: // Here, selection command timeout complete
 		/* Start ADC converting cell selection ready for readout */
+dbbmst[p->adcidx] = DTWTIME;	
 		hadc1.Instance->CR |= (0x1 << 2);
-
+	
 		notCS_GPIO_Port->BSRR = (notCS_Pin<<16); // Reset: /CS set low
 
 		/* Prepare next selection command. */
@@ -463,8 +467,6 @@ dbt1 = DTWTIME;
 
 		p->spiidx += 1; // Index to select cells (and others) is "one ahead"
 
-
-		
 		// ADC interrupt will start next SPI and TIM
 		break;
 
@@ -574,9 +576,20 @@ void adcspi_adc_IRQHandler(ADC_HandleTypeDef* phadc1)
 		pADCbase->ISR = (1 << 2); // Reset interrupt flag
 
 		p->raw[p->adcidx] = pADCbase->DR; // Store data
+
+dbbmst[p->adcidx] = DTWTIME - dbbmst[p->adcidx];	
+
 		p->adcidx += 1; 
+
+#ifdef FIRSTSIXTEEN
+if (p->adcidx == 15)
+{
+	dbadcspit3 = DTWTIME - dbadcspit1;
+}
+#endif
+		
 		if (p->adcidx >= ADCBMSMAX)
-		{ // Here end of 16 cells, 3 thermistors, 1 top-of-stack	
+		{ // Here end of 16 cells, 3 thermistors, 1 top-of-stack			
 			xTaskNotifyFromISR(ADCTaskHandle, TSKNOTEBIT00, eSetBits, &xHPT );
 			portYIELD_FROM_ISR( xHPT );
 			p->timstate = TIMSTATE_IDLE;
@@ -584,13 +597,15 @@ void adcspi_adc_IRQHandler(ADC_HandleTypeDef* phadc1)
 		else
 		{ // More readings to be taken.
 			p->timstate = TIMSTATE_N; // Many a mile to go.
+
 			if (p->spiidx == 19) 
 			{ // Top of stack selection requires longer settling time
 				TIM15->CCR1 = TIM15->CNT + (DELAYUS * 60); // The end is near!
 			}
 			else
 			{ // Cell and thermistors selection settling time
-				TIM15->CCR1 = TIM15->CNT + (DELAYUS * 5); // More miles to travel.
+				// 16 results in 90 machine cycles for settling
+				TIM15->CCR1 = TIM15->CNT + 16;//(DELAYUS * 5); // More miles to travel.
 			}
 		}
 	}
@@ -603,9 +618,12 @@ void adcspi_adc_IRQHandler(ADC_HandleTypeDef* phadc1)
  * void  adcspi_dma_handler(void);
  * non-BMS ADC channel scan completion interrupt
    ####################################################################### */
- /* USER CODE BEGIN DMA1_Channel1_IRQn 0 */
+ /* DMA1_Channel1_IRQn 0 */
 void  adcspi_dma_handler(void)
 {
+	// Bit 4 ADSTP: ADC stop of regular conversion command
+	hadc1.Instance->CR |= (1 << 4); 
+
 dbt4 = DTWTIME;
 dbt5 = dbt4-dbt1;
 	BaseType_t xHPT = pdFALSE;
@@ -627,6 +645,7 @@ GIFx in the DMA_ISR register, provided that none of the two other individual fla
 
 	/* Disable DMA1:CH1. */
 	hdma_adc1.Instance->CCR &= ~0x1;	
+ 	hdma_adc1.Instance->CCR &= ~0x2;
 
 	/* Notify ADCTask.c: adcspi.c: adcspi_readadc operation is complete. */
 	xTaskNotifyFromISR(ADCTaskHandle, TSKNOTEBIT00, eSetBits, &xHPT );

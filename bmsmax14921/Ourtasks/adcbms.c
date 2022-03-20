@@ -40,6 +40,13 @@ extern DMA_HandleTypeDef hdma_spi1_tx;
 
 extern TIM_HandleTypeDef htim15;
 
+uint32_t dbdma1;
+uint32_t dbdma2;
+uint32_t dbadc1;
+uint32_t dbadc2;
+
+
+
 /* Save Hardware registers setup with 'MX for later restoration. */
 static uint32_t adc_smpr1;
 static uint32_t adc_sqr1; 
@@ -155,6 +162,13 @@ static uint32_t adc_cfgr2;
  {
 	struct ADCSPIALL* p = &adcspiall; // Convenience pointer
 
+	/* Disable ADC DMA. */
+	hdma_adc1.Instance->CCR &= ~0x1;
+ 	hdma_adc1.Instance->CCR &= ~0x2;
+
+ 	// Bit 13 CONT: Single / continuous conversion mode for regular conversions
+ 	hadc1.Instance->CFGR &= ~(1 << 13);
+
 	/* Setup ADC registers for cell readouts. */
  	// Cannot set registers if ADSTART is not 0.
  	if ((hadc1.Instance->CR & (0x1 << 2)) != 0) morse_trap(840);
@@ -162,6 +176,8 @@ static uint32_t adc_cfgr2;
   	/* Set oversample count */
  	// Set: oversample enabled | oversample count = 32 | right shift count = 1;
  	hadc1.Instance->CFGR2 = ((0x1 << 0) | (0x4 << 2) | (0x1 << 5)); 
+	// Set: oversample enabled | oversample count = 64 | right shift count = 2;
+ //	hadc1.Instance->CFGR2 = ((0x1 << 0) | (0x5 << 2) | (0x2 << 5)); 
 
  	// DMAEN: Direct memory access disable
  	// CONT:  Single continuous conversion mode for regular conversions
@@ -231,7 +247,7 @@ static uint32_t adc_cfgr2;
 	// 
 	// uc[0] = 0; uc[1] = 0; uc[2] = 0x04 uc[3] = not used
 		// Load FET bits (lower two bytes) from requester's struct
-	switch (pssb->readbmsfets)
+	switch (p->readbmsfets)
 	{
 	case 0: // 0 = clear fets; fets remain clear after read sequence
 		p->spitx24.us[0] = 0;
@@ -252,24 +268,34 @@ static uint32_t adc_cfgr2;
 		
 	p->spitx24.uc[2] = 0x04; // /SMPL bit set high
 
- 	// Bit 1 TXDMAEN: Tx buffer DMA enable
- 	SPI1->CR2 |= (1<<1);
-
-	// Bit 6 SPE: SPI enable
-	SPI1->CR1 |= (1 << 6);
-
 	/* Start transmission of command: set /SMPL bit high */
 	// DMA_CNDTR: number of data to transfer register
 	hdma_spi1_tx.Instance->CCR &= ~1; // Disable channel
 	hdma_spi1_tx.Instance->CNDTR = 3; // Number to DMA transfer
 	hdma_spi1_tx.Instance->CCR |= 1;  // Enable channel
 
+	// Bit 1 TXDMAEN: Tx buffer DMA enable
+ 	SPI1->CR2 |= (1<<1);
+
+	// Bit 6 SPE: SPI enable
+	SPI1->CR1 |= (1 << 6);	
+
 	// Set time duration for SPI to send 24b command
 	TIM15->CCR1 = TIM15->CNT + SPIDELAY; // Set SPI xmit duration
 
 	// SPI (timed) interrupt will set a 50 us TIM2 delay to allow switch & settling.
-	p->timstate = TIMSTATE_SMPL; // 
+	p->timstate = TIMSTATE_SMPL; //
 
+extern uint8_t dbisrflag;
+dbisrflag = 1;	
+
+extern uint32_t dbbms1;	
+dbbms1 = DTWTIME;
+
+dbdma1 = hdma_adc1.Instance->CCR; 
+dbdma2 = hdma_adc1.Instance->CNDTR;
+dbadc1 = hadc1.Instance->CR;
+dbadc2 = hadc1.Instance->IER;
 	// TIM15 interrupt will continue sequence.
 	return;
  }

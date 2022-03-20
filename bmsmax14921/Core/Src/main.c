@@ -1172,13 +1172,13 @@ static void MX_DMA_Init(void)
 
   /* DMA interrupt init */
   /* DMA1_Channel1_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 5, 0);
+  HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 6, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
   /* DMA1_Channel2_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel2_IRQn, 5, 0);
+  HAL_NVIC_SetPriority(DMA1_Channel2_IRQn, 6, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel2_IRQn);
   /* DMA1_Channel3_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel3_IRQn, 5, 0);
+  HAL_NVIC_SetPriority(DMA1_Channel3_IRQn, 6, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel3_IRQn);
   /* DMA1_Channel4_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel4_IRQn, 7, 0);
@@ -1345,7 +1345,10 @@ void StartDefaultTask(void *argument)
     /* Other misc. */
     extern uint32_t dbadcspit3;
     extern uint32_t dbbms3;
-    yprintf(&pbuf1,"\n\rT %d %d",dbadcspit3,dbbms3);
+    yprintf(&pbuf1,"\n\rT %d %d ",dbadcspit3,dbbms3);
+    extern uint32_t dbbmst[21];
+    for (i = 0; i < 20; i++)
+      yprintf(&pbuf2,"%d ",dbbmst[i]);
 
   }
   /* USER CODE END 5 */
