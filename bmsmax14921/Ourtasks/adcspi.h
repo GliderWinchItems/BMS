@@ -63,6 +63,10 @@ void  adcspi_dma_handler(void);
 void adcspi_tim15_IRQHandler(void);
 /* @brief	: TIM15 interrupt shares with TIM1 break;
    ####################################################################### */
+void adcspi_spidmarx_IRQHandler(DMA_HandleTypeDef* phdma_spi1_rx);
+void adcspi_spidmatx_IRQHandler(DMA_HandleTypeDef* phdma_spi1_tx);
+/* SPI tx & rs dma transfer complete (if enabled!)
+   ####################################################################### */
 
 extern uint8_t readbmsflag; // Let main know a BMS reading was made
 

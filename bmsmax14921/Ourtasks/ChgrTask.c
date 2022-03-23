@@ -73,6 +73,7 @@ void StartChgrTask(void* argument)
 //		osDelay(15); 	
 //		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_SET); // GRN LED
 		osDelay(1985); 	
+		
 #ifdef USECHARGERUPDATEINCHRGTASK
 		/* Internal charger control. */
 		if ((p->fet_status & FET_CHGR) != 0)

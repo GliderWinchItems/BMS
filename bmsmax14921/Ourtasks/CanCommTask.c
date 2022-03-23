@@ -185,7 +185,6 @@ extern CAN_HandleTypeDef hcan1;
 		/* Timeout notification. */
 		if (noteval == 0)
 		{ // Send heartbeat
-
 			/* Queue a read BMS request to ADCTask.c */
 			qret = xQueueSendToBack(ADCTaskReadReqQHandle, &padcreadreq, 5000);
 if (qret != pdPASS) morse_trap(720); // JIC debug
@@ -206,8 +205,6 @@ if (noteval2 != CANCOMMBIT03) morse_trap(721); // JIC debug
 
 			/* Increment 4 bit CAN msg group sequence counter .*/
 			hbseq += 1;
-	
-
    	//		xQueueSendToBack(CanTxQHandle,&p->canmsg[CID_CMD_MISC],4);   
 		}	
 	} 	

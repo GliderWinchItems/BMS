@@ -223,7 +223,7 @@ void adcspi_opencell(void)
 	// Load FET bits (lower two bytes)
 	p->spitx24.ui    = (uint32_t)(pssb->taskdata);
 	// Set command code
-	p->spitx24.uc[2] = 0x2; // Set DIAG: 10 ua discharge on all cells.
+	p->spitx24.uc[2] = 0x40; // Set DIAG: 10 ua discharge on all cells.
 
 	p->timstate = SPISTATE_OPENCELL;
 
@@ -269,7 +269,7 @@ void adcspi_lowpower(void)
 	// Clear bits
 	p->spitx24.ui    = 0;
 	// Set command code
-	p->spitx24.uc[2] = 0x1; // Set LOPW: 1 ua
+	p->spitx24.uc[2] = 0x80; // Set LOPW: 1 ua
 
 	p->timstate = SPISTATE_LOWPOWER;
 
@@ -309,6 +309,8 @@ void adcspi_setfets(void)
 
 	// Load FET bits (lower two bytes) from requester's struct
 	p->spitx24.us[0] = pssb->cellbits;
+	p->cellbitssave  = pssb->cellbits;
+
 	// Set command code
 	p->spitx24.uc[2] = 0;
 
@@ -317,8 +319,8 @@ void adcspi_setfets(void)
 
 	/* Loading starts transfer. */
 	hdma_spi1_tx.Instance->CCR  &= ~1; // Disable channel
-	hdma_spi1_tx.Instance->CNDTR = 3; // Number to DMA transfer
-	hdma_spi1_tx.Instance->CCR |= 1;  // Enable channel
+	hdma_spi1_tx.Instance->CNDTR = 3;  // Number to DMA transfer
+	hdma_spi1_tx.Instance->CCR  |= 1;  // Enable channel
 
 	/* Set time delay for SPI to send 3 bytes. */
 	TIM15->CCR1 = TIM15->CNT + SPIDELAY; // Set SPI xmit duration	
@@ -353,14 +355,14 @@ void adcspi_init(void)
 //   clears the /SMPL bit which returns the flying caps to the cell inputs.
 // ECS plus cell selection bits for cells 1-> 16,
 // selection bits for T1, T2, T3, TOS, ZERO, given indices [0]->[20] and
-static const uint8_t bitorderUP[21] = {0x84,0XC4,0XA4,0XE4,0X94,0XD4,0XB4,0XE4,
-	                                   0X8C,0XCC,0XAC,0XEC,0X9C,0XDC,0XBC,0XFC,
-	                                   0x58,0x38,0x78,0x78, 0x00};
+static const uint8_t bitorderUP[21] = {0x21,0X23,0X25,0X27,0X29,0X2B,0X2D,0X2F,
+	                                   0X31,0X33,0X35,0X37,0X39,0X3B,0X3D,0X3F,
+	                                   0x1A,0x1C,0x1E,0x18, 0x00};
 // ECS plus cell selection bits for cells 16-> 1,
 // selection bits for T1, T2, T3, TOS, ZERO, given indices [0]->[20]
-static const uint8_t bitorderDN[21] = {0xFC,0XBC,0XDC,0X9C,0XEC,0XAC,0XCC,0X8C,
-	                                   0XF4,0XB4,0XD4,0X94,0XE4,0XA4,0XC4,0X84,
-	                                   0x58,0x38,0x78,0x78, 0x00};
+static const uint8_t bitorderDN[21] = {0x3F,0X3D,0X3B,0X39,0X37,0X35,0X33,0X31,
+	                                   0X2F,0X2D,0X2B,0X29,0X27,0X25,0X23,0X21,
+	                                   0x1A,0x1C,0x1E,0x18, 0x00};
 uint32_t dbisr15;
 uint32_t dbisr1;
 uint32_t dbdier1;
@@ -400,11 +402,11 @@ dbt1 = DTWTIME;
 		// Allow for selecting up or down readout sequence (to check "slump")
 		if (p->updn == 0)
 		{ // Preferred seq: read highest cells first
-			p->spitx24.uc[2] = 0xFC; // bitorderDN[0];
+			p->spitx24.uc[2] = 0x3F; // bitorderDN[0];
 		}
 		else
 		{ // Use to compare slump: read lowest cells first
-			p->spitx24.uc[2] = 0x84; // bitorderUP[0];
+			p->spitx24.uc[2] = 0x21; // bitorderUP[0];
 		}		
 		/* Start SPI sending command for selecting cell #1 (spiidx = 0) */
 		notCS_GPIO_Port->BSRR = (notCS_Pin<<16); // Reset: /CS set low

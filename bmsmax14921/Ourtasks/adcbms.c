@@ -266,7 +266,7 @@ static uint32_t adc_cfgr2;
 		morse_trap(731);
 	}
 		
-	p->spitx24.uc[2] = 0x04; // /SMPL bit set high
+	p->spitx24.uc[2] = 0x20; // /SMPL bit set high
 
 	/* Start transmission of command: set /SMPL bit high */
 	// DMA_CNDTR: number of data to transfer register

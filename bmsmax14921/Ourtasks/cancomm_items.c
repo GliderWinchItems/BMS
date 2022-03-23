@@ -46,20 +46,6 @@ static void loaduint32(uint8_t* puc, uint32_t n)
 	return;
 }
 /* *************************************************************************
- * static uint32 extractint_32(uint8_t* p);
- *	@brief	: Extract 32b int from payload
- *  @param  : p = pointer to CAN msg payload
- *  @param  : n = unit32_t to be loaded
- * *************************************************************************/
-static uint32_t extract_int32(uint8_t* p)
-{
-	return (
-		(*(p+0) <<  0) | 
-		(*(p+1) <<  8) |
-		(*(p+2) << 16) |
-		(*(p+3) << 24) );	
-}
-/* *************************************************************************
  * void cancomm_items_uni_bms(struct CANRCVBUF* pcan);
  *	@brief	: UNIversal multi-purpose command (CANCOMMBIT02)
  *  @param  : pcan = pointer to struct CANRCVBUF with request CAN msg
@@ -77,14 +63,16 @@ void cancomm_items_uni_bms(struct CANRCVBUF* pcan)
     // 10 = All modules on identified string respond
     // 01 = Only identified string and module responds
     // 00 = spare; no response expected
-    canid = extract_int32(&pcan->cd.uc[4]); 
+    canid = (pcan->cd.uc[4] << 0)|(pcan->cd.uc[5] << 8)|
+            (pcan->cd.uc[6] <<16)|(pcan->cd.uc[7] <<24);
+
     // Respond if CAN ID for this node was sent
 //	if (!(((code == (3 << 6))) ||
 //		  ((code == (2 << 6)) && ((pcan->cd.uc[2] & (3 << 4)) == p->ident_string)) ||
 //		  ((code == (1 << 6)) && ((pcan->cd.uc[2] & 0x0F) == p->ident_onlyus)) ||
 //		  ((canid == p->lc.cid_msg_bms_cellvsmr))))
 //		return; // Skip. This request is not for us.
-
+    // Simplified for TEST
 	if (canid != p->lc.cid_msg_bms_cellvsmr) return;
 
 	/* Set up response to command. */
@@ -256,7 +244,7 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pcan)
  			break;
 
  	case MISCQ_FETBALBITS: // 12 FET on/off discharge bits
-// 		loaduint32(&p->canmsg[CID_CMD_MISC].can.cd.uc[3],blk_0x0083_u16[0]);
+ 		loaduint32(&p->canmsg[CID_CMD_MISC].can.cd.uc[3],adcspiall.cellbitssave);
 		break;
 	}
 	/* Queue CAN msg response. */
