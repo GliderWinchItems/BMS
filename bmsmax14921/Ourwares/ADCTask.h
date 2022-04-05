@@ -25,14 +25,15 @@
 #define DELAYUS    TIM15MHZ // 1 microsecond TIM15 OC increment
 
 /* Number of TIM15 ticks for SPI to send 3 bytes. */
-// (16 MHz timer / 2 MHz SPI clk) * 24 bits
-#define SPIDELAY ((16/2)*24)
+// (16 MHz timer : 2 MHz SPI SCK : 24 bits
+#define SPIDELAY (12*16)
 
 enum TIMSTATE
 {
 	TIMSTATE_IDLE,
 	TIMSTATE_8MSTO,
 	TIMSTATE_SMPL,
+	TIMSTATE_1,
 	TIMSTATE_2,
 	TIMSTATE_3,
 	TIMSTATE_N,
@@ -67,7 +68,7 @@ struct ADCSPIALL
 	uint8_t adcidx;
 	uint8_t spiidx;
 	uint8_t adcflag;    // 1 = adc busy; 0 = adc idle
-	uint8_t adcrestart; // ADC conversion start initiated by: 0 = TIM2; 1= ADC
+//	uint8_t adcrestart; // ADC conversion start initiated by: 0 = TIM2; 1= ADC
 	uint8_t updn;  // Readout "up" (cells 1->16) = 1; Down (cells 16->1) = 0
 	uint8_t config;    // Current ADC configuration: 0 = DMA; 1 = BMS; 2 = not configured
 	uint8_t noverlap;  // Overlapping SPI with ADC: 0 = overlapped; 1 = not overlapped

@@ -1341,15 +1341,30 @@ void StartDefaultTask(void *argument)
       {
         yprintf(&pbuf1," %7.4f",fbms[i]);
       }
+     /* List raw ADC counts for calibration purposes. */
+      yprintf(&pbuf2,"\n\rR ");
+      extern uint8_t dbupdnx;
+      for (i = 0; i < 16; i++)
+      {
+        if (dbupdnx == 0)
+          yprintf(&pbuf2," %7i",adcspiall.raw[15-i]);
+        else
+          yprintf(&pbuf2," %7i",adcspiall.raw[i]);
+      }
+      for (i = 16; i < ADCBMSMAX; i++)
+      {
+        yprintf(&pbuf2," %7i",adcspiall.raw[i]);
+      }
     }
+
     /* Other misc. */
     extern uint32_t dbadcspit3;
     extern uint32_t dbbms3;
-    yprintf(&pbuf1,"\n\rT %d %d ",dbadcspit3,dbbms3);
+    yprintf(&pbuf1,"\n\rU %8d ",dbadcspit3);
     extern uint32_t dbbmst[21];
     for (i = 0; i < 20; i++)
-      yprintf(&pbuf2,"%d ",dbbmst[i]);
-
+      yprintf(&pbuf1,"%7d ",dbbmst[i]);
+ // yprintf(&pbuf1,"\n\rT %d\n\r",dbbms3);
   }
   /* USER CODE END 5 */
 }

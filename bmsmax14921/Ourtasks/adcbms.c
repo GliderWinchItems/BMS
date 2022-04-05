@@ -85,7 +85,7 @@ static uint32_t adc_cfgr2;
 	/* DMA1 CH3 (SPI write) peripheral aand memory addresses: */
 	hdma_spi1_tx.Instance->CPAR = (uint32_t)hspi1.Instance + 0x0C; // SPI DR adddress
 	hdma_spi1_tx.Instance->CMAR = (uint32_t)&adcspiall.spitx24.uc[0]; // DMA stores from this array
-	hdma_spi1_tx.Instance->CCR |= (1 << 1); // TCIE: enable DMA interrupt
+//	hdma_spi1_tx.Instance->CCR |= (1 << 1); // TCIE: enable DMA interrupt
 
 	/* DMA1 CH2 (SPI read) peripheral and memory addresses: */
 	hdma_spi1_rx.Instance->CPAR = (uint32_t)hspi1.Instance + 0x0C; // SPI DR address
@@ -102,6 +102,13 @@ static uint32_t adc_cfgr2;
 	TIM15->SR = 0;          // Clear any interrupt flags
 	TIM15->DIER = (1 << 1); // Bit 1 CC1IE: Capture/Compare 1 interrupt enable
 	TIM15->CR1 |= 1; // Start counter
+
+	/* Assure the MAX14921 is enabled. */
+	// GPIOD PIN 2
+	EN_GPIO_Port->BSRR = EN_Pin; // Set high.
+
+	/* Set SMPL pin high and ontrol sampling by /SMPL bit. */
+	SELECT_GPIO_Port->BSRR = SELECT_Pin; // Set pin high
 
 	return;
 }
@@ -162,25 +169,35 @@ static uint32_t adc_cfgr2;
  {
 	struct ADCSPIALL* p = &adcspiall; // Convenience pointer
 
+	/* Set SMPL pin high and ontrol sampling by /SMPL bit. */
+	SELECT_GPIO_Port->BSRR = SELECT_Pin; // Set pin high
+//	SELECT_GPIO_Port->BSRR = SELECT_Pin<<16; // Set pin low
+
 	/* Disable ADC DMA. */
 	hdma_adc1.Instance->CCR &= ~0x1;
  	hdma_adc1.Instance->CCR &= ~0x2;
 
  	// Bit 13 CONT: Single / continuous conversion mode for regular conversions
- 	hadc1.Instance->CFGR &= ~(1 << 13);
+ 	hadc1.Instance->CFGR &= ~(1 << 13); // Single conversion mode
 
 	/* Setup ADC registers for cell readouts. */
  	// Cannot set registers if ADSTART is not 0.
  	if ((hadc1.Instance->CR & (0x1 << 2)) != 0) morse_trap(840);
 
   	/* Set oversample count */
+  	 // Set: oversample enabled | oversample count = 16 | right shift count = 0;
+//	hadc1.Instance->CFGR2 = ((0x1 << 0) | (0x3 << 2) | (0x0 << 5)); 
  	// Set: oversample enabled | oversample count = 32 | right shift count = 1;
- 	hadc1.Instance->CFGR2 = ((0x1 << 0) | (0x4 << 2) | (0x1 << 5)); 
+	hadc1.Instance->CFGR2 = ((0x1 << 0) | (0x4 << 2) | (0x1 << 5)); 
 	// Set: oversample enabled | oversample count = 64 | right shift count = 2;
  //	hadc1.Instance->CFGR2 = ((0x1 << 0) | (0x5 << 2) | (0x2 << 5)); 
+	// Set: oversample enabled | oversample count = 128 | right shift count = 3;
+// 	hadc1.Instance->CFGR2 = ((0x1 << 0) | (0x6 << 2) | (0x3 << 5)); 
+	// Set: oversample enabled | oversample count = 256 | right shift count = 4;
+ //	hadc1.Instance->CFGR2 = ((0x1 << 0) | (0x7 << 2) | (0x4 << 5)); 
 
  	// DMAEN: Direct memory access disable
- 	// CONT:  Single continuous conversion mode for regular conversions
+ 	// CONT:  Single conversion mode for regular conversions
 	hadc1.Instance->CFGR = 0x80000000; // I think this is all that is needed!
 
 	// Enable ADC interrupt
@@ -192,6 +209,7 @@ static uint32_t adc_cfgr2;
 	/* Set number of sampling cycles for first channel sequence. */
 	hadc1.Instance->SMPR1 &= ~(0X7 << 0); // Clear old value
 	hadc1.Instance->SMPR1 |=  (0X3 << 0); // 011: 24.5 ADC clock cycles
+//	hadc1.Instance->SMPR1 |=  (0X4 << 0); // 100: 47.5 ADC clock cycles
 
  	/* Scan sequence. */
  	// Set Length of scan sequence to 1 conversion. (code = 0)
@@ -229,7 +247,6 @@ static uint32_t adc_cfgr2;
 
  	p->adcidx = 0; 
  	p->spiidx = 0;
- 	p->adcrestart = 0; // ADC conversion start initiated by: 0 = TIM2; 1= ADC
 
  	p->timstate = TIMSTATE_IDLE; // JIC
 
@@ -268,22 +285,52 @@ static uint32_t adc_cfgr2;
 		
 	p->spitx24.uc[2] = 0x20; // /SMPL bit set high
 
-	/* Start transmission of command: set /SMPL bit high */
-	// DMA_CNDTR: number of data to transfer register
-	hdma_spi1_tx.Instance->CCR &= ~1; // Disable channel
-	hdma_spi1_tx.Instance->CNDTR = 3; // Number to DMA transfer
-	hdma_spi1_tx.Instance->CCR |= 1;  // Enable channel
+// Debug: Override CancommTask cellbits settings
+p->spitx24.uc[1] = 0x00;
+p->spitx24.uc[0] = 0x00;
+//p->spitx24.us[0] = 0x8000; // Test FET turn on
+
+//SELECT_GPIO_Port->BSRR = SELECT_Pin<<16; // Set pin low
+SELECT_GPIO_Port->BSRR = SELECT_Pin; // Set pin high
+
+
+SPI1->CR1 &= ~(1 << 6);
 
 	// Bit 1 TXDMAEN: Tx buffer DMA enable
- 	SPI1->CR2 |= (1<<1);
+	// Bit 0 RXDMAEN: Rx buffer DMA enable
+ 	SPI1->CR2 |= (1<<1) | (1 << 0);
+
+//FRXTH: FIFO reception threshold 	
+SPI1->CR2 |= (1 << 12); 	
+
+ 	SPI1->CR1 &= ~(0x7 << 3); // Clock divider
+ 	SPI1->CR1 |=  (0x2 << 3); // 010: fPCLK /8
+
+SPI1->CR1 &= ~0x3;
+SPI1->CR1 |=  0x0;
+
+	/* Start transmission of command: set /SMPL bit high */
+	// DMA_CNDTR: number of data to transfer register
+	hdma_spi1_rx.Instance->CCR &= ~1; // Disable channel
+	hdma_spi1_rx.Instance->CNDTR = 3; // Number to DMA transfer
+	hdma_spi1_rx.Instance->CCR |= 1;  // Enable channel
+
+	hdma_spi1_tx.Instance->CCR &= ~1; // Disable channel
+	hdma_spi1_tx.Instance->CNDTR = 3; // Number to DMA transfer
+	hdma_spi1_tx.Instance->CCR |= 1;  // Enable channel 	
 
 	// Bit 6 SPE: SPI enable
 	SPI1->CR1 |= (1 << 6);	
 
+// Debug
+//extern uint32_t dbspidma;	
+//dbspidma = DTWTIME;	
+//osDelay(1000*400);
+
 	// Set time duration for SPI to send 24b command
 	TIM15->CCR1 = TIM15->CNT + SPIDELAY; // Set SPI xmit duration
 
-	// SPI (timed) interrupt will set a 50 us TIM2 delay to allow switch & settling.
+	// Set state for timer interrupt. (It will set a 50 us TIM2 delay to allow switch & settling.)
 	p->timstate = TIMSTATE_SMPL; //
 
 extern uint8_t dbisrflag;

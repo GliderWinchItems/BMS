@@ -36,7 +36,10 @@ uint8_t rdyflag_cancomm = 0; // Initialization complete and ready = 1
 
 TaskHandle_t CanCommHandle = NULL;
 
-static struct ADCREADREQ adcreadreq;
+static struct ADCREADREQ adcreadreq; // Request BMS readout
+
+uint8_t dbupdnx;
+
 float fbms[ADCBMSMAX]; // (16+3+1) = 20; Number of MAX14921 (cells+thermistors+tos)     
 
 /* *************************************************************************
@@ -126,12 +129,12 @@ void StartCanComm(void* argument)
 	adcreadreq.taskhandle = CanCommHandle;// Requesting task's handle
 	adcreadreq.tasknote   = CANCOMMBIT03;// ADCTask completed BMS read 
 	adcreadreq.taskdata   = &fbms[0];    // Requesting task's pointer to buffer to receive data
-	adcreadreq.cellbits   = 0;           // Depends on command: FET to set; Open cell wires
-	adcreadreq.updn       = 0;           // BMS readout direction high->low cell numbers
+	adcreadreq.cellbits   = 0x0000;//0;           // Depends on command: FET to set; Open cell wires
+	adcreadreq.updn       = 0;           // BMS readout direction 0 = high->low cell numbers
 	adcreadreq.reqcode    = REQ_READBMS; // Read MAX1921 cells, thermistor, Top-of-stack
 	adcreadreq.noverlap   = 0;           // Overlap spi with ADC conversions
-	adcreadreq.readbmsfets= 0;           // Clear discharge fets before readbms.	
-
+	adcreadreq.readbmsfets= 1;//0;           // Clear discharge fets before readbms.	
+dbupdnx = adcreadreq.updn;
 extern CAN_HandleTypeDef hcan1;
 	HAL_CAN_Start(&hcan1); // CAN1
 

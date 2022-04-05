@@ -74,7 +74,7 @@ uint32_t dbt2;
 uint32_t dbt3;
 uint32_t dbt4;
 uint32_t dbt5;
-uint32_t dbbmst[21];
+uint32_t dbbmst[24];
 
 void adcspi_readadc(void)
 {
@@ -145,7 +145,10 @@ dbadcspit1 = DTWTIME;
 	xTaskNotifyWait(0,0xffffffff, &noteval1, 3000);
 
 // Total time (cells, thermistors, top-of-stack)
-dbadcspit3 = DTWTIME - dbadcspit1;
+//dbadcspit3 = DTWTIME - dbadcspit1;
+
+//	SELECT_GPIO_Port->BSRR = (SELECT_Pin << 16); // Set pin low
+//	SELECT_GPIO_Port->BSRR = SELECT_Pin; // Set pin high
 
 	// Debugging trap for timeout (3 sec) (interrupt sequence hangs)
 	if (noteval1 != TSKNOTEBIT00) morse_trap(814); // JIC debug
@@ -173,6 +176,8 @@ dbadcspit3 = DTWTIME - dbadcspit1;
 	/* Signal 'main.c' that there is a bms reading. */
 	readbmsflag = 1;
 	// Upon this return ADCTask will notify requester.
+
+	//adcspi_setfets();
 	return;
 }
 /* *************************************************************************
@@ -188,7 +193,7 @@ void adcspi_calib(void)
 	p->spitx24.ui = 0x00400000; // Initiate offset calibration upon /CS lo->hi transition
 
 	/* Set /CS (GPIOA PIN_15) low, then start SPI sending command. */	
-	notCS_GPIO_Port->BSRR = (notCS_Pin<<16); // Reset: /CS set low
+	notCS_GPIO_Port->BSRR = (notCS_Pin<<16); // Reset pin: /CS set low
 
 	/* Loading starts transfer. */
 	hdma_spi1_tx.Instance->CCR  &= ~1; // Disable channel
@@ -228,7 +233,7 @@ void adcspi_opencell(void)
 	p->timstate = SPISTATE_OPENCELL;
 
 	/* Set /CS (GPIOA PIN_15) low, then start SPI sending command. */
-	notCS_GPIO_Port->BSRR = (notCS_Pin<<16); // Reset: /CS set low
+	notCS_GPIO_Port->BSRR = (notCS_Pin<<16); // Reset pin: /CS set low
 	/* Loading starts transfer. */
 	hdma_spi1_tx.Instance->CCR  &= ~1; // Disable channel
 	hdma_spi1_tx.Instance->CNDTR = 3; // Number to DMA transfer
@@ -274,7 +279,7 @@ void adcspi_lowpower(void)
 	p->timstate = SPISTATE_LOWPOWER;
 
 	/* Set /CS (GPIOA PIN_15) low, then start SPI sending command. */
-	notCS_GPIO_Port->BSRR = (notCS_Pin<<16); // Reset: /CS set low
+	notCS_GPIO_Port->BSRR = (notCS_Pin<<16); // Reset pin: /CS set low
 
 	/* Loading starts transfer. */
 	hdma_spi1_tx.Instance->CCR  &= ~1; // Disable channel
@@ -315,7 +320,7 @@ void adcspi_setfets(void)
 	p->spitx24.uc[2] = 0;
 
 	/* Set /CS (GPIOA PIN_15) low, then start SPI sending command. */
-	notCS_GPIO_Port->BSRR = (notCS_Pin<<16); // Reset: /CS set low
+	notCS_GPIO_Port->BSRR = (notCS_Pin<<16); // Reset pin: /CS set low
 
 	/* Loading starts transfer. */
 	hdma_spi1_tx.Instance->CCR  &= ~1; // Disable channel
@@ -355,18 +360,36 @@ void adcspi_init(void)
 //   clears the /SMPL bit which returns the flying caps to the cell inputs.
 // ECS plus cell selection bits for cells 1-> 16,
 // selection bits for T1, T2, T3, TOS, ZERO, given indices [0]->[20] and
-static const uint8_t bitorderUP[21] = {0x21,0X23,0X25,0X27,0X29,0X2B,0X2D,0X2F,
+
+//#define NOTSMPLBITHIGH
+#ifdef  NOTSMPLBITHIGH
+
+static const uint8_t bitorderUP[22] = {0x21,0X23,0X25,0X27,0X29,0X2B,0X2D,0X2F,
 	                                   0X31,0X33,0X35,0X37,0X39,0X3B,0X3D,0X3F,
-	                                   0x1A,0x1C,0x1E,0x18, 0x00};
+	                                   0x1A,0x1C,0x1E,0x18,0x00,0x00};
+
 // ECS plus cell selection bits for cells 16-> 1,
 // selection bits for T1, T2, T3, TOS, ZERO, given indices [0]->[20]
-static const uint8_t bitorderDN[21] = {0x3F,0X3D,0X3B,0X39,0X37,0X35,0X33,0X31,
+
+static const uint8_t bitorderDN[22] = {0x3F,0X3D,0X3B,0X39,0X37,0X35,0X33,0X31,
 	                                   0X2F,0X2D,0X2B,0X29,0X27,0X25,0X23,0X21,
-	                                   0x1A,0x1C,0x1E,0x18, 0x00};
+	                                   0x1A,0x1C,0x1E,0x18,0x00,0x00};
+#else
+
+static const uint8_t bitorderUP[22] = {0x01,0X03,0X05,0X07,0X09,0X0B,0X0D,0X0F,
+	                                   0X11,0X13,0X15,0X17,0X19,0X1B,0X1D,0X1F,
+	                                   0x1A,0x1C,0x1E,0x18,0x00,0x00};
+
+static const uint8_t bitorderDN[22] = {0x1F,0X1D,0X1B,0X19,0X17,0X15,0X13,0X11,
+	                                   0X0F,0X0D,0X0B,0X09,0X07,0X05,0X03,0X01,
+	                                   0x1A,0x1C,0x1E,0x18,0x00,0x00};
+#endif
+
 uint32_t dbisr15;
 uint32_t dbisr1;
 uint32_t dbdier1;
 uint32_t dbtrap;
+uint32_t dbcapt;
 
 void adcspi_tim15_IRQHandler(void)
 {
@@ -378,8 +401,9 @@ void adcspi_tim15_IRQHandler(void)
 
 	switch (p->timstate)
 	{
-	case TIMSTATE_IDLE: // Idle. Ignore interrupt
- 	 return;
+	case TIMSTATE_IDLE: // Idle. 
+		notCS_GPIO_Port->BSRR = notCS_Pin; // Set pin: /CS set high
+ 	 	return;
 
 	case TIMSTATE_SMPL: // Command to switch flying caps to ground has been sent.
 		// Raise /CS to latch command bits and begin ground reference transfer
@@ -387,29 +411,33 @@ void adcspi_tim15_IRQHandler(void)
 dbbms2 = DTWTIME;
 dbbms3 = dbbms2 - dbbms1;	
 
-		notCS_GPIO_Port->BSRR = notCS_Pin; // Set: /CS set high to latch bits
-
+		notCS_GPIO_Port->BSRR = notCS_Pin; // Set pin: /CS set high
+//SELECT_GPIO_Port->BSRR = SELECT_Pin<<16; // Set pin low
+//SELECT_GPIO_Port->BSRR = SELECT_Pin; // Set pin high
 dbt1 = DTWTIME;	
 	
 		// Set time delay for settling
 		TIM15->CCR1 = TIM15->CNT + (DELAYUS * 50); // Set 50 us timeout duration
-		p->timstate = TIMSTATE_2; // Set next timer interrupt routing
-		break;	 
+		p->timstate = TIMSTATE_1; // Set next timer interrupt routing
+		break;	
 
-	case TIMSTATE_2: // SMPL settling time complete. Send first selection command
-				// Cell select: ECS = 1, SC0,1,2,3 selects cell number
+	case TIMSTATE_1: // SMPL settling time complete. Send first selection command
+		// Cell select: ECS = 1, SC0,1,2,3 selects cell number
 
+		notCS_GPIO_Port->BSRR = (notCS_Pin<<16); // Reset pin: /CS set low
+
+		/* Set up command to select cell. */
+		// Table lookup of cell selection + ECS bit for either up or down
 		// Allow for selecting up or down readout sequence (to check "slump")
 		if (p->updn == 0)
 		{ // Preferred seq: read highest cells first
-			p->spitx24.uc[2] = 0x3F; // bitorderDN[0];
+			p->spitx24.uc[2] = bitorderDN[0]; // bitorderDN[];
 		}
 		else
 		{ // Use to compare slump: read lowest cells first
-			p->spitx24.uc[2] = 0x21; // bitorderUP[0];
+			p->spitx24.uc[2] = bitorderUP[0]; // bitorderUP[];
 		}		
-		/* Start SPI sending command for selecting cell #1 (spiidx = 0) */
-		notCS_GPIO_Port->BSRR = (notCS_Pin<<16); // Reset: /CS set low
+		/* Start SPI sending command for selecting cell #1. */
 
 		/* Loading starts SPI transfer. */
 		hdma_spi1_tx.Instance->CCR  &= ~1; // Disable channel
@@ -418,58 +446,51 @@ dbt1 = DTWTIME;
 
 		/* Set time delay for SPI to send 3 bytes. */
 		TIM15->CCR1 = TIM15->CNT + SPIDELAY; // Set SPI xmit duration
-
-		// Next TIMSTATE_N interrupt will prepare command to select cell #2.
-		p->spiidx = 1; // Index for cell #2
-		p->timstate = TIMSTATE_3;
-		break;
-
-	case TIMSTATE_3: // First cell selection sent. Set settling duration
-		notCS_GPIO_Port->BSRR = notCS_Pin; // Set: /CS set high to latch bits
-
-		TIM15->CCR1 = TIM15->CNT + (DELAYUS * 5);
-		p->timstate = TIMSTATE_N;
 dbbmst[p->adcidx] = DTWTIME;
+		// TIMSTATE_2 interrupt will start settling time.
+		p->timstate = TIMSTATE_2;
 		break;
 
-	case TIMSTATE_N: // Here, selection command timeout complete
-		/* Start ADC converting cell selection ready for readout */
-dbbmst[p->adcidx] = DTWTIME;	
-		hadc1.Instance->CR |= (0x1 << 2);
-	
-		notCS_GPIO_Port->BSRR = (notCS_Pin<<16); // Reset: /CS set low
+	case TIMSTATE_2: // SPI command has been sent (based upon timing)
+			notCS_GPIO_Port->BSRR = notCS_Pin; // Set in: /CS set high
 
-		/* Prepare next selection command. */
-		// Allow for selecting up or down readout sequence (to check "slump")
-		if (p->updn == 0)
-		{ // Preferred seq: read highest cells first
-			p->spitx24.uc[2] = bitorderDN[p->spiidx];
+		if (p->adcidx == 19) 
+		{ // Top of stack selection requires longer settling time
+			TIM15->CCR1 = TIM15->CNT + (DELAYUS * 60); // The end is near!
 		}
 		else
-		{ // Use to compare slump: read lowest cells first
-			p->spitx24.uc[2] = bitorderUP[p->spiidx];
-		}			
+		{ // Cell and thermistors selection settling time
+			// Delay increment of 16 results in 90 machine cycles for settling
+			TIM15->CCR1 = TIM15->CNT + 16;//(DELAYUS * 5); // More miles to travel.
+		}
+			p->timstate = TIMSTATE_3;	
+		break;		 
 
-		/* SPI sends next command while ADC does conversions on latched command. */
-		// 
-		/* Loading starts SPI transfer. */
+	case TIMSTATE_3: // Settling time after selection command sent has completed
+		if (p->adcidx >= ADCBMSMAX)	
+		{	
+//	EN_GPIO_Port->BSRR = EN_Pin<<16; // Set low.	
+			p->timstate = TIMSTATE_IDLE; // Completion of 21st that clears bits
+//	EN_GPIO_Port->BSRR = EN_Pin; // Set high.
+
+//SELECT_GPIO_Port->BSRR = SELECT_Pin<<16; // Set pin low
+
+dbcapt = p->spitx24.ui;
+
+#if 0
+// Send another 
+p->spitx24.ui = 0;
+		notCS_GPIO_Port->BSRR = (notCS_Pin<<16); // Reset pin: /CS set low
 		hdma_spi1_tx.Instance->CCR  &= ~1; // Disable channel
 		hdma_spi1_tx.Instance->CNDTR = 3;  // Set number to DMA transfer
-		hdma_spi1_tx.Instance->CCR  |= 1;  // Enable channel		
-
-		/* End of sequence command restores discharge FETs, if applicable. */
-		// 0 = clear fets; fets remain clear after read sequence
-		// 1 = fet setting remains in place during read sequence
-		// 2 = new fet setting (from cellbits) applied after read sequence
-		// 3 = save fet setting; clear for read; restore after read
-		if ((p->readbmsfets > 1) && (p->spiidx == 20))
-		{
-			p->spitx24.us[0] = p->cellbitssave;
+		hdma_spi1_tx.Instance->CCR  |= 1;  // Enable channel
+		TIM15->CCR1 = TIM15->CNT + SPIDELAY+ 16; // Set SPI xmit duration
+#endif		
 		}
-
-		p->spiidx += 1; // Index to select cells (and others) is "one ahead"
-
-		// ADC interrupt will start next SPI and TIM
+		else	
+ 		/* Start ADC converting selected cell. */
+        hadc1.Instance->CR |= (0x1 << 2);
+		/* Next interrupt is ADC conversion completed. */
 		break;
 
 	case TIMSTATE_OPENCELL: // Wait for DIAG to discharge completed
@@ -481,7 +502,7 @@ dbbmst[p->adcidx] = DTWTIME;
 	case SPISTATE_CALIB1: // Command to clear registers complete
 
 		// Set /CS high to latch the command
-		notCS_GPIO_Port->BSRR = notCS_Pin; // Set: /CS set high
+		notCS_GPIO_Port->BSRR = notCS_Pin; // Set pin: /CS set high
 
 		// Set timout delay for calibration to approx 8 ms.
 		p->tim15ctr    = 2; // Count TIM15 OC rollovers (4096 us per rollover)
@@ -496,10 +517,9 @@ dbbmst[p->adcidx] = DTWTIME;
 		if (p->tim15ctr > 0) 
 			return;
 
-		notCS_GPIO_Port->BSRR = (notCS_Pin<<16); // Reset: /CS set low
+		notCS_GPIO_Port->BSRR = (notCS_Pin<<16); // Reset: /CS pin set low
 		p->spitx24.ui = 0; // Clear BMS register
 
-		// Here, slightly more than 8 milliseconds.
 		/* Loading starts SPI transfer. */
 		hdma_spi1_tx.Instance->CCR  &= ~1; // Disable channel
 		hdma_spi1_tx.Instance->CNDTR = 3;  // Set number to DMA transfer
@@ -509,9 +529,9 @@ dbbmst[p->adcidx] = DTWTIME;
 		p->timstate = SPISTATE_CALIB2;
 		break;		
 
-	case SPISTATE_CALIB2: // Self-calibration command has been sent.
-		// Setting /CS high initiates self-calibration
-		notCS_GPIO_Port->BSRR = notCS_Pin; // Set: /CS set high
+	case SPISTATE_CALIB2: // 
+
+		notCS_GPIO_Port->BSRR = notCS_Pin; // Set pin: /CS set high
 
 		p->timstate = TIMSTATE_IDLE; // Set to idle, jic
 		// Notify ADCTask.c that self-calibration is complete.
@@ -522,7 +542,7 @@ dbbmst[p->adcidx] = DTWTIME;
 	case SPISTATE_FETS: // Set discharge FETs
 		p->timstate = TIMSTATE_IDLE; // Set to idle, jic
 		// Cause command values to latch
-		notCS_GPIO_Port->BSRR = notCS_Pin; // Set: /CS set high
+		notCS_GPIO_Port->BSRR = notCS_Pin; // Set pin: /CS set high
 		// Notify 'adcspi_setfets' FET word has been sent and latched.
 		xTaskNotifyFromISR(ADCTaskHandle, TSKNOTEBIT00, eSetBits, &xHPT );	
 		portYIELD_FROM_ISR( xHPT);		
@@ -530,7 +550,7 @@ dbbmst[p->adcidx] = DTWTIME;
 
 	case SPISTATE_OPENCELL:
 		// Raise /CR to cause command values just sent to latch
-		notCS_GPIO_Port->BSRR = notCS_Pin; // Set: /CS set high
+		notCS_GPIO_Port->BSRR = notCS_Pin; // Set pin: /CS set high
 
 		// Set time delay for DIAG 10ua current to discharge flying caps.
 		TIM15->CCR1 = TIM15->CNT + (DELAYUS * 1000 * 500); // Set 500 ms timeout duration
@@ -541,7 +561,7 @@ dbbmst[p->adcidx] = DTWTIME;
 // NOTE: This is the same as SPISTATE_FETS...
 	case SPISTATE_LOWPOWER:
 		// Cause command values to latch
-		notCS_GPIO_Port->BSRR = notCS_Pin; // Set: /CS set high
+		notCS_GPIO_Port->BSRR = notCS_Pin; // Set pin: /CS set high
 		// Notify 'adcspi_lowpower' command complete
 		xTaskNotifyFromISR(ADCTaskHandle, TSKNOTEBIT00, eSetBits, &xHPT );	
 		portYIELD_FROM_ISR( xHPT );
@@ -569,50 +589,53 @@ void adcspi_adc_IRQHandler(ADC_HandleTypeDef* phadc1)
 	struct ADCSPIALL* p = &adcspiall; // Convenience pointer
 	BaseType_t xHPT = pdFALSE;
 
-	/* SPI sent command long ago. Set: /CS set high to latch bits. */
-	notCS_GPIO_Port->BSRR = notCS_Pin; // 
+	pADCbase->ISR = (1 << 2); // Reset interrupt flag
 
-	// ISR: Bit 2 EOC: End of conversion flag
-	if ((pADCbase->ISR & (1 << 2)) != 0) // Bit 2 EOC: End of conversion flag
-	{ // Here, conversion complete
-		pADCbase->ISR = (1 << 2); // Reset interrupt flag
+	notCS_GPIO_Port->BSRR = (notCS_Pin<<16); // Reset pin: /CS set low
 
-		p->raw[p->adcidx] = pADCbase->DR; // Store data
+if(p->adcidx >= 20) morse_trap(746);
+
+	p->raw[p->adcidx] = pADCbase->DR; // Store data
 
 dbbmst[p->adcidx] = DTWTIME - dbbmst[p->adcidx];	
 
-		p->adcidx += 1; 
+	p->timstate = TIMSTATE_2;
 
-#ifdef FIRSTSIXTEEN
-if (p->adcidx == 15)
-{
-	dbadcspit3 = DTWTIME - dbadcspit1;
-}
-#endif
-		
-		if (p->adcidx >= ADCBMSMAX)
-		{ // Here end of 16 cells, 3 thermistors, 1 top-of-stack			
-			xTaskNotifyFromISR(ADCTaskHandle, TSKNOTEBIT00, eSetBits, &xHPT );
-			portYIELD_FROM_ISR( xHPT );
-			p->timstate = TIMSTATE_IDLE;
-		}
-		else
-		{ // More readings to be taken.
-			p->timstate = TIMSTATE_N; // Many a mile to go.
+	p->adcidx += 1; 
 
-			if (p->spiidx == 19) 
-			{ // Top of stack selection requires longer settling time
-				TIM15->CCR1 = TIM15->CNT + (DELAYUS * 60); // The end is near!
-			}
-			else
-			{ // Cell and thermistors selection settling time
-				// 16 results in 90 machine cycles for settling
-				TIM15->CCR1 = TIM15->CNT + 16;//(DELAYUS * 5); // More miles to travel.
-			}
-		}
+dbbmst[p->adcidx] = DTWTIME;
+
+	if (p->adcidx == 16)
+	{
+		SELECT_GPIO_Port->BSRR = SELECT_Pin; // Set SMPL pin high
+dbadcspit3 = DTWTIME - dbadcspit1;
+	}
+
+	/* Set up command to select cell. */
+	// Allow for selecting up or down readout sequence (to check "slump")
+	if (p->updn == 0)
+	{ // Preferred seq: read highest cells first
+		p->spitx24.uc[2] = bitorderDN[p->adcidx]; // bitorderDN[];
 	}
 	else
-		morse_trap(736); // JIC debug
+	{ // Use to compare slump: read lowest cells first
+		p->spitx24.uc[2] = bitorderUP[p->adcidx]; // bitorderUP[];
+	}
+
+	/* Loading starts SPI sending cell selection command, */
+	hdma_spi1_tx.Instance->CCR  &= ~1; // Disable channel
+	hdma_spi1_tx.Instance->CNDTR = 3;  // Set number to DMA transfer
+	hdma_spi1_tx.Instance->CCR  |= 1;  // Enable channel
+
+	/* Set time delay for SPI to send 3 bytes. */
+	TIM15->CCR1 = TIM15->CNT + SPIDELAY; // Set SPI xmit duration
+
+	// Next TIMSTATE_2 interrupt will start settling time.
+	if (p->adcidx >= ADCBMSMAX)
+	{ // Here end of 16 cells, 3 thermistors, 1 top-of-stack			
+		xTaskNotifyFromISR(ADCTaskHandle, TSKNOTEBIT00, eSetBits, &xHPT );
+		portYIELD_FROM_ISR( xHPT );
+	}
 	return;
 }
 /* #######################################################################
@@ -659,17 +682,59 @@ GIFx in the DMA_ISR register, provided that none of the two other individual fla
 /* #######################################################################
  * SPI tx & rs dma transfer complete (if enabled!)
    ####################################################################### */
+uint32_t dbspidma;
+uint32_t dbspidma2;
+uint32_t dbspidiff;
+
 void adcspi_spidmarx_IRQHandler(DMA_HandleTypeDef* phdma_spi1_rx)
 {
+dbspidma2 = DTWTIME;
+dbspidiff = dbspidma2 - dbspidma;
+
 	morse_trap(841); // Debug JIC}
+
+/* The following will not execute if the morse-trap above is not commented out. */
+// Reset interrupt flags	
+hdma_spi1_rx.DmaBaseAddress->IFCR = 0xfff;
+
+if ((GPIOA->ODR & (1<<15)) != 0)
+  GPIOA->BSRR = (1<<(15+16)); // Reset /CS
+else
+  GPIOA->BSRR = (1<<(15+ 0)); // Set /CS
+
+	hdma_spi1_rx.Instance->CCR &= ~1; // Disable channel
+	hdma_spi1_rx.Instance->CNDTR = 3;//3; // Number to DMA transfer
+	hdma_spi1_rx.Instance->CCR |= 3;  // Enable channel
+
+	hdma_spi1_tx.Instance->CCR &= ~1; // Disable channel
+	hdma_spi1_tx.Instance->CNDTR = 3; // Number to DMA transfer
+	hdma_spi1_tx.Instance->CCR |= 1;//1;  // Enable channel
+return;
 }
 
 void adcspi_spidmatx_IRQHandler(DMA_HandleTypeDef* phdma_spi1_tx)
 {
+dbspidma2 = DTWTIME;
+dbspidiff = dbspidma2 - dbspidma;	
 	morse_trap(842); // Debug JIC}
 
-	/* Clear the transfer complete flag */
-	// Bit 8 CGIF3: global interrupt flag clear for channel 3
-    phdma_spi1_tx->DmaBaseAddress->IFCR = (0xF << 8);
-    phdma_spi1_tx->Instance->CCR &= ~0x1; // Disable channel
+// Debug: Constant SPI for 'scoping
+hdma_spi1_tx.DmaBaseAddress->IFCR = 0x00f;
+
+volatile uint32_t spin;
+for (spin = 0; spin < 30; spin++);
+
+if ((GPIOA->ODR & (1<<15)) != 0)
+  GPIOA->BSRR = (1<<(15+16)); // Reset /CS
+else
+  GPIOA->BSRR = (1<<(15+ 0)); // Set /CS
+
+	hdma_spi1_rx.Instance->CCR &= ~1; // Disable channel
+	hdma_spi1_rx.Instance->CNDTR = 3;//3; // Number to DMA transfer
+	hdma_spi1_rx.Instance->CCR |= 1;  // Enable channel
+
+	hdma_spi1_tx.Instance->CCR &= ~1; // Disable channel
+	hdma_spi1_tx.Instance->CNDTR = 3; // Number to DMA transfer
+	hdma_spi1_tx.Instance->CCR |= 3;//1;  // Enable channel
+return;	
 }

@@ -70,7 +70,7 @@ void StartADCTask(void *argument)
 	pssb->updn     = 0;      // see above 'struct ADCSPIALL'
 	pssb->reqcode  = REQ_OPENCELL; // Code for service requested
 
-// $$$$$$	adcspi_calib();
+	adcspi_calib();
 
 	// Default to overlapped spi commands with ADC conversions
 	p->noverlap = 0;
