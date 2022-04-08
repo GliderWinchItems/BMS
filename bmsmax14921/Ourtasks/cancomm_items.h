@@ -28,8 +28,6 @@
  #define MISCQ_HEATER_OFF 16 // Turn Heater mode off.
  #define MISCQ_TRICLE_OFF 17 // Turn trickle charger off fofor no more than ‘payload [3]’ secs
 
-
-
 /* *************************************************************************/
  void cancomm_items_sendcell(struct CANRCVBUF* pcan);
 /*	@brief	: Prepare and queue CAN msgs for sending cell voltage array
@@ -42,6 +40,10 @@
 void cancomm_items_uni_bms(struct CANRCVBUF* pcan);
 /*	@brief	: Multi-purpose command (CANCOMMBIT02)
  *  @param  : pcan = pointer to struct CANRCVBUF from mailbox 
+ * *************************************************************************/
+ void cancomm_items_filter(uint16_t* pi);
+/*	@brief	: Pass raw readings through filter 
+ *  @param  : pi = pointer to array with uint16_t raw readings (sequence correct)
  * *************************************************************************/
 
 #endif

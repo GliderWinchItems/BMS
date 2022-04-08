@@ -110,6 +110,17 @@ static uint32_t adc_cfgr2;
 	/* Set SMPL pin high and ontrol sampling by /SMPL bit. */
 	SELECT_GPIO_Port->BSRR = SELECT_Pin; // Set pin high
 
+		// Bit 1 TXDMAEN: Tx buffer DMA enable
+	// Bit 0 RXDMAEN: Rx buffer DMA enable
+ 	SPI1->CR2 |= (1<<1) | (1 << 0);
+
+	// Bits 5:3 BR[2:0]: Baud rate control
+ 	SPI1->CR1 &= ~(0x7 << 3); // Clock divider
+ 	SPI1->CR1 |=  (0x2 << 3); // 010: fPCLK /8
+
+// Bit 0 CPHA: Clock phase: 1: The second clock transition is the first data capture edge 	
+ //SPI1->CR1 |=  (0x1 << 0);
+
 	return;
 }
 /* *************************************************************************
@@ -235,85 +246,50 @@ static uint32_t adc_cfgr2;
  * void adcbms_startreadbms(void);
  * @brief	: Set up and start a readout sequence
  * *************************************************************************/
- // Setup SPI command ECS = 1; Cell 0; /SMPL = 1
-	// Beware little endian of word!
- static const uint32_t spi24smpl = 0x00040000; // /SMPL bit set high
-
  void adcbms_startreadbms(void)
  {
  	struct ADCSPIALL* p = &adcspiall; // Convenience pointer
 
- 	p->adcflag = 0; // ADC is idle
-
+ //	p->adcflag = 0; // ADC is idle
  	p->adcidx = 0; 
- 	p->spiidx = 0;
+
+ 	if (pssb->encycle != 0)
+ 	{
+		EN_GPIO_Port->BSRR = EN_Pin<<16; // Set low.	
+		p->timstate = TIMSTATE_IDLE; // Short delay for /CS pin
+		EN_GPIO_Port->BSRR = EN_Pin; // Set high.
+		osDelay(62); // Wait for flying caps to charge 
+	}
 
  	p->timstate = TIMSTATE_IDLE; // JIC
 
  	// Save (for faster ISR use) 
  	p->updn = pssb->updn; //up/down cell readout order requested
- 	p->noverlap = pssb->noverlap; // not overlap spi with adc
- 	p->readbmsfets = pssb->readbmsfets;
-
+// 	p->noverlap = pssb->noverlap; // not overlap spi with adc
+ 
  	// Configure ADC registers for BMS readout
  	adcbms_config_bms();
 
  	// Set /CS (GPIOA PIN_15) low to enable MAX14921.
 	notCS_GPIO_Port->BSRR = (notCS_Pin<<16); // Reset: /CS set low
 
-	// 
-	// uc[0] = 0; uc[1] = 0; uc[2] = 0x04 uc[3] = not used
-		// Load FET bits (lower two bytes) from requester's struct
-	switch (p->readbmsfets)
-	{
-	case 0: // 0 = clear fets; fets remain clear after read sequence
-		p->spitx24.us[0] = 0;
-		break;
-	case 1: // 1 = fet setting remains in place during & after read sequence
-		break;
-	case 2: // 2 = new fet setting (from cellbits) applied after read sequence
-		p->cellbitssave	 = pssb->cellbits;
-		p->spitx24.us[0] = 0;
-		break;
-	case 3: // 3 = save present fet settings; clear for read; restore after read	
-		p->cellbitssave	 = p->spitx24.us[0];
-		p->spitx24.us[0] = 0;
-		break;
-	default:
-		morse_trap(731);
-	}
+	// uc[0] = 0; uc[1] = 0; uc[2] = 0x04; uc[3] = not used;
 		
-	p->spitx24.uc[2] = 0x20; // /SMPL bit set high
+//	p->spitx24.uc[2] = 0x20; // /SMPL bit set high
+	p->spitx24.uc[2] = 0x00; // /SMPL bit set low
 
+	p->spitx24.us[0] = pssb->cellbits;	
 // Debug: Override CancommTask cellbits settings
-p->spitx24.uc[1] = 0x00;
-p->spitx24.uc[0] = 0x00;
 //p->spitx24.us[0] = 0x8000; // Test FET turn on
 
-//SELECT_GPIO_Port->BSRR = SELECT_Pin<<16; // Set pin low
-SELECT_GPIO_Port->BSRR = SELECT_Pin; // Set pin high
-
-
-SPI1->CR1 &= ~(1 << 6);
-
-	// Bit 1 TXDMAEN: Tx buffer DMA enable
-	// Bit 0 RXDMAEN: Rx buffer DMA enable
- 	SPI1->CR2 |= (1<<1) | (1 << 0);
-
-//FRXTH: FIFO reception threshold 	
-SPI1->CR2 |= (1 << 12); 	
-
- 	SPI1->CR1 &= ~(0x7 << 3); // Clock divider
- 	SPI1->CR1 |=  (0x2 << 3); // 010: fPCLK /8
-
-SPI1->CR1 &= ~0x3;
-SPI1->CR1 |=  0x0;
-
+	SELECT_GPIO_Port->BSRR = SELECT_Pin<<16; // Set pin low
+//	SELECT_GPIO_Port->BSRR = SELECT_Pin; // Set pin high
+	
 	/* Start transmission of command: set /SMPL bit high */
 	// DMA_CNDTR: number of data to transfer register
-	hdma_spi1_rx.Instance->CCR &= ~1; // Disable channel
-	hdma_spi1_rx.Instance->CNDTR = 3; // Number to DMA transfer
-	hdma_spi1_rx.Instance->CCR |= 1;  // Enable channel
+//	hdma_spi1_rx.Instance->CCR &= ~1; // Disable channel
+//	hdma_spi1_rx.Instance->CNDTR = 3; // Number to DMA transfer
+//	hdma_spi1_rx.Instance->CCR |= 1;  // Enable channel
 
 	hdma_spi1_tx.Instance->CCR &= ~1; // Disable channel
 	hdma_spi1_tx.Instance->CNDTR = 3; // Number to DMA transfer
@@ -328,7 +304,7 @@ SPI1->CR1 |=  0x0;
 //osDelay(1000*400);
 
 	// Set time duration for SPI to send 24b command
-	TIM15->CCR1 = TIM15->CNT + SPIDELAY; // Set SPI xmit duration
+	TIM15->CCR1 = TIM15->CNT + SPIDELAY + 16; // Set SPI xmit duration
 
 	// Set state for timer interrupt. (It will set a 50 us TIM2 delay to allow switch & settling.)
 	p->timstate = TIMSTATE_SMPL; //

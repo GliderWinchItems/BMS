@@ -40,7 +40,9 @@ static struct ADCREADREQ adcreadreq; // Request BMS readout
 
 uint8_t dbupdnx;
 
-float fbms[ADCBMSMAX]; // (16+3+1) = 20; Number of MAX14921 (cells+thermistors+tos)     
+/* Arrays loaded by readbms. */
+float fbms[ADCBMSMAX]; // (16+3+1) = 20; Number of MAX14921 (cells+thermistors+tos)   
+uint16_t uibms[ADCBMSMAX];
 
 /* *************************************************************************
  * void CanComm_init(struct BQFUNCTION* p );
@@ -127,13 +129,14 @@ void StartCanComm(void* argument)
 
 	/* Pre-load BMS readout request queue block. */	
 	adcreadreq.taskhandle = CanCommHandle;// Requesting task's handle
-	adcreadreq.tasknote   = CANCOMMBIT03;// ADCTask completed BMS read 
-	adcreadreq.taskdata   = &fbms[0];    // Requesting task's pointer to buffer to receive data
-	adcreadreq.cellbits   = 0x0000;//0;           // Depends on command: FET to set; Open cell wires
-	adcreadreq.updn       = 0;           // BMS readout direction 0 = high->low cell numbers
-	adcreadreq.reqcode    = REQ_READBMS; // Read MAX1921 cells, thermistor, Top-of-stack
-	adcreadreq.noverlap   = 0;           // Overlap spi with ADC conversions
-	adcreadreq.readbmsfets= 1;//0;           // Clear discharge fets before readbms.	
+	adcreadreq.tasknote   = CANCOMMBIT03; // ADCTask completed BMS read 
+	adcreadreq.taskdata   = &fbms[0];  // Requesting task's pointer to buffer to receive data
+	adcreadreq.taskdatai16= &uibms[0]; // Requesting task's pointer to int16_t buffer to receive data
+	adcreadreq.cellbits   = 0x0000;    // Depends on command: FET to set; Open cell wires
+	adcreadreq.updn       = 1; // BMS readout direction 0 = high->low cell numbers; 1 = low->high
+	adcreadreq.reqcode    = REQ_READBMS;  // Read MAX1921 cells, thermistor, Top-of-stack
+	adcreadreq.encycle    = 1;     // Cycle EN: 0 = after read; 1 = before read w osDelay
+	adcreadreq.readbmsfets= 1;//0;        // Clear discharge fets before readbms.	
 dbupdnx = adcreadreq.updn;
 extern CAN_HandleTypeDef hcan1;
 	HAL_CAN_Start(&hcan1); // CAN1
@@ -192,9 +195,12 @@ extern CAN_HandleTypeDef hcan1;
 			qret = xQueueSendToBack(ADCTaskReadReqQHandle, &padcreadreq, 5000);
 if (qret != pdPASS) morse_trap(720); // JIC debug
 
-			/* Wait for ADCTask to complete. */
+			/* Wait for ADCTask to signal request complete. */
 			xTaskNotifyWait(0,0xffffffff, &noteval2, 5000);
 if (noteval2 != CANCOMMBIT03) morse_trap(721); // JIC debug
+
+			/* Filter readings for calibration purposes. */
+			cancomm_items_filter(pssb->taskdatai16); // Filter raw readings
 
 			/* Use dummy CAN msg, then it looks the same as a request CAN msg. */
 			can_hb.cd.uc[0] = CMD_CMD_TYPE2;  // Misc subcommands code

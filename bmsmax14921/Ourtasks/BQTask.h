@@ -13,6 +13,7 @@
 #include "stm32l4xx_hal.h"
 #include "bq_idx_v_struct.h"
 #include "CanTask.h"
+#include "adc_idx_v_struct.h"
 
 #define BQVSIZE 20 // Readout loop size (16 cells plus others)
 
@@ -45,7 +46,6 @@
   that are not possible. */
 #define CELLV_OPEN  65534  // cellv_latest array, uint16_t value for open wire
 #define CELLV_MINUS 65535  // cellv_latest array, uint16_t value for negative voltage
-
 
 /* Cell current voltage for last measurement. */
 struct VI
@@ -109,6 +109,11 @@ struct BQFUNCTION
 	uint8_t cellx_high;   // Highest cellv index (0-15)
 	uint8_t cellx_low;    // Lowest  cellv index (0-15)
 
+	/* Filter raw readings for calibration purposes. */
+	struct FILTERIIRF1 filtiirf1_raw[ADCBMSMAX]; // Filter parameters
+	float raw_filt[ADCBMSMAX]; // Filtered output
+	float cal_filt[ADCBMSMAX]; // Filtered and calibrated
+
 	uint32_t cellbal;       // Bits to activate cell balance fets
 	uint8_t active_ct;      // Count of bits set in cellbal
 	uint8_t battery_status; // Cell status code bits 
@@ -117,13 +122,11 @@ struct BQFUNCTION
 	/* balnumwrk might be adjusted based on chip temperature. */
 	uint8_t balnumwrk; // Max number of active cell bits (Working)
 
-
 	/* Pointers to incoming CAN msg mailboxes. */
 	struct MAILBOXCAN* pmbx_cid_cmd_bms_cellvq;// CANID_CMD_BMS_CELLVQ: BMSV1 U8: EMC requests to BMS to send cellv, cmd code
 	struct MAILBOXCAN* pmbx_cid_cmd_bms_miscq; // CANID_CMD_BMS_MISCQ: BMSV1 U8: EMC requests to BMS to value for given cmd code
 	struct MAILBOXCAN* pmbx_cid_unit_bms01;    // CANID_UNIT_BMS01 B0600000 UNIT_BMS01 U8_U8_U8_X4 BMS BQ76952  #01
 	struct MAILBOXCAN* pmbx_cid_uni_bms_i;     // CANID_UNI_BMS_I  B0000000 UNIversal BMS Incoming msg to BMS: X4=target CANID
-
 
 	uint8_t state;      // main state
 	uint8_t substateA;  // 
@@ -131,11 +134,7 @@ struct BQFUNCTION
 
 	/* CAN msgs */
 	struct CANTXQMSG canmsg[NUMCANMSGS];
-
-
 };
-
-
 /* *************************************************************************/
 TaskHandle_t xBQTaskCreate(uint32_t taskpriority);
 /* @brief	: Create task; task handle created is global for all to enjoy!

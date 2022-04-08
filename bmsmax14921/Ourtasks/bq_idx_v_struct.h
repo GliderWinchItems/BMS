@@ -19,6 +19,10 @@
 #define CELLVNONE  65534 // Cell position not installed
 #define CELLVOPEN  65533 // Installed, but wire appears open
 
+#define RAWTC 0.90f  // Filter time constant
+#define RAWSKIPCT 3  // Ignore initial readings to filter
+
+
 
 /* Parameters levelwind instance (LC = Local Copy) */
 struct BQLC

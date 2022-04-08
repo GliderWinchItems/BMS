@@ -1341,6 +1341,14 @@ void StartDefaultTask(void *argument)
       {
         yprintf(&pbuf1," %7.4f",fbms[i]);
       }
+      /* List iir filtered raw ADC readigns. */      
+      yprintf(&pbuf1,"\n\rF ");
+      for (i = 0; i < ADCBMSMAX; i++)
+      {
+        yprintf(&pbuf2," %7.4f",bqfunction.cal_filt[i]);
+      }
+
+#if 1 
      /* List raw ADC counts for calibration purposes. */
       yprintf(&pbuf2,"\n\rR ");
       extern uint8_t dbupdnx;
@@ -1355,6 +1363,14 @@ void StartDefaultTask(void *argument)
       {
         yprintf(&pbuf2," %7i",adcspiall.raw[i]);
       }
+#endif
+      /* List iir filtered raw ADC readigns. */      
+      yprintf(&pbuf1,"\n\rIIR ");
+      for (i = 0; i < ADCBMSMAX; i++)
+      {
+        yprintf(&pbuf2," %7.1f",bqfunction.raw_filt[i]);
+      }
+
     }
 
     /* Other misc. */

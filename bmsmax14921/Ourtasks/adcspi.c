@@ -160,17 +160,22 @@ dbadcspit1 = DTWTIME;
 		// Readout "up" (cells 1->16) = 1; Down (cells 16->1) = 0
 		if (p->updn == 0)
 		{ // Here, cell number readout sequence was 16->1
-			*(pssb->taskdata+i) = adcparams_calibbms(15-i);
+			*(pssb->taskdatai16+i) = adcspiall.raw[15-i];
+			*(pssb->taskdata+i) = adc1.lc.cabsbms[i].offset + 
+			   (adcspiall.raw[15-i] * adc1.lc.cabsbms[i].scale);
 		}
 		else
 		{ // Here, cell sequence readout was 1->16
-			*(pssb->taskdata+i) = adcparams_calibbms(i);
+			*(pssb->taskdatai16+i) = adcspiall.raw[i];
+			*(pssb->taskdata+i) = adc1.lc.cabsbms[i].offset + 
+			   (adcspiall.raw[i] * adc1.lc.cabsbms[i].scale);
 		}
 	}
 	// Thermistors and top-of-stack
 	for (i = 16; i < ADCBMSMAX; i++)
 	{
 			*(pssb->taskdata+i) = adcparams_calibbms(i);
+			*(pssb->taskdatai16+i) = adcspiall.raw[i];
 	}
 
 	/* Signal 'main.c' that there is a bms reading. */
@@ -361,7 +366,7 @@ void adcspi_init(void)
 // ECS plus cell selection bits for cells 1-> 16,
 // selection bits for T1, T2, T3, TOS, ZERO, given indices [0]->[20] and
 
-//#define NOTSMPLBITHIGH
+#define NOTSMPLBITHIGH
 #ifdef  NOTSMPLBITHIGH
 
 static const uint8_t bitorderUP[22] = {0x21,0X23,0X25,0X27,0X29,0X2B,0X2D,0X2F,
@@ -453,27 +458,40 @@ dbbmst[p->adcidx] = DTWTIME;
 
 	case TIMSTATE_2: // SPI command has been sent (based upon timing)
 			notCS_GPIO_Port->BSRR = notCS_Pin; // Set in: /CS set high
-
-		if (p->adcidx == 19) 
-		{ // Top of stack selection requires longer settling time
-			TIM15->CCR1 = TIM15->CNT + (DELAYUS * 60); // The end is near!
+		/* The first cell (either #1 or #16 depending on up/down order
+		   reads by about 5% if settling time is not lengthened, and 
+		   the switch-to-ground reference delay still needs to be about
+		   50 us. */
+		if (p->adcidx == 0) 
+		{
+			TIM15->CCR1 = TIM15->CNT + (16*8);
 		}
 		else
-		{ // Cell and thermistors selection settling time
-			// Delay increment of 16 results in 90 machine cycles for settling
-			TIM15->CCR1 = TIM15->CNT + 16;//(DELAYUS * 5); // More miles to travel.
+		{
+			if (p->adcidx == 19) 
+			{ // Top of stack selection requires longer settling time
+				TIM15->CCR1 = TIM15->CNT + (DELAYUS * 60); // The end is near!
+			}
+			else
+			{ // Cell and thermistors selection settling time
+				// Delay increment of 16 results in 90 machine cycles for settling
+				TIM15->CCR1 = TIM15->CNT + 16;//(DELAYUS * 5); // More miles to travel.
+			}
 		}
-			p->timstate = TIMSTATE_3;	
+
+		p->timstate = TIMSTATE_3;	
 		break;		 
 
 	case TIMSTATE_3: // Settling time after selection command sent has completed
 		if (p->adcidx >= ADCBMSMAX)	
 		{	
-//	EN_GPIO_Port->BSRR = EN_Pin<<16; // Set low.	
-			p->timstate = TIMSTATE_IDLE; // Completion of 21st that clears bits
-//	EN_GPIO_Port->BSRR = EN_Pin; // Set high.
-
-//SELECT_GPIO_Port->BSRR = SELECT_Pin<<16; // Set pin low
+			/* Reset SPI registers after bms readout? */
+			if (pssb->encycle == 0)
+			{ // Here, yes. Flying caps begin recharging to cell inputs
+				EN_GPIO_Port->BSRR = EN_Pin<<16; // Set low.	
+				p->timstate = TIMSTATE_IDLE; // Short delay for /CS pin
+				EN_GPIO_Port->BSRR = EN_Pin; // Set high.
+			}
 
 dbcapt = p->spitx24.ui;
 

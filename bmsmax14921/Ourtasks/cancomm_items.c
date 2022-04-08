@@ -10,6 +10,7 @@
 #include "adcparams.h"
 #include "../../../../GliderWinchCommons/embed/svn_common/trunk/db/gen_db.h"
 #include "ADCTask.h"
+#include "iir_f1.h"
 
 void cancomm_items_sendcell(struct CANRCVBUF* pcan);
 
@@ -353,3 +354,27 @@ static void loadfloat(uint8_t* puc, float* pf)
 	*(puc+3) = uf.uc[3];
 	return;
 }
+/* *************************************************************************
+ * void cancomm_items_filter(uint16_t* pi);
+ *	@brief	: Pass raw readings through filter 
+ *  @param  : pi = pointer to array with uint16_t raw readings (sequence correct)
+ * *************************************************************************/
+void cancomm_items_filter(uint16_t* pi)
+{
+	struct FILTERIIRF1* pf1 = &bqfunction.filtiirf1_raw[0]; // Filter parameters
+	struct ADCCALABS* pcabsbms = &adc1.lc.cabsbms[0];
+	float* pout = &bqfunction.raw_filt[0]; // Filtered output
+	float* pcal = &bqfunction.cal_filt[0]; // Flitered and calibrated
+	int i;
+
+	for (i = 0; i < ADCBMSMAX; i++)
+	{
+		*pout = iir_f1_f(pf1,(float)(*pi));
+		*pcal = (pcabsbms->offset + (*pout * pcabsbms->scale));
+		 pout += 1;    pcal += 1;   pi += 1;
+		 pcabsbms += 1; pf1 += 1;
+	}
+
+	return;
+}
+//return (adc1.lc.cabsbms[i].offset + (adcspiall.raw[i] * adc1.lc.cabsbms[i].scale) );

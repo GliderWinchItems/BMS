@@ -6,6 +6,7 @@
 *******************************************************************************/
 #include "bq_func_init.h"
 #include "CanCommTask.h"
+#include "iir_f1.h"
 #include "../../../../GliderWinchCommons/embed/svn_common/trunk/db/gen_db.h"
 
 /* *************************************************************************
@@ -54,8 +55,13 @@ void bq_func_init(struct BQFUNCTION* p)
 
 	p->balnumwrk = p->lc.balnummax; // Working number of active cell balancing bits
 
-
-
+	/* Filter raw readings for calibration purposes. */
+	for (i = 0; i < ADCBMSMAX; i ++)
+	{
+		p->filtiirf1_raw[i].coef    = RAWTC;
+		p->filtiirf1_raw[i].onemcoef = 1.0 - p->filtiirf1_raw[i].coef;  // 1 - coef 
+		p->filtiirf1_raw[i].skipctr = RAWSKIPCT;
+	}
 
 	return;
 }

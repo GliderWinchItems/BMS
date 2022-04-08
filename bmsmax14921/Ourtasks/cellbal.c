@@ -41,11 +41,11 @@ float fcell[ADCBMSMAX]; // (16+3+1) = 20; Number of MAX14921 (cells+thermistors+
 	/* Pre-load BMS readout request queue block. */	
 	adcreadreq.taskhandle = xTaskGetCurrentTaskHandle();// Requesting task's handle
 	adcreadreq.tasknote   = CALLBALBIT00;// ADCTask completed BMS read 
-	adcreadreq.taskdata   = &fcell[0];    // Requesting task's pointer to buffer to receive data
+	adcreadreq.taskdata   = &fcell[0];   // Requesting task's pointer to buffer to receive data
 	adcreadreq.cellbits   = 0;           // Bits to set FETs
 	adcreadreq.updn       = 0;           // BMS readout direction high->low cell numbers
 	adcreadreq.reqcode    = REQ_SETFETS; // Set discharge fets.
-	adcreadreq.noverlap   = 0;           // Overlap spi with ADC conversions
+	adcreadreq.encycle    = 0;     // Cycle EN: 0 = after read; 1 = before read w osDelay
 	adcreadreq.readbmsfets= 0;           // Clear discharge fets before readbms.
 	return;	
 }

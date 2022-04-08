@@ -72,9 +72,6 @@ void StartADCTask(void *argument)
 
 	adcspi_calib();
 
-	// Default to overlapped spi commands with ADC conversions
-	p->noverlap = 0;
-
 	// Assure configuration of ADC mode upon first pass. */
 	p->config = 2; // Show ADC not configured
 
