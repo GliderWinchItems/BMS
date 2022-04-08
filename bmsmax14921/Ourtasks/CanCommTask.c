@@ -133,7 +133,7 @@ void StartCanComm(void* argument)
 	adcreadreq.taskdata   = &fbms[0];  // Requesting task's pointer to buffer to receive data
 	adcreadreq.taskdatai16= &uibms[0]; // Requesting task's pointer to int16_t buffer to receive data
 	adcreadreq.cellbits   = 0x0000;    // Depends on command: FET to set; Open cell wires
-	adcreadreq.updn       = 1; // BMS readout direction 0 = high->low cell numbers; 1 = low->high
+	adcreadreq.updn       = 0; // BMS readout direction 0 = high->low cell numbers; 1 = low->high
 	adcreadreq.reqcode    = REQ_READBMS;  // Read MAX1921 cells, thermistor, Top-of-stack
 	adcreadreq.encycle    = 1;     // Cycle EN: 0 = after read; 1 = before read w osDelay
 	adcreadreq.readbmsfets= 1;//0;        // Clear discharge fets before readbms.	

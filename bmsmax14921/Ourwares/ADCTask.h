@@ -26,7 +26,7 @@
 
 /* Number of TIM15 ticks for SPI to send 3 bytes. */
 // (16 MHz timer : 2 MHz SPI SCK : 24 bits
-#define SPIDELAY (12*16)
+#define SPIDELAY (12*16+5)
 
 enum TIMSTATE
 {
@@ -36,6 +36,7 @@ enum TIMSTATE
 	TIMSTATE_1,
 	TIMSTATE_2,
 	TIMSTATE_3,
+	TIMSTATE_4,	
 	TIMSTATE_N,
 	TIMSTATE_OPENCELL,
 	TIMSTATE_TRAP,

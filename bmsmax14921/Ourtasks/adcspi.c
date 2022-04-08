@@ -365,8 +365,7 @@ void adcspi_init(void)
 //   clears the /SMPL bit which returns the flying caps to the cell inputs.
 // ECS plus cell selection bits for cells 1-> 16,
 // selection bits for T1, T2, T3, TOS, ZERO, given indices [0]->[20] and
-
-#define NOTSMPLBITHIGH
+//#define NOTSMPLBITHIGH
 #ifdef  NOTSMPLBITHIGH
 
 static const uint8_t bitorderUP[22] = {0x21,0X23,0X25,0X27,0X29,0X2B,0X2D,0X2F,
@@ -443,7 +442,6 @@ dbt1 = DTWTIME;
 			p->spitx24.uc[2] = bitorderUP[0]; // bitorderUP[];
 		}		
 		/* Start SPI sending command for selecting cell #1. */
-
 		/* Loading starts SPI transfer. */
 		hdma_spi1_tx.Instance->CCR  &= ~1; // Disable channel
 		hdma_spi1_tx.Instance->CNDTR = 3;  // Set number to DMA transfer
@@ -457,34 +455,22 @@ dbbmst[p->adcidx] = DTWTIME;
 		break;
 
 	case TIMSTATE_2: // SPI command has been sent (based upon timing)
-			notCS_GPIO_Port->BSRR = notCS_Pin; // Set in: /CS set high
-		/* The first cell (either #1 or #16 depending on up/down order
-		   reads by about 5% if settling time is not lengthened, and 
-		   the switch-to-ground reference delay still needs to be about
-		   50 us. */
-		if (p->adcidx == 0) 
-		{
-			TIM15->CCR1 = TIM15->CNT + (16*8);
+		notCS_GPIO_Port->BSRR = notCS_Pin; // Set in: /CS set high
+		if (p->adcidx == 19) 
+		{ // Top of stack selection requires longer settling time
+			TIM15->CCR1 = TIM15->CNT + (DELAYUS * 60); // The end is near!
 		}
 		else
-		{
-			if (p->adcidx == 19) 
-			{ // Top of stack selection requires longer settling time
-				TIM15->CCR1 = TIM15->CNT + (DELAYUS * 60); // The end is near!
-			}
-			else
-			{ // Cell and thermistors selection settling time
-				// Delay increment of 16 results in 90 machine cycles for settling
-				TIM15->CCR1 = TIM15->CNT + 16;//(DELAYUS * 5); // More miles to travel.
-			}
+		{ // Cell and thermistors selection settling time
+			// Delay increment of 16 results in 90 machine cycles for settling
+			TIM15->CCR1 = TIM15->CNT + 24; // More miles to travel.
 		}
-
 		p->timstate = TIMSTATE_3;	
 		break;		 
 
 	case TIMSTATE_3: // Settling time after selection command sent has completed
 		if (p->adcidx >= ADCBMSMAX)	
-		{	
+		{	// Here, end of readout cycle.
 			/* Reset SPI registers after bms readout? */
 			if (pssb->encycle == 0)
 			{ // Here, yes. Flying caps begin recharging to cell inputs
@@ -493,6 +479,7 @@ dbbmst[p->adcidx] = DTWTIME;
 				EN_GPIO_Port->BSRR = EN_Pin; // Set high.
 			}
 
+			p->timstate = TIMSTATE_4;	
 dbcapt = p->spitx24.ui;
 
 #if 0
@@ -509,6 +496,12 @@ p->spitx24.ui = 0;
  		/* Start ADC converting selected cell. */
         hadc1.Instance->CR |= (0x1 << 2);
 		/* Next interrupt is ADC conversion completed. */
+		break;
+
+	case TIMSTATE_4:
+		p->timstate = TIMSTATE_IDLE;	
+		xTaskNotifyFromISR(ADCTaskHandle, TSKNOTEBIT00, eSetBits, &xHPT );
+		portYIELD_FROM_ISR( xHPT );
 		break;
 
 	case TIMSTATE_OPENCELL: // Wait for DIAG to discharge completed
@@ -601,11 +594,12 @@ default: morse_trap(810);
  * ADC interrupt (from stm32l4xx_it.c)
  * void adcspi_adc_IRQHandler(ADC_HandleTypeDef* phadc1);
    ####################################################################### */
+uint32_t dbadcn1;
 void adcspi_adc_IRQHandler(ADC_HandleTypeDef* phadc1)
 {
 	ADC_TypeDef* pADCbase = hadc1.Instance; // Convenience pointer
 	struct ADCSPIALL* p = &adcspiall; // Convenience pointer
-	BaseType_t xHPT = pdFALSE;
+//	BaseType_t xHPT = pdFALSE;
 
 	pADCbase->ISR = (1 << 2); // Reset interrupt flag
 
@@ -615,6 +609,8 @@ if(p->adcidx >= 20) morse_trap(746);
 
 	p->raw[p->adcidx] = pADCbase->DR; // Store data
 
+//if (p->adcidx == 15) dbadcn1 = pADCbase->DR;	
+
 dbbmst[p->adcidx] = DTWTIME - dbbmst[p->adcidx];	
 
 	p->timstate = TIMSTATE_2;
@@ -623,11 +619,11 @@ dbbmst[p->adcidx] = DTWTIME - dbbmst[p->adcidx];
 
 dbbmst[p->adcidx] = DTWTIME;
 
-	if (p->adcidx == 16)
-	{
-		SELECT_GPIO_Port->BSRR = SELECT_Pin; // Set SMPL pin high
+if (p->adcidx == 16)
+{
+//	SELECT_GPIO_Port->BSRR = SELECT_Pin; // Set SMPL pin high
 dbadcspit3 = DTWTIME - dbadcspit1;
-	}
+}
 
 	/* Set up command to select cell. */
 	// Allow for selecting up or down readout sequence (to check "slump")
@@ -648,12 +644,6 @@ dbadcspit3 = DTWTIME - dbadcspit1;
 	/* Set time delay for SPI to send 3 bytes. */
 	TIM15->CCR1 = TIM15->CNT + SPIDELAY; // Set SPI xmit duration
 
-	// Next TIMSTATE_2 interrupt will start settling time.
-	if (p->adcidx >= ADCBMSMAX)
-	{ // Here end of 16 cells, 3 thermistors, 1 top-of-stack			
-		xTaskNotifyFromISR(ADCTaskHandle, TSKNOTEBIT00, eSetBits, &xHPT );
-		portYIELD_FROM_ISR( xHPT );
-	}
 	return;
 }
 /* #######################################################################

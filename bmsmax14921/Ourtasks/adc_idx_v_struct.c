@@ -46,70 +46,74 @@ int adc_idx_v_struct_hardcode_params(struct ADCLC* p)
 #define DEFAULTOFFSETBMS 9.875408E-02f //
 	
 /* BMS cells (all read via ADC_IN1) */
-	p->cabsbms[0].scale     = DEFAULTSCALEBMS; // Apply calibration below 
-	p->cabsbms[0].offset    = DEFAULTOFFSETBMS;  // Offset before scale
+	p->cabsbms[0].scale     =	7.920157E-05f;
+	p->cabsbms[0].offset    =	-3.537914E-04f;
+ 
+	p->cabsbms[1].scale     =	7.922581E-05f;
+	p->cabsbms[1].offset    =	2.218115E-03f;
+ 
+	p->cabsbms[2].scale     =	7.924469E-05f;
+	p->cabsbms[2].offset    =	-6.160041E-04f;
+ 
+	p->cabsbms[3].scale     =	7.923655E-05f;
+	p->cabsbms[3].offset    =	-2.041806E-03f;
+ 
+	p->cabsbms[4].scale     =	7.917330E-05f;
+	p->cabsbms[4].offset    =	9.134712E-04f;
+ 
+	p->cabsbms[5].scale     =	7.895604E-05f;
+	p->cabsbms[5].offset    =	4.549632E-03f;
+ 
+	p->cabsbms[6].scale     =	7.916825E-05f;
+	p->cabsbms[6].offset    =	1.371107E-03f;
+ 
+	p->cabsbms[7].scale     =	7.924661E-05f;
+	p->cabsbms[7].offset    =	-3.065572E-03f;
+ 
+	p->cabsbms[8].scale     =	7.918978E-05f;
+	p->cabsbms[8].offset    =	1.445775E-03f;
+ 
+	p->cabsbms[9].scale     =	7.895884E-05f;
+	p->cabsbms[9].offset    =	3.766350E-03f;
+ 
+ p->cabsbms[10].scale =	7.911835E-05f;
+ p->cabsbms[10].offset =	5.313262E-04f;
+ 
+ p->cabsbms[11].scale =	7.917602E-05f;
+ p->cabsbms[11].offset =	-1.210042E-03f;
+ 
+ p->cabsbms[12].scale =	7.893613E-05f;
+ p->cabsbms[12].offset =	4.137942E-03f;
+ 
+ p->cabsbms[13].scale =	7.867087E-05f;
+ p->cabsbms[13].offset =	6.560357E-03f;
+ 
+ p->cabsbms[14].scale =	7.912698E-05f;
+ p->cabsbms[14].offset =	-1.235940E-03f;
+ 
+ p->cabsbms[15].scale =	8.182133E-05f;
+ p->cabsbms[15].offset =	-3.637997E-02f;
 
-	p->cabsbms[1].scale     = 7.801654E-05f; // Apply calibration below 
-	p->cabsbms[1].offset    = 9.875408E-02f; // Offset before scale
 
-	p->cabsbms[2].scale     = DEFAULTSCALEBMS; // Apply calibration below 
-	p->cabsbms[2].offset    = DEFAULTOFFSETBMS;  // Offset before scale
-
-	p->cabsbms[3].scale     = DEFAULTSCALEBMS; // Apply calibration below 
-	p->cabsbms[3].offset    = DEFAULTOFFSETBMS;  // Offset before scale
-
-	p->cabsbms[4].scale     = DEFAULTSCALEBMS; // Apply calibration below 
-	p->cabsbms[4].offset    = DEFAULTOFFSETBMS;  // Offset before scale
-
-	p->cabsbms[5].scale     = DEFAULTSCALEBMS; // Apply calibration below 
-	p->cabsbms[5].offset    = DEFAULTOFFSETBMS;  // Offset before scale
-
-	p->cabsbms[6].scale     = DEFAULTSCALEBMS; // Apply calibration below 
-	p->cabsbms[6].offset    = DEFAULTOFFSETBMS;  // Offset before scale
-
-	p->cabsbms[7].scale     = DEFAULTSCALEBMS; // Apply calibration below 
-	p->cabsbms[7].offset    = DEFAULTOFFSETBMS;  // Offset before scale
-
-	p->cabsbms[8].scale     = DEFAULTSCALEBMS; // Apply calibration below 
-	p->cabsbms[8].offset    = DEFAULTOFFSETBMS;  // Offset before scale
-
-	p->cabsbms[9].scale     = DEFAULTSCALEBMS; // Apply calibration below 
-	p->cabsbms[9].offset    = DEFAULTOFFSETBMS;  // Offset before scale
-
-	p->cabsbms[10].scale     = DEFAULTSCALEBMS; // Apply calibration below 
-	p->cabsbms[10].offset    = DEFAULTOFFSETBMS;  // Offset before scale
-
-	p->cabsbms[11].scale     = DEFAULTSCALEBMS; // Apply calibration below 
-	p->cabsbms[11].offset    = DEFAULTOFFSETBMS;  // Offset before scale
-
-	p->cabsbms[12].scale     = DEFAULTSCALEBMS; // Apply calibration below 
-	p->cabsbms[12].offset    = DEFAULTOFFSETBMS;  // Offset before scale
-
-	p->cabsbms[13].scale     = DEFAULTSCALEBMS; // Apply calibation below 
-	p->cabsbms[13].offset    = DEFAULTOFFSETBMS;  // Offset before scale
-
-	p->cabsbms[14].scale     = DEFAULTSCALEBMS; // Apply calibration below 
-	p->cabsbms[14].offset    = DEFAULTOFFSETBMS;  // Offset before scale
-
-	p->cabsbms[15].scale     = 7.985509E-05f; // Apply calibration below 
-	p->cabsbms[15].offset    = 1.082652E-02f;  // Offset before scale
+/* " " */
+/* 	f  */
 
 /* Thermistors */
 #define GENERICTHERM_SCALE   -3.559596E-03f
 #define GENERICTHERM_OFFSET	  1.874780E+02f 
 
-	p->cabsbms[16].scale    = GENERICTHERM_SCALE; // Apply calibration below 
-	p->cabsbms[16].offset   = GENERICTHERM_OFFSET;  // Offset before scale
+	p->cabsbms[16].scale    = GENERICTHERM_SCALE; 
+	p->cabsbms[16].offset   = GENERICTHERM_OFFSET;
 
-	p->cabsbms[17].scale    = GENERICTHERM_SCALE; // Apply calibration below 
-	p->cabsbms[17].offset   = GENERICTHERM_OFFSET;  // Offset before scale
+	p->cabsbms[17].scale    = GENERICTHERM_SCALE; 
+	p->cabsbms[17].offset   = GENERICTHERM_OFFSET;
 
-	p->cabsbms[18].scale    = GENERICTHERM_SCALE; // Apply calibration below 
-	p->cabsbms[18].offset   = GENERICTHERM_OFFSET;  // Offset before scale
+	p->cabsbms[18].scale    = GENERICTHERM_SCALE; 
+	p->cabsbms[18].offset   = GENERICTHERM_OFFSET;
 
 /* Top-of-stack */
-	p->cabsbms[19].scale    =  1.265765E-03f; // Apply calibration below 
-	p->cabsbms[19].offset   =  6.605322E-02f;  // Offset before scale
+	p->cabsbms[19].scale    =  1.266541E-03f; 
+	p->cabsbms[19].offset   =  2.386716E-02f;
 
 
 /* ADC channels (except for ADC_IN1 used with BMS).*/

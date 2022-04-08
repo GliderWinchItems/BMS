@@ -253,7 +253,7 @@ static uint32_t adc_cfgr2;
  //	p->adcflag = 0; // ADC is idle
  	p->adcidx = 0; 
 
- 	if (pssb->encycle != 0)
+ 	if (pssb->encycle == 1)
  	{
 		EN_GPIO_Port->BSRR = EN_Pin<<16; // Set low.	
 		p->timstate = TIMSTATE_IDLE; // Short delay for /CS pin
@@ -275,14 +275,14 @@ static uint32_t adc_cfgr2;
 
 	// uc[0] = 0; uc[1] = 0; uc[2] = 0x04; uc[3] = not used;
 		
-//	p->spitx24.uc[2] = 0x20; // /SMPL bit set high
-	p->spitx24.uc[2] = 0x00; // /SMPL bit set low
+	p->spitx24.uc[2] = 0x20; // /SMPL bit set high
+//	p->spitx24.uc[2] = 0x00; // /SMPL bit set low
 
 	p->spitx24.us[0] = pssb->cellbits;	
 // Debug: Override CancommTask cellbits settings
 //p->spitx24.us[0] = 0x8000; // Test FET turn on
 
-	SELECT_GPIO_Port->BSRR = SELECT_Pin<<16; // Set pin low
+//	SELECT_GPIO_Port->BSRR = SELECT_Pin<<16; // Set pin low
 //	SELECT_GPIO_Port->BSRR = SELECT_Pin; // Set pin high
 	
 	/* Start transmission of command: set /SMPL bit high */

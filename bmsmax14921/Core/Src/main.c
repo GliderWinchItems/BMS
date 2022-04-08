@@ -138,7 +138,7 @@ DMA_HandleTypeDef hdma_usart1_tx;
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
-  .stack_size = 448 * 4,
+  .stack_size = 480 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* USER CODE BEGIN PV */
@@ -1347,6 +1347,8 @@ void StartDefaultTask(void *argument)
       {
         yprintf(&pbuf2," %7.4f",bqfunction.cal_filt[i]);
       }
+//extern uint32_t dbadcn1;
+//yprintf(&pbuf1,"\n\rADC: %d",dbadcn1);
 
 #if 1 
      /* List raw ADC counts for calibration purposes. */
