@@ -1347,6 +1347,8 @@ void StartDefaultTask(void *argument)
       {
         yprintf(&pbuf2," %7.4f",bqfunction.cal_filt[i]);
       }
+extern uint8_t  dbdischargebit; // Discharge bit (0-15)
+yprintf(&pbuf1,"\n\rDISCH: %2d %04X",dbdischargebit+1, pssb->cellbits);
 //extern uint32_t dbadcn1;
 //yprintf(&pbuf1,"\n\rADC: %d",dbadcn1);
 

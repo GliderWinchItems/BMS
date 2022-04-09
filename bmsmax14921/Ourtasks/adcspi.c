@@ -599,17 +599,16 @@ void adcspi_adc_IRQHandler(ADC_HandleTypeDef* phadc1)
 {
 	ADC_TypeDef* pADCbase = hadc1.Instance; // Convenience pointer
 	struct ADCSPIALL* p = &adcspiall; // Convenience pointer
-//	BaseType_t xHPT = pdFALSE;
 
 	pADCbase->ISR = (1 << 2); // Reset interrupt flag
 
 	notCS_GPIO_Port->BSRR = (notCS_Pin<<16); // Reset pin: /CS set low
 
-if(p->adcidx >= 20) morse_trap(746);
+if(p->adcidx >= 20) morse_trap(746); // Debug
 
 	p->raw[p->adcidx] = pADCbase->DR; // Store data
 
-//if (p->adcidx == 15) dbadcn1 = pADCbase->DR;	
+//if (p->adcidx == 15) dbadcn1 = pADCbase->DR;	// Debug
 
 dbbmst[p->adcidx] = DTWTIME - dbbmst[p->adcidx];	
 

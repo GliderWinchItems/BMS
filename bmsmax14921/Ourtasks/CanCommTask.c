@@ -40,6 +40,10 @@ static struct ADCREADREQ adcreadreq; // Request BMS readout
 
 uint8_t dbupdnx;
 
+/* Walking discharge FETs for testing. */
+uint16_t dbdischargectr; // hb counter for timing
+uint8_t  dbdischargebit; // Discharge bit (0-15)
+
 /* Arrays loaded by readbms. */
 float fbms[ADCBMSMAX]; // (16+3+1) = 20; Number of MAX14921 (cells+thermistors+tos)   
 uint16_t uibms[ADCBMSMAX];
@@ -135,7 +139,7 @@ void StartCanComm(void* argument)
 	adcreadreq.cellbits   = 0x0000;    // Depends on command: FET to set; Open cell wires
 	adcreadreq.updn       = 0; // BMS readout direction 0 = high->low cell numbers; 1 = low->high
 	adcreadreq.reqcode    = REQ_READBMS;  // Read MAX1921 cells, thermistor, Top-of-stack
-	adcreadreq.encycle    = 1;     // Cycle EN: 0 = after read; 1 = before read w osDelay
+	adcreadreq.encycle    = 1;     // Cycle EN: 0 = after read; 1 = before read w osDelay; 2 = neither
 	adcreadreq.readbmsfets= 1;//0;        // Clear discharge fets before readbms.	
 dbupdnx = adcreadreq.updn;
 extern CAN_HandleTypeDef hcan1;
@@ -192,6 +196,21 @@ extern CAN_HandleTypeDef hcan1;
 		if (noteval == 0)
 		{ // Send heartbeat
 			/* Queue a read BMS request to ADCTask.c */
+
+			/* Walk discharge FETs for testing. */
+			dbdischargectr += 1; // Time delay counter
+			if (dbdischargectr >= 32)
+			{ // Set FETs off
+				adcreadreq.cellbits = 0;
+			}
+			if (dbdischargectr >= 64)
+			{ // Step to next FET
+				dbdischargectr = 0;
+				dbdischargebit += 1;
+				if (dbdischargebit >= 16) dbdischargebit = 0;
+//				adcreadreq.cellbits = (1 << dbdischargebit);
+			}
+
 			qret = xQueueSendToBack(ADCTaskReadReqQHandle, &padcreadreq, 5000);
 if (qret != pdPASS) morse_trap(720); // JIC debug
 
