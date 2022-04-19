@@ -19,7 +19,7 @@
 #define CELLVNONE  65534 // Cell position not installed
 #define CELLVOPEN  65533 // Installed, but wire appears open
 
-#define RAWTC 0.95f  // Filter time constant
+#define RAWTC 0.975f  // Filter time constant
 #define RAWSKIPCT 2  // Ignore initial readings to filter
 
 

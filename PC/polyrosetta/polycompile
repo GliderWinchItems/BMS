@@ -1,0 +1,2 @@
+# polycompile
+gcc $1.c -o $1 polreg_rosetta.c -lm -lgsl -lgslcblas

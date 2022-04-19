@@ -46,53 +46,134 @@ int adc_idx_v_struct_hardcode_params(struct ADCLC* p)
 #define DEFAULTOFFSETBMS 9.875408E-02f //
 	
 /* BMS cells (all read via ADC_IN1) */
-	p->cabsbms[0].scale     =	7.920157E-05f;
-	p->cabsbms[0].offset    =	-3.537914E-04f;
- 
-	p->cabsbms[1].scale     =	7.922581E-05f;
-	p->cabsbms[1].offset    =	2.218115E-03f;
- 
-	p->cabsbms[2].scale     =	7.924469E-05f;
-	p->cabsbms[2].offset    =	-6.160041E-04f;
- 
-	p->cabsbms[3].scale     =	7.923655E-05f;
-	p->cabsbms[3].offset    =	-2.041806E-03f;
- 
-	p->cabsbms[4].scale     =	7.917330E-05f;
-	p->cabsbms[4].offset    =	9.134712E-04f;
- 
-	p->cabsbms[5].scale     =	7.895604E-05f;
-	p->cabsbms[5].offset    =	4.549632E-03f;
- 
-	p->cabsbms[6].scale     =	7.916825E-05f;
-	p->cabsbms[6].offset    =	1.371107E-03f;
- 
-	p->cabsbms[7].scale     =	7.924661E-05f;
-	p->cabsbms[7].offset    =	-3.065572E-03f;
- 
-	p->cabsbms[8].scale     =	7.918978E-05f;
-	p->cabsbms[8].offset    =	1.445775E-03f;
- 
-	p->cabsbms[9].scale     =	7.895884E-05f;
-	p->cabsbms[9].offset    =	3.766350E-03f;
- 
- p->cabsbms[10].scale =	7.911835E-05f;
- p->cabsbms[10].offset =	5.313262E-04f;
- 
- p->cabsbms[11].scale =	7.917602E-05f;
- p->cabsbms[11].offset =	-1.210042E-03f;
- 
- p->cabsbms[12].scale =	7.893613E-05f;
- p->cabsbms[12].offset =	4.137942E-03f;
- 
- p->cabsbms[13].scale =	7.867087E-05f;
- p->cabsbms[13].offset =	6.560357E-03f;
- 
- p->cabsbms[14].scale =	7.912698E-05f;
- p->cabsbms[14].offset =	-1.235940E-03f;
- 
- p->cabsbms[15].scale =	8.182133E-05f;
- p->cabsbms[15].offset =	-3.637997E-02f;
+	p->cabsbms[0].scale     =	8.2017977E-05f;
+	p->cabsbms[0].offset    =	-0.0747246309f;
+		
+	p->cabsbms[1].scale     =	7.975498E-05f;
+	p->cabsbms[1].offset    =	4.453443E-03f;
+		
+	p->cabsbms[2].scale     =	8.009272E-05f;
+	p->cabsbms[2].offset    =	4.860598E-03f;
+		
+	p->cabsbms[3].scale     =	8.009272E-05f;
+	p->cabsbms[3].offset    =	4.860598E-03f;
+		
+	p->cabsbms[4].scale     =	8.009272E-05f;
+	p->cabsbms[4].offset    =	4.860598E-03f;
+		
+	p->cabsbms[5].scale     =	8.009272E-05f;
+	p->cabsbms[5].offset    =	4.860598E-03f;
+		
+	p->cabsbms[6].scale     =	8.009272E-05f;
+	p->cabsbms[6].offset    =	4.860598E-03f;
+		
+	p->cabsbms[7].scale     =	8.009272E-05f;
+	p->cabsbms[7].offset    =	4.860598E-03f;
+		
+	p->cabsbms[8].scale     =	8.009272E-05f;
+	p->cabsbms[8].offset    =	4.860598E-03f;
+		
+	p->cabsbms[9].scale     =	8.009272E-05f;
+	p->cabsbms[9].offset    =	4.860598E-03f;
+		
+	p->cabsbms[10].scale    =	8.009272E-05f;
+	p->cabsbms[10].offset   =	4.860598E-03f;
+		
+ 	p->cabsbms[11].scale    =	8.009272E-05f;
+ 	p->cabsbms[11].offset   =	4.860598E-03;
+		
+ 	p->cabsbms[12].scale    =	8.009272E-05f;
+ 	p->cabsbms[12].offset   =	4.860598E-03f;
+		
+ 	p->cabsbms[13].scale    =	8.009272E-05f;
+ 	p->cabsbms[13].offset   =	4.860598E-03f;
+		
+ 	p->cabsbms[14].scale    =	8.009272E-05f;
+ 	p->cabsbms[14].offset   =	4.860598E-03f;
+		
+ 	p->cabsbms[15].scale    =	7.911967E-05f;
+ 	p->cabsbms[15].offset   =	5.479308E-04f;
+
+
+/* Cell # 1 */
+p->cabsbms[ 0].coef[0] = -1.1729743E-01f;
+p->cabsbms[ 0].coef[1] = 8.5339489E-05f;
+p->cabsbms[ 0].coef[2] = -5.5499357E-11f;
+
+/* Cell # 2 */
+p->cabsbms[ 1].coef[0] = 6.3814115E-03f;
+p->cabsbms[ 1].coef[1] = 7.9754241E-05f;
+p->cabsbms[ 1].coef[2] = 1.3467795E-12f;
+
+/* Cell # 3 */
+p->cabsbms[ 2].coef[0] = 5.3961362E-03f;
+p->cabsbms[ 2].coef[1] = 7.9881731E-05f;
+p->cabsbms[ 2].coef[2] = -3.3040039E-13f;
+
+/* Cell # 4 */
+p->cabsbms[ 3].coef[0] = 5.4650269E-03f;
+p->cabsbms[ 3].coef[1] = 7.9828712E-05f;
+p->cabsbms[ 3].coef[2] = -2.4937277E-13f;
+
+/* Cell # 5 */
+p->cabsbms[ 4].coef[0] = 6.0534917E-03f;
+p->cabsbms[ 4].coef[1] = 7.9841237E-05f;
+p->cabsbms[ 4].coef[2] = 1.1430347E-13f;
+
+/* Cell # 6 */
+p->cabsbms[ 5].coef[0] = 6.0401129E-03f;
+p->cabsbms[ 5].coef[1] = 7.9807511E-05f;
+p->cabsbms[ 5].coef[2] = 3.1293674E-13f;
+
+/* Cell # 7 */
+p->cabsbms[ 6].coef[0] = 5.5433207E-03f;
+p->cabsbms[ 6].coef[1] = 7.9867302E-05f;
+p->cabsbms[ 6].coef[2] = -4.3752388E-13f;
+
+/* Cell # 8 */
+p->cabsbms[ 7].coef[0] = 5.2515543E-03f;
+p->cabsbms[ 7].coef[1] = 7.9836976E-05f;
+p->cabsbms[ 7].coef[2] = -7.5202478E-13f;
+
+/* Cell # 9 */
+p->cabsbms[ 8].coef[0] = 5.2353259E-03f;
+p->cabsbms[ 8].coef[1] = 7.9942722E-05f;
+p->cabsbms[ 8].coef[2] = -1.1770495E-12f;
+
+/* Cell #10 */
+p->cabsbms[ 9].coef[0] = 4.4327351E-03f;
+p->cabsbms[ 9].coef[1] = 7.9793480E-05f;
+p->cabsbms[ 9].coef[2] = -3.0795516E-12f;
+
+/* Cell #11 */
+p->cabsbms[10].coef[0] = 6.0888414E-03f;
+p->cabsbms[10].coef[1] = 7.9740490E-05f;
+p->cabsbms[10].coef[2] = 6.9097887E-13f;
+
+/* Cell #12 */
+p->cabsbms[11].coef[0] = 5.5766088E-03f;
+p->cabsbms[11].coef[1] = 7.9802967E-05f;
+p->cabsbms[11].coef[2] = -5.1594747E-14f;
+
+/* Cell #13 */
+p->cabsbms[12].coef[0] = 4.5999072E-03f;
+p->cabsbms[12].coef[1] = 7.9927937E-05f;
+p->cabsbms[12].coef[2] = -1.5410180E-12f;
+
+/* Cell #14 */
+p->cabsbms[13].coef[0] = 4.8298955E-03f;
+p->cabsbms[13].coef[1] = 7.9904123E-05f;
+p->cabsbms[13].coef[2] = -1.2769071E-12f;
+
+/* Cell #15 */
+p->cabsbms[14].coef[0] = 5.5602980E-03f;
+p->cabsbms[14].coef[1] = 7.9763098E-05f;
+p->cabsbms[14].coef[2] = -8.7080830E-14f;
+
+/* Cell #16 */
+p->cabsbms[15].coef[0] = 5.3164966E-03f;
+p->cabsbms[15].coef[1] = 7.9950536E-05f;
+p->cabsbms[15].coef[2] = -1.2622491E-12f;
 
 
 /* " " */

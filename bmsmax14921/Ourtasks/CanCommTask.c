@@ -139,7 +139,7 @@ void StartCanComm(void* argument)
 	adcreadreq.cellbits   = 0x0000;    // Depends on command: FET to set; Open cell wires
 	adcreadreq.updn       = 0; // BMS readout direction 0 = high->low cell numbers; 1 = low->high
 	adcreadreq.reqcode    = REQ_READBMS;  // Read MAX1921 cells, thermistor, Top-of-stack
-	adcreadreq.encycle    = 1;     // Cycle EN: 0 = after read; 1 = before read w osDelay; 2 = neither
+	adcreadreq.encycle    = 0;     // Cycle EN: 0 = after read; 1 = before read w osDelay; 2 = neither
 	adcreadreq.readbmsfets= 1;//0;        // Clear discharge fets before readbms.	
 dbupdnx = adcreadreq.updn;
 extern CAN_HandleTypeDef hcan1;

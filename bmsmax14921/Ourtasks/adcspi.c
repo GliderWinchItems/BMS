@@ -134,6 +134,7 @@ void adcspi_readbms(void)
 {
 	struct ADCSPIALL* p = &adcspiall; // Convenience pointer
 	int i;
+	float x;
 
 	// Initialize and start read sequence
 	adcbms_startreadbms();
@@ -161,14 +162,28 @@ dbadcspit1 = DTWTIME;
 		if (p->updn == 0)
 		{ // Here, cell number readout sequence was 16->1
 			*(pssb->taskdatai16+i) = adcspiall.raw[15-i];
-			*(pssb->taskdata+i) = adc1.lc.cabsbms[i].offset + 
-			   (adcspiall.raw[15-i] * adc1.lc.cabsbms[i].scale);
+
+			x = *(pssb->taskdatai16+i);
+
+			*(pssb->taskdata+i) = 
+			  x*x*adc1.lc.cabsbms[i].coef[2] +
+				x*adc1.lc.cabsbms[i].coef[1] +
+				  adc1.lc.cabsbms[i].coef[0];
+
+//			*(pssb->taskdata+i) = adc1.lc.cabsbms[i].offset + 
+//			   (adcspiall.raw[15-i] * adc1.lc.cabsbms[i].scale);
 		}
 		else
 		{ // Here, cell sequence readout was 1->16
 			*(pssb->taskdatai16+i) = adcspiall.raw[i];
-			*(pssb->taskdata+i) = adc1.lc.cabsbms[i].offset + 
-			   (adcspiall.raw[i] * adc1.lc.cabsbms[i].scale);
+
+			*(pssb->taskdata+i) = 
+			  x*x*adc1.lc.cabsbms[i].coef[2] +
+				x*adc1.lc.cabsbms[i].coef[1] +
+				  adc1.lc.cabsbms[i].coef[0];
+
+//			*(pssb->taskdata+i) = adc1.lc.cabsbms[i].offset + 
+//			   (adcspiall.raw[i] * adc1.lc.cabsbms[i].scale);
 		}
 	}
 	// Thermistors and top-of-stack
@@ -365,7 +380,7 @@ void adcspi_init(void)
 //   clears the /SMPL bit which returns the flying caps to the cell inputs.
 // ECS plus cell selection bits for cells 1-> 16,
 // selection bits for T1, T2, T3, TOS, ZERO, given indices [0]->[20] and
-//#define NOTSMPLBITHIGH
+#define NOTSMPLBITHIGH
 #ifdef  NOTSMPLBITHIGH
 
 static const uint8_t bitorderUP[22] = {0x21,0X23,0X25,0X27,0X29,0X2B,0X2D,0X2F,
@@ -377,7 +392,7 @@ static const uint8_t bitorderUP[22] = {0x21,0X23,0X25,0X27,0X29,0X2B,0X2D,0X2F,
 
 static const uint8_t bitorderDN[22] = {0x3F,0X3D,0X3B,0X39,0X37,0X35,0X33,0X31,
 	                                   0X2F,0X2D,0X2B,0X29,0X27,0X25,0X23,0X21,
-	                                   0x1A,0x1C,0x1E,0x18,0x00,0x00};
+	                                   0x1A,0x1C,0x1E,0x18,0x20,0x00};
 #else
 
 static const uint8_t bitorderUP[22] = {0x01,0X03,0X05,0X07,0X09,0X0B,0X0D,0X0F,
@@ -456,19 +471,28 @@ dbbmst[p->adcidx] = DTWTIME;
 
 	case TIMSTATE_2: // SPI command has been sent (based upon timing)
 		notCS_GPIO_Port->BSRR = notCS_Pin; // Set in: /CS set high
-		if (p->adcidx == 19) 
-		{ // Top of stack selection requires longer settling time
+		switch (p->adcidx)
+		{
+		case 0:
+			TIM15->CCR1 = TIM15->CNT + (16*5);
+			break;
+		case 1:
+			TIM15->CCR1 = TIM15->CNT + (16*3);
+			break;	
+		case 19:
+			if (p->adcidx == 19) 
+			// Top of stack selection requires longer settling time
 			TIM15->CCR1 = TIM15->CNT + (DELAYUS * 60); // The end is near!
-		}
-		else
-		{ // Cell and thermistors selection settling time
+			break;
+		default:
 			// Delay increment of 16 results in 90 machine cycles for settling
 			TIM15->CCR1 = TIM15->CNT + 24; // More miles to travel.
+			break;		
 		}
 		p->timstate = TIMSTATE_3;	
 		break;		 
 
-	case TIMSTATE_3: // Settling time after selection command sent has completed
+	case TIMSTATE_3: // Settling time expired after selection command sent has completed
 		if (p->adcidx >= ADCBMSMAX)	
 		{	// Here, end of readout cycle.
 			/* Reset SPI registers after bms readout? */

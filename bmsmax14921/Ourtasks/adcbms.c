@@ -116,7 +116,8 @@ static uint32_t adc_cfgr2;
 
 	// Bits 5:3 BR[2:0]: Baud rate control
  	SPI1->CR1 &= ~(0x7 << 3); // Clock divider
- 	SPI1->CR1 |=  (0x2 << 3); // 010: fPCLK /8
+// 	SPI1->CR1 |=  (0x2 << 3); // 010: fPCLK /8
+ 	SPI1->CR1 |=  (0x1 << 3); // 010: fPCLK /4
 
 // Bit 0 CPHA: Clock phase: 1: The second clock transition is the first data capture edge 	
  //SPI1->CR1 |=  (0x1 << 0);
@@ -185,8 +186,9 @@ static uint32_t adc_cfgr2;
 //	SELECT_GPIO_Port->BSRR = SELECT_Pin<<16; // Set pin low
 
 	/* Disable ADC DMA. */
-	hdma_adc1.Instance->CCR &= ~0x1;
- 	hdma_adc1.Instance->CCR &= ~0x2;
+	// Bit 1 TCIE: transfer complete interrupt enable
+	// Bit 0 EN: channel enable
+	hdma_adc1.Instance->CCR &= ~0x3;
 
  	// Bit 13 CONT: Single / continuous conversion mode for regular conversions
  	hadc1.Instance->CFGR &= ~(1 << 13); // Single conversion mode

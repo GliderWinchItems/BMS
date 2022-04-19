@@ -53,11 +53,10 @@ adjusted for temperature by using the internal temperature reference.
 struct ADCCALABS
 {
 	struct FILTERIIRF1 iir_f1; // Filter: Time constant, integer scaling
-	float  scale2;  // X^2
-	float  scale;   // X^1
-	float  offset;  // X^0
+	float coef[3]; // coefficients for: x^0 x^1 x^2
 	float  f;
-	float  coef;
+	float scale;
+	float offset;
 	int32_t  ioffset; // Offset before float conversion
 };
 
