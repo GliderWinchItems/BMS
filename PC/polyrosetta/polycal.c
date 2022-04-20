@@ -15,6 +15,10 @@ export LD_LIBRARY_PATH
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <math.h>
  
 #include "polifitgsl.h"
  
@@ -33,13 +37,55 @@ uint32_t np;
 
 #define LINESZ 512
 char buf[LINESZ]; // Input line 
+
+FILE* fpIn;
+
+/* Resistor calibration */
+double volttos[16]; // Voltage at top-of-stack
+double voltres[16]; // Voltage of cell tap
+double resratio[16];
  
-int main()
+int main(int argc, char **argv)
 {
   int i,j;
+  int cell;
   uint32_t np = 0; // Number of input points
+  uint32_t cn = 0;
+  double vratio;
 
 
+
+  /* Get voltage divider calibration. */
+	if ( (fpIn = fopen (argv[1],"r")) == NULL)
+	{
+		printf ("\nInput file did not open: %s\n",argv[1]); 
+		return -1;
+	}
+
+	/* Load table */
+	while ( (fgets (&buf[0],LINESZ,fpIn)) != NULL)	// Get a line
+	{
+		if (strlen(buf) < 21) continue;
+
+		sscanf(buf,"%d %lf %lf %lf",&cell,&volttos[cn],&voltres[cn],&vratio);
+		if ((cn+1) != cell)
+		{
+			printf("\nInput file %s Unexpected cell/line number %d should be %d\n",argv[1],cell,(cn+1));
+			return -1;
+		}
+		resratio[cn] = voltres[cn] / volttos[cn];
+		cn += 1;
+	}
+	if (cn != 16)
+	{
+		printf("Resistor calibration data count was %d not 16\n",cn);
+	}
+
+	printf("\nResistor calibration data table\n");
+	for (i = 0; i < cn; i++)
+	{
+		printf("%2i %10.6f %10.6f %11.8E\n",i+1,volttos[i],voltres[i],resratio[i]);
+	}
 
   	while ( (fgets (&buf[0],LINESZ,stdin)) != NULL)	// Get a line from stdin
 	{
@@ -61,11 +107,11 @@ int main()
 			{
 				printf ("\n\n DEGREE WARNING %d",degree);
 			}
-			printf ("\ndegree %d",degree);
+			printf ("\nPolynomial degree %d\n",degree);
 			break; // End input here
  		}
 	} 		
-	
+	printf("\nCell calibration input data");
 	for (j = 0; j < np; j++)
 	{
 		printf ("\n%2d %9.5f",np,voltin[j]);
@@ -73,6 +119,7 @@ int main()
 			printf ("%9.1f", adcin[i][j]);	
 	}
 
+	/* Compute polynomial fit for each cell. */
 	for (j = 0; j < 16; j++)
 	{
 		printf ("\n/* Cell #%2i */\n", j+1);		

@@ -1,4 +1,4 @@
 # polyexecute
 LD_LIBRARY_PATH=/home/deh/gsl/gsl-2.7.1/.libs
 export LD_LIBRARY_PATH
-./$1
+./$1 $2
