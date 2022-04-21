@@ -177,6 +177,8 @@ dbadcspit1 = DTWTIME;
 		{ // Here, cell sequence readout was 1->16
 			*(pssb->taskdatai16+i) = adcspiall.raw[i];
 
+			x = *(pssb->taskdatai16+i);
+
 			*(pssb->taskdata+i) = 
 			  x*x*adc1.lc.cabsbms[i].coef[2] +
 				x*adc1.lc.cabsbms[i].coef[1] +
@@ -479,6 +481,9 @@ dbbmst[p->adcidx] = DTWTIME;
 		case 1:
 			TIM15->CCR1 = TIM15->CNT + (16*3);
 			break;	
+		case 15:
+			TIM15->CCR1 = TIM15->CNT + (16*3);
+			break;
 		case 19:
 			if (p->adcidx == 19) 
 			// Top of stack selection requires longer settling time

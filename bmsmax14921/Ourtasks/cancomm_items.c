@@ -365,12 +365,17 @@ void cancomm_items_filter(uint16_t* pi)
 	struct ADCCALABS* pcabsbms = &adc1.lc.cabsbms[0];
 	float* pout = &bqfunction.raw_filt[0]; // Filtered output
 	float* pcal = &bqfunction.cal_filt[0]; // Flitered and calibrated
+	float x;
 	int i;
 
 	for (i = 0; i < ADCBMSMAX; i++)
 	{
 		*pout = iir_f1_f(pf1,(float)(*pi));
-		*pcal = (pcabsbms->offset + (*pout * pcabsbms->scale));
+
+		*pcal = *pout * *pout * adc1.lc.cabsbms[i].coef[2] +
+				*pout * adc1.lc.cabsbms[i].coef[1] +
+				  adc1.lc.cabsbms[i].coef[0];
+
 		 pout += 1;    pcal += 1;   pi += 1;
 		 pcabsbms += 1; pf1 += 1;
 	}
