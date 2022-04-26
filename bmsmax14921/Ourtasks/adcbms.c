@@ -107,10 +107,10 @@ static uint32_t adc_cfgr2;
 	// GPIOD PIN 2
 	EN_GPIO_Port->BSRR = EN_Pin; // Set high.
 
-	/* Set SMPL pin high and ontrol sampling by /SMPL bit. */
+	/* Set SMPL pin high and control sampling by /SMPL bit. */
 	SELECT_GPIO_Port->BSRR = SELECT_Pin; // Set pin high
 
-		// Bit 1 TXDMAEN: Tx buffer DMA enable
+	// Bit 1 TXDMAEN: Tx buffer DMA enable
 	// Bit 0 RXDMAEN: Rx buffer DMA enable
  	SPI1->CR2 |= (1<<1) | (1 << 0);
 

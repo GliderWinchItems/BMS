@@ -1374,7 +1374,7 @@ yprintf(&pbuf1,"\n\rDISCH: %2d %04X",dbdischargebit+1, pssb->cellbits);
       {
         yprintf(&pbuf2," %7.1f",bqfunction.raw_filt[i]);
       }
-
+      yprintf(&pbuf1,"\n\rBAK %02X %02X %02X",adcspiall.spirx24.uc[0],adcspiall.spirx24.uc[1],adcspiall.spirx24.uc[2]);
     }
 
     /* Other misc. */

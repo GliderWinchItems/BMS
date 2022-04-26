@@ -111,8 +111,9 @@ void adcparams_chan(uint8_t adcidx);
 void adcparams_cal(void);
 /*	@brief	: calibrate and filter ADC readings (from ADCTask.c)
  * *************************************************************************/
-float adcparams_calibbms(uint16_t i);
-/*	@brief	: calibrate and filter BMS readings (from ADCTask.c)
+float adcparams_calibbms(uint16_t x, uint8_t i);
+/*	@brief	: calibrate 
+ *  @param  : x = raw ADC count.
  *  @param  : i = index of reading (0 - 19) 20 readings
  *  @return : calibrated value (float volts)
  * *************************************************************************/

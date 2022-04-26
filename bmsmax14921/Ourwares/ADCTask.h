@@ -38,16 +38,14 @@ enum TIMSTATE
 	TIMSTATE_3,
 	TIMSTATE_4,	
 	TIMSTATE_N,
-	TIMSTATE_OPENCELL,
+	TIMSTATE_OPENCELL1,
+	TIMSTATE_OPENCELL2,
+	TIMSTATE_LOWPOWER,
 	TIMSTATE_TRAP,
 
 	SPISTATE_CALIB1,
 	SPISTATE_CALIB2,
-	SPISTATE_IDLE,
 	SPISTATE_FETS,
-	SPISTATE_OPENCELL,
-	SPISTATE_LOWPOWER,
-	SPISTATE_TRAP
 };
 enum ADCSTATE
 {
@@ -65,12 +63,12 @@ struct ADCSPIALL
  	union SPI24 spirx24; // SPI monitor received from BMS
 	uint16_t raw[ADCBMSMAX]; // Raw readings from BMS sequence
 	uint16_t cellbitssave; // Depends on readbmsfets code
-	uint8_t timstate;  // State for ISR handling: TIM
-	uint8_t adcidx;
-	uint8_t updn;  // Readout "up" (cells 1->16) = 1; Down (cells 16->1) = 0
-	uint8_t config;    // Current ADC configuration: 0 = DMA; 1 = BMS; 2 = not configured
-	uint8_t readbmsfets; // See below
-	int8_t  tim15ctr;   // TIM15CH1:OC turnover counter
+	int16_t  tim15ctr;   // TIM15CH1:OC turnover counter
+	uint8_t  timstate;   // State for ISR handling: TIM
+	uint8_t  adcidx;     // ADC array storage index [0->20]
+	uint8_t  updn;  // Readout "up" (cells 1->16) = 1; Down (cells 16->1) = 0
+	uint8_t  config;     // Current ADC configuration: 0 = DMA; 1 = BMS; 2 = not configured
+	uint8_t  readbmsfets; // See below
 };
 
 /* Request Codes for ADCTask services. */

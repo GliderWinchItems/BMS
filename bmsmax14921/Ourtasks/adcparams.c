@@ -80,14 +80,19 @@ void adcparams_init(void)
 }
 
 /* *************************************************************************
- * float adcparams_calibbms(uint16_t i);
- *	@brief	: calibrate and filter BMS readings (from ADCTask.c)
+ * float adcparams_calibbms(uint16_t x, uint8_t i);
+ *	@brief	: calibrate 
+ *  @param  : x = raw ADC count.
  *  @param  : i = index of reading (0 - 19) 20 readings
  *  @return : calibrated value (float volts)
  * *************************************************************************/
-float adcparams_calibbms(uint16_t i)
+float adcparams_calibbms(uint16_t a, uint8_t i)
 {
-   return (adc1.lc.cabsbms[i].offset + (adcspiall.raw[i] * adc1.lc.cabsbms[i].scale) );
+	float x = a; // Convert int to float
+	float y = (x*x*adc1.lc.cabsbms[i].coef[2] +
+			     x*adc1.lc.cabsbms[i].coef[1] +
+			       adc1.lc.cabsbms[i].coef[0] );
+	return y;
 }
 
 /* *************************************************************************

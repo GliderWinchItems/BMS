@@ -96,105 +96,106 @@ int adc_idx_v_struct_hardcode_params(struct ADCLC* p)
 
 
 /* Cell # 1 */
-p->cabsbms[ 0].coef[0] = -1.4643452E-01f;
-p->cabsbms[ 0].coef[1] = 8.7067548E-05f;
-p->cabsbms[ 0].coef[2] = -7.7161373E-11f;
+p->cabsbms[ 0].coef[0] = 1.7924937E-03f;
+p->cabsbms[ 0].coef[1] = 7.9808664E-05f;
+p->cabsbms[ 0].coef[2] = -3.8067549E-12f;
 
 /* Cell # 2 */
-p->cabsbms[ 1].coef[0] = 9.8053618E-03f;
-p->cabsbms[ 1].coef[1] = 7.9605653E-05f;
-p->cabsbms[ 1].coef[2] = 4.9451992E-12f;
+p->cabsbms[ 1].coef[0] = 6.6159880E-03f;
+p->cabsbms[ 1].coef[1] = 7.9818936E-05f;
+p->cabsbms[ 1].coef[2] = 1.5956986E-12f;
 
 /* Cell # 3 */
-p->cabsbms[ 2].coef[0] = 9.7314757E-03f;
-p->cabsbms[ 2].coef[1] = 7.9674614E-05f;
-p->cabsbms[ 2].coef[2] = 4.4735244E-12f;
+p->cabsbms[ 2].coef[0] = 6.5167277E-03f;
+p->cabsbms[ 2].coef[1] = 7.9883063E-05f;
+p->cabsbms[ 2].coef[2] = 1.2177967E-12f;
 
 /* Cell # 4 */
-p->cabsbms[ 3].coef[0] = 9.2291984E-03f;
-p->cabsbms[ 3].coef[1] = 7.9673166E-05f;
-p->cabsbms[ 3].coef[2] = 3.6385734E-12f;
+p->cabsbms[ 3].coef[0] = 6.2407913E-03f;
+p->cabsbms[ 3].coef[1] = 7.9867785E-05f;
+p->cabsbms[ 3].coef[2] = 7.1887061E-13f;
 
 /* Cell # 5 */
-p->cabsbms[ 4].coef[0] = 8.9925834E-03f;
-p->cabsbms[ 4].coef[1] = 7.9762031E-05f;
-p->cabsbms[ 4].coef[2] = 2.8469713E-12f;
+p->cabsbms[ 4].coef[0] = 6.2358110E-03f;
+p->cabsbms[ 4].coef[1] = 7.9932288E-05f;
+p->cabsbms[ 4].coef[2] = 3.0219361E-13f;
 
 /* Cell # 6 */
-p->cabsbms[ 5].coef[0] = 9.3537533E-03f;
-p->cabsbms[ 5].coef[1] = 7.9663825E-05f;
-p->cabsbms[ 5].coef[2] = 3.8417696E-12f;
+p->cabsbms[ 5].coef[0] = 6.3690845E-03f;
+p->cabsbms[ 5].coef[1] = 7.9855569E-05f;
+p->cabsbms[ 5].coef[2] = 9.7874198E-13f;
 
 /* Cell # 7 */
-p->cabsbms[ 6].coef[0] = 8.8859322E-03f;
-p->cabsbms[ 6].coef[1] = 7.9733567E-05f;
-p->cabsbms[ 6].coef[2] = 3.3288889E-12f;
+p->cabsbms[ 6].coef[0] = 6.3182106E-03f;
+p->cabsbms[ 6].coef[1] = 7.9896611E-05f;
+p->cabsbms[ 6].coef[2] = 8.9827365E-13f;
 
 /* Cell # 8 */
-p->cabsbms[ 7].coef[0] = 9.0817601E-03f;
-p->cabsbms[ 7].coef[1] = 7.9666462E-05f;
-p->cabsbms[ 7].coef[2] = 3.5888729E-12f;
+p->cabsbms[ 7].coef[0] = 6.2117114E-03f;
+p->cabsbms[ 7].coef[1] = 7.9852063E-05f;
+p->cabsbms[ 7].coef[2] = 8.5758924E-13f;
 
 /* Cell # 9 */
-p->cabsbms[ 8].coef[0] = 8.8011841E-03f;
-p->cabsbms[ 8].coef[1] = 7.9804572E-05f;
-p->cabsbms[ 8].coef[2] = 2.5494973E-12f;
+p->cabsbms[ 8].coef[0] = 6.3688441E-03f;
+p->cabsbms[ 8].coef[1] = 7.9949922E-05f;
+p->cabsbms[ 8].coef[2] = 5.2131288E-13f;
 
 /* Cell #10 */
-p->cabsbms[ 9].coef[0] = 8.1659250E-03f;
-p->cabsbms[ 9].coef[1] = 7.9628283E-05f;
-p->cabsbms[ 9].coef[2] = 1.3405162E-12f;
+p->cabsbms[ 9].coef[0] = 5.9435284E-03f;
+p->cabsbms[ 9].coef[1] = 7.9766468E-05f;
+p->cabsbms[ 9].coef[2] = -8.7212947E-13f;
 
 /* Cell #11 */
-p->cabsbms[10].coef[0] = 8.9023909E-03f;
-p->cabsbms[10].coef[1] = 7.9679815E-05f;
-p->cabsbms[10].coef[2] = 3.5960266E-12f;
+p->cabsbms[10].coef[0] = 5.6803634E-03f;
+p->cabsbms[10].coef[1] = 7.9912874E-05f;
+p->cabsbms[10].coef[2] = 3.1915195E-15f;
 
 /* Cell #12 */
-p->cabsbms[11].coef[0] = 9.7128278E-03f;
-p->cabsbms[11].coef[1] = 7.9650511E-05f;
-p->cabsbms[11].coef[2] = 4.3063810E-12f;
+p->cabsbms[11].coef[0] = 6.1138929E-03f;
+p->cabsbms[11].coef[1] = 7.9890320E-05f;
+p->cabsbms[11].coef[2] = 7.6416567E-13f;
 
 /* Cell #13 */
-p->cabsbms[12].coef[0] = 9.3823404E-03f;
-p->cabsbms[12].coef[1] = 7.8712791E-05f;
-p->cabsbms[12].coef[2] = 4.1386352E-12f;
+p->cabsbms[12].coef[0] = 5.8436984E-03f;
+p->cabsbms[12].coef[1] = 7.8946342E-05f;
+p->cabsbms[12].coef[2] = 5.3193420E-13f;
 
 /* Cell #14 */
-p->cabsbms[13].coef[0] = 9.4322645E-03f;
-p->cabsbms[13].coef[1] = 7.9688842E-05f;
-p->cabsbms[13].coef[2] = 4.3775619E-12f;
+p->cabsbms[13].coef[0] = 5.3614831E-03f;
+p->cabsbms[13].coef[1] = 7.9986061E-05f;
+p->cabsbms[13].coef[2] = -1.2912097E-13f;
 
 /* Cell #15 */
-p->cabsbms[14].coef[0] = 1.0048444E-02f;
-p->cabsbms[14].coef[1] = 7.9527533E-05f;
-p->cabsbms[14].coef[2] = 4.9152218E-12f;
+p->cabsbms[14].coef[0] = 6.3191408E-03f;
+p->cabsbms[14].coef[1] = 7.9789681E-05f;
+p->cabsbms[14].coef[2] = 9.2801063E-13f;
 
 /* Cell #16 */
-p->cabsbms[15].coef[0] = 9.3011912E-03f;
-p->cabsbms[15].coef[1] = 7.9806507E-05f;
-p->cabsbms[15].coef[2] = 2.6389285E-12f;
+p->cabsbms[15].coef[0] = -2.3186650E-03f;
+p->cabsbms[15].coef[1] = 8.0538161E-05f;
+p->cabsbms[15].coef[2] = -8.1326765E-12f;
 
+/* Top-of-stack */
+p->cabsbms[19].coef[0] = 8.8203303E-02f;
+p->cabsbms[19].coef[1] = 1.2626728E-03f;
+p->cabsbms[19].coef[2] = 7.9562712E-12f;
 
-/* " " */
-/* 	f  */
 
 /* Thermistors */
 #define GENERICTHERM_SCALE   -3.559596E-03f
 #define GENERICTHERM_OFFSET	  1.874780E+02f 
 
-	p->cabsbms[16].scale    = GENERICTHERM_SCALE; 
-	p->cabsbms[16].offset   = GENERICTHERM_OFFSET;
+p->cabsbms[16].coef[0] = GENERICTHERM_OFFSET;
+p->cabsbms[16].coef[1] = GENERICTHERM_SCALE;
+p->cabsbms[16].coef[2] = 0;
 
-	p->cabsbms[17].scale    = GENERICTHERM_SCALE; 
-	p->cabsbms[17].offset   = GENERICTHERM_OFFSET;
+p->cabsbms[17].coef[0] = GENERICTHERM_OFFSET;
+p->cabsbms[17].coef[1] = GENERICTHERM_SCALE;
+p->cabsbms[17].coef[2] = 0;
 
-	p->cabsbms[18].scale    = GENERICTHERM_SCALE; 
-	p->cabsbms[18].offset   = GENERICTHERM_OFFSET;
-
-/* Top-of-stack */
-	p->cabsbms[19].scale    =  1.266541E-03f; 
-	p->cabsbms[19].offset   =  2.386716E-02f;
+p->cabsbms[18].coef[0] = GENERICTHERM_OFFSET;
+p->cabsbms[18].coef[1] = GENERICTHERM_SCALE; 
+p->cabsbms[18].coef[2] = 0;
 
 
 /* ADC channels (except for ADC_IN1 used with BMS).*/

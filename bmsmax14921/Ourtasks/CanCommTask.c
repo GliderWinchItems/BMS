@@ -208,6 +208,7 @@ extern CAN_HandleTypeDef hcan1;
 				dbdischargectr = 0;
 				dbdischargebit += 1;
 				if (dbdischargebit >= 16) dbdischargebit = 0;
+	/* Uncomment to active cell bit walking. */
 //				adcreadreq.cellbits = (1 << dbdischargebit);
 			}
 
