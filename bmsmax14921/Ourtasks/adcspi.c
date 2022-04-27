@@ -163,17 +163,11 @@ dbadcspit1 = DTWTIME;
 		{ // Here, cell number readout sequence was 16->1
 			*(pssb->taskdatai16+i) = adcspiall.raw[15-i];
 			*(pssb->taskdata+i) = adcparams_calibbms(*(pssb->taskdatai16+i),i);
-
-//			*(pssb->taskdata+i) = adc1.lc.cabsbms[i].offset + 
-//			   (adcspiall.raw[15-i] * adc1.lc.cabsbms[i].scale);
 		}
 		else
 		{ // Here, cell sequence readout was 1->16
 			*(pssb->taskdatai16+i) = adcspiall.raw[i];
 			*(pssb->taskdata+i) = adcparams_calibbms(*(pssb->taskdatai16+i),i);
-
-//			*(pssb->taskdata+i) = adc1.lc.cabsbms[i].offset + 
-//			   (adcspiall.raw[i] * adc1.lc.cabsbms[i].scale);
 		}
 	}
 	// Thermistors and top-of-stack

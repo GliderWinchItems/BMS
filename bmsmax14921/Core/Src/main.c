@@ -1354,7 +1354,7 @@ yprintf(&pbuf1,"\n\rDISCH: %2d %04X",dbdischargebit+1, pssb->cellbits);
 
 #if 1 
      /* List raw ADC counts for calibration purposes. */
-      yprintf(&pbuf2,"\n\rR ");
+      yprintf(&pbuf2,"\n\rRW");
       extern uint8_t dbupdnx;
       for (i = 0; i < 16; i++)
       {

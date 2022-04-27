@@ -42,57 +42,6 @@ int adc_idx_v_struct_hardcode_params(struct ADCLC* p)
 	p->calintern.fvtemp    =  1.40f;  // Vtemp voltage at 25 degC
 
 
-#define DEFAULTSCALEBMS 7.801654E-05f  // 
-#define DEFAULTOFFSETBMS 9.875408E-02f //
-	
-/* BMS cells (all read via ADC_IN1) */
-	p->cabsbms[0].scale     =	8.2017977E-05f;
-	p->cabsbms[0].offset    =	-0.0747246309f;
-		
-	p->cabsbms[1].scale     =	7.975498E-05f;
-	p->cabsbms[1].offset    =	4.453443E-03f;
-		
-	p->cabsbms[2].scale     =	8.009272E-05f;
-	p->cabsbms[2].offset    =	4.860598E-03f;
-		
-	p->cabsbms[3].scale     =	8.009272E-05f;
-	p->cabsbms[3].offset    =	4.860598E-03f;
-		
-	p->cabsbms[4].scale     =	8.009272E-05f;
-	p->cabsbms[4].offset    =	4.860598E-03f;
-		
-	p->cabsbms[5].scale     =	8.009272E-05f;
-	p->cabsbms[5].offset    =	4.860598E-03f;
-		
-	p->cabsbms[6].scale     =	8.009272E-05f;
-	p->cabsbms[6].offset    =	4.860598E-03f;
-		
-	p->cabsbms[7].scale     =	8.009272E-05f;
-	p->cabsbms[7].offset    =	4.860598E-03f;
-		
-	p->cabsbms[8].scale     =	8.009272E-05f;
-	p->cabsbms[8].offset    =	4.860598E-03f;
-		
-	p->cabsbms[9].scale     =	8.009272E-05f;
-	p->cabsbms[9].offset    =	4.860598E-03f;
-		
-	p->cabsbms[10].scale    =	8.009272E-05f;
-	p->cabsbms[10].offset   =	4.860598E-03f;
-		
- 	p->cabsbms[11].scale    =	8.009272E-05f;
- 	p->cabsbms[11].offset   =	4.860598E-03;
-		
- 	p->cabsbms[12].scale    =	8.009272E-05f;
- 	p->cabsbms[12].offset   =	4.860598E-03f;
-		
- 	p->cabsbms[13].scale    =	8.009272E-05f;
- 	p->cabsbms[13].offset   =	4.860598E-03f;
-		
- 	p->cabsbms[14].scale    =	8.009272E-05f;
- 	p->cabsbms[14].offset   =	4.860598E-03f;
-		
- 	p->cabsbms[15].scale    =	7.911967E-05f;
- 	p->cabsbms[15].offset   =	5.479308E-04f;
 
 
 /* Cell # 1 */
@@ -185,17 +134,20 @@ p->cabsbms[19].coef[2] = 7.9562712E-12f;
 #define GENERICTHERM_SCALE   -3.559596E-03f
 #define GENERICTHERM_OFFSET	  1.874780E+02f 
 
-p->cabsbms[16].coef[0] = GENERICTHERM_OFFSET;
-p->cabsbms[16].coef[1] = GENERICTHERM_SCALE;
-p->cabsbms[16].coef[2] = 0;
+/* Thermistor # 1 */
+p->cabsbms[16].coef[0] = 2.0190213E+02f;
+p->cabsbms[16].coef[1] = -4.8305505E-03f;
+p->cabsbms[16].coef[2] = 2.4866130E-08f;
 
-p->cabsbms[17].coef[0] = GENERICTHERM_OFFSET;
-p->cabsbms[17].coef[1] = GENERICTHERM_SCALE;
-p->cabsbms[17].coef[2] = 0;
+/* Thermistor # 2 */
+p->cabsbms[17].coef[0] = 2.0162182E+02f;
+p->cabsbms[17].coef[1] = -4.7452832E-03f;
+p->cabsbms[17].coef[2] = 2.3172558E-08f;
 
-p->cabsbms[18].coef[0] = GENERICTHERM_OFFSET;
-p->cabsbms[18].coef[1] = GENERICTHERM_SCALE; 
-p->cabsbms[18].coef[2] = 0;
+/* Thermistor # 3 */
+p->cabsbms[18].coef[0] = 2.0023062E+02f;
+p->cabsbms[18].coef[1] = -4.6834758E-03f;
+p->cabsbms[18].coef[2] = 2.2552685E-08f;
 
 
 /* ADC channels (except for ADC_IN1 used with BMS).*/

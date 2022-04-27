@@ -382,4 +382,3 @@ void cancomm_items_filter(uint16_t* pi)
 
 	return;
 }
-//return (adc1.lc.cabsbms[i].offset + (adcspiall.raw[i] * adc1.lc.cabsbms[i].scale) );
