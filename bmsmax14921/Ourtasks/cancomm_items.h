@@ -26,20 +26,22 @@
  #define MISCQ_DUMP_OFF	  14 // Turn off Dump FET
  #define MISCQ_HEATER_ON  15 // Enable Heater mode to ‘payload [3] temperature
  #define MISCQ_HEATER_OFF 16 // Turn Heater mode off.
- #define MISCQ_TRICLE_OFF 17 // Turn trickle charger off fofor no more than ‘payload [3]’ secs
+ #define MISCQ_TRICKL_OFF 17 // Turn trickle charger off fofor no more than ‘payload [3]’ secs
 
 /* *************************************************************************/
- void cancomm_items_sendcell(struct CANRCVBUF* pcan);
+void cancomm_items_sendcell(struct CANRCVBUF* pcan, float *pf);
 /*	@brief	: Prepare and queue CAN msgs for sending cell voltage array
  *  @param  : pcan = pointer to struct CANRCVBUF from mailbox 
+ *  @param  : pf = pointer cell array
  * *************************************************************************/
  void cancomm_items_sendcmdr(struct CANRCVBUF* pcan);
 /*	@brief	: Prepare and send a response to a received command
  *  @param  : pcan = pointer to struct CANRCVBUF from mailbox 
  * *************************************************************************/
-void cancomm_items_uni_bms(struct CANRCVBUF* pcan);
-/*	@brief	: Multi-purpose command (CANCOMMBIT02)
- *  @param  : pcan = pointer to struct CANRCVBUF from mailbox 
+void cancomm_items_uni_bms(struct CANRCVBUF* pcan, float* pf);
+/*	@brief	: UNIversal multi-purpose command (CANCOMMBIT02)
+ *  @param  : pcan = pointer to struct CANRCVBUF with request CAN msg
+ *  @param  : pf = pointer to array for output
  * *************************************************************************/
  void cancomm_items_filter(uint16_t* pi);
 /*	@brief	: Pass raw readings through filter 

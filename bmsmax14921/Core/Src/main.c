@@ -138,7 +138,7 @@ DMA_HandleTypeDef hdma_usart1_tx;
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
-  .stack_size = 480 * 4,
+  .stack_size = 448 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* USER CODE BEGIN PV */
@@ -269,7 +269,7 @@ int main(void)
 
   /* Setup TX linked list for CAN  */
    // CAN1 (CAN_HandleTypeDef *phcan, uint8_t canidx, uint16_t numtx, uint16_t numrx);
-  pctl0 = can_iface_init(&hcan1, 0, 32, 32);
+  pctl0 = can_iface_init(&hcan1, 0, 64, 32);
   if (pctl0 == NULL) morse_trap(118); // Panic LED flashing
   if (pctl0->ret < 0) morse_trap(119);
 
@@ -277,7 +277,7 @@ int main(void)
   //ret = xSerialTaskReceiveCreate(osPriorityNormal);
   //if (ret != pdPASS) morse_trap(113);
 
-  /* BQ76952 I2C task. */
+  /* BQTask. */
   TaskHandle_t retT = xBQTaskCreate(osPriorityNormal);
   if (retT == NULL) morse_trap(114);
 
@@ -552,13 +552,13 @@ static void MX_CAN1_Init(void)
 
   /* USER CODE END CAN1_Init 1 */
   hcan1.Instance = CAN1;
-  hcan1.Init.Prescaler = 16;
+  hcan1.Init.Prescaler = 4;
   hcan1.Init.Mode = CAN_MODE_NORMAL;
   hcan1.Init.SyncJumpWidth = CAN_SJW_1TQ;
-  hcan1.Init.TimeSeg1 = CAN_BS1_1TQ;
-  hcan1.Init.TimeSeg2 = CAN_BS2_1TQ;
+  hcan1.Init.TimeSeg1 = CAN_BS1_5TQ;
+  hcan1.Init.TimeSeg2 = CAN_BS2_2TQ;
   hcan1.Init.TimeTriggeredMode = DISABLE;
-  hcan1.Init.AutoBusOff = DISABLE;
+  hcan1.Init.AutoBusOff = ENABLE;
   hcan1.Init.AutoWakeUp = DISABLE;
   hcan1.Init.AutoRetransmission = DISABLE;
   hcan1.Init.ReceiveFifoLocked = DISABLE;

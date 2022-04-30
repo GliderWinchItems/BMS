@@ -35,7 +35,9 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->hbct_t       = 64;//1001;   // Heartbeat ct: milliseconds between sending 
    p->hbct         = 64;    // Number of swctr ticks between heartbeats
 
-   p->adc_hb       = 64;     // Number of ticks for heartbeat ADC readout
+//   p->adc_hb       = 64;     // Number of ticks for heartbeat ADC readout
+
+   p->CanComm_hb = 24; // CanCommTask 'wait' counts per heartbeat sending
 
    /* Arrays have been compile using NCELLMAX [18] */
    p->ncell = 16; // Number of series cells in this module
@@ -89,6 +91,6 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->cid_uni_bms_i      = CANID_UNI_BMS_I;      // B0000000 UNIversal BMS Incoming msg to BMS: X4=target CANID
 
 // CAN ids BMS sends, others receive
-   p->cid_msg_bms_cellvsmr = CANID_MSG_BMS_CELLV11R; //'B0201114', U16_U16_U16_U16'
+   p->cid_msg_bms_cellvsmr = CANID_MSG_BMS_CELLV12R; //'B0201124', U16_U16_U16_U16'
 	return;
 }

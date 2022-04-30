@@ -134,7 +134,7 @@ void adcspi_readbms(void)
 {
 	struct ADCSPIALL* p = &adcspiall; // Convenience pointer
 	int i;
-	float x;
+//	float x;
 
 	// Initialize and start read sequence
 	adcbms_startreadbms();

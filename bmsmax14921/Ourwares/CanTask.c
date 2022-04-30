@@ -69,7 +69,6 @@ void StartCanTxTask(void* argument)
 		if (Qret == pdPASS) // Break loop if not empty
 		{
 			ret = can_driver_put(txq.pctl, &txq.can, txq.maxretryct, txq.bits);
-				
 /* ===> Trap errors
  *				: -1 = Buffer overrun (no free slots for the new msg)
  *				: -2 = Bogus CAN id rejected

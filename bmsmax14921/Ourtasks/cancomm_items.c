@@ -12,9 +12,9 @@
 #include "ADCTask.h"
 #include "iir_f1.h"
 
-void cancomm_items_sendcell(struct CANRCVBUF* pcan);
+void cancomm_items_sendcell(struct CANRCVBUF* pcan, float *pf);
 
-static void loadfloat(uint8_t* puc, float* pf);
+static void loadfloat(uint8_t* puc, float* f);
 static void cellv_cal(struct CANRCVBUF* pcan);
 static void cellv_adc(struct CANRCVBUF* pcan);
 static void status_group(void);
@@ -47,11 +47,33 @@ static void loaduint32(uint8_t* puc, uint32_t n)
 	return;
 }
 /* *************************************************************************
- * void cancomm_items_uni_bms(struct CANRCVBUF* pcan);
+ * static void loadfloat(uint8_t* puc, float* pf);
+ *	@brief	: Prepare and send a response to a received command
+ *  @param  : puc = pointer to CAN msg payload
+ *  @param  : pf = pointer to float to be loaded
+ * *************************************************************************/
+static void loadfloat(uint8_t* puc, float* pf)
+{
+	union UF
+	{
+		uint8_t uc[4];
+		float f;
+	}uf;
+
+	uf.f = *pf;
+	*(puc+0) = uf.uc[0];
+	*(puc+1) = uf.uc[1];
+	*(puc+2) = uf.uc[2];
+	*(puc+3) = uf.uc[3];
+	return;
+}
+/* *************************************************************************
+ * void cancomm_items_uni_bms(struct CANRCVBUF* pcan, float* pf);
  *	@brief	: UNIversal multi-purpose command (CANCOMMBIT02)
  *  @param  : pcan = pointer to struct CANRCVBUF with request CAN msg
+ *  @param  : pf = pointer to array for output
  * *************************************************************************/
-void cancomm_items_uni_bms(struct CANRCVBUF* pcan)
+void cancomm_items_uni_bms(struct CANRCVBUF* pcan, float* pf)
 {
 	struct BQFUNCTION* p = &bqfunction;
 	uint32_t canid; // CANID requested to respond, if applicable
@@ -80,7 +102,7 @@ void cancomm_items_uni_bms(struct CANRCVBUF* pcan)
 	switch(pcan->cd.uc[0])
 	{
 	case CMD_CMD_TYPE1: // Send Cell readings
-		cancomm_items_sendcell(pcan);
+		cancomm_items_sendcell(pcan, pf);
 		break;
 
 	case CMD_CMD_TYPE2: // Respond to command
@@ -93,14 +115,14 @@ void cancomm_items_uni_bms(struct CANRCVBUF* pcan)
 	return;
 }
 /* *************************************************************************
- * void cancomm_items_sendcell(struct CANRCVBUF* pcan);
+ * void cancomm_items_sendcell(struct CANRCVBUF* pcan, float *pf);
  *	@brief	: Prepare and queue CAN msgs for sending cell voltage array
  *  @param  : pcan = pointer to struct CANRCVBUF from mailbox 
+ *  @param  : pf = pointer cell array
  * *************************************************************************/
-void cancomm_items_sendcell(struct CANRCVBUF* pcan)
+void cancomm_items_sendcell(struct CANRCVBUF* pcan, float *pf)
 {
 	struct BQFUNCTION* p = &bqfunction;
-	uint16_t* pcell = &p->cellv_latest[0];
 	uint8_t i;
 	uint8_t n;
 
@@ -111,10 +133,10 @@ void cancomm_items_sendcell(struct CANRCVBUF* pcan)
 //		p->canmsg[CID_MSG_CELLV01 + i].can.cd.uc[1] &= ~0x0f;
 		p->canmsg[CID_MSG_CELLV01 + i].can.cd.uc[1] = (pcan->cd.uc[1] & 0x0f) | ((i*3) << 4);
 
-		p->canmsg[CID_MSG_CELLV01 + i].can.cd.us[1] = *(pcell+0);
-		p->canmsg[CID_MSG_CELLV01 + i].can.cd.us[2] = *(pcell+1);
-		p->canmsg[CID_MSG_CELLV01 + i].can.cd.us[3] = *(pcell+2);
-		pcell += 3;
+		p->canmsg[CID_MSG_CELLV01 + i].can.cd.us[1] = (uint16_t)(*(pf+0) * 10000);
+		p->canmsg[CID_MSG_CELLV01 + i].can.cd.us[2] = (uint16_t)(*(pf+1) * 10000);
+		p->canmsg[CID_MSG_CELLV01 + i].can.cd.us[3] = (uint16_t)(*(pf+2) * 10000);
+		pf += 3;
 
 		// DLC is the same except possibly last msg
 		p->canmsg[CID_MSG_CELLV01 + i].can.dlc = 8;
@@ -182,6 +204,7 @@ payload [1] U8: Command code
 void cancomm_items_sendcmdr(struct CANRCVBUF* pcan)
 {
 	struct BQFUNCTION* p = &bqfunction;
+	uint8_t skip = 0;
 
 	/* Pointer to payload 4 byte value is used often. */
 	uint8_t* puc = &p->canmsg[CID_CMD_MISC].can.cd.uc[4];
@@ -212,6 +235,7 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pcan)
 
  	case MISCQ_CELLV_ADC:   // 3 cell voltage: adc counts
  		cellv_adc(pcan);
+ 		skip = 1;
  			break;
 
  	case MISCQ_TEMP_CAL:    // 4 temperature sensor: calibrated
@@ -248,9 +272,12 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pcan)
  		loaduint32(&p->canmsg[CID_CMD_MISC].can.cd.uc[3],adcspiall.cellbitssave);
 		break;
 	}
-	/* Queue CAN msg response. */
+	if (skip == 0)
+	{
+		/* Queue CAN msg response. */
 //	returncmd(&p->canmsg[CID_CMD_MISC], pcan); // Return command bytes
-	xQueueSendToBack(CanTxQHandle,&p->canmsg[CID_CMD_MISC],4);
+		xQueueSendToBack(CanTxQHandle,&p->canmsg[CID_CMD_MISC],4);
+	}
 	return;
 }
 /* *************************************************************************
@@ -284,20 +311,21 @@ static void cellv_cal(struct CANRCVBUF* pcan)
 static void cellv_adc(struct CANRCVBUF* pcan)
 {
 	struct BQFUNCTION* p = &bqfunction;
-	uint32_t* pcell;
-	uint32_t  bogus = 99999999;//0x80000000; // Bogus request reading
+	float* pout = &bqfunction.raw_filt[0]; // Filtered output
+	uint8_t i;
 
-	/* Get index into array for requested reading. */
-	uint8_t idx = pcan->cd.uc[3];
-	if (idx > (p->lc.ncell - 1)) 
-		pcell = &bogus; // Requested cell number out-of-range
-	else
-		pcell = &cellcts.vi[idx].v; 
+	for (i = 0; i < p->lc.ncell; i++)
+	{
+		// Array index
+		p->canmsg[CID_CMD_MISC].can.cd.uc[3] = i;
 
-	p->canmsg[CID_CMD_MISC].can.cd.uc[3] = idx;
+		// Load 4 byte reading into 4 byte payload
+		loadfloat(&p->canmsg[CID_CMD_MISC].can.cd.uc[4], pout);
 
-	// Load 4 byte reading into 4 byte payload
-	loaduint32(&p->canmsg[CID_CMD_MISC].can.cd.uc[4], *pcell);
+		// Queue CAN msg
+		xQueueSendToBack(CanTxQHandle,&p->canmsg[CID_CMD_MISC],4);
+		pout += 1;
+	}
 	return;
 }
 /* *************************************************************************
@@ -333,27 +361,7 @@ static void status_group(void)
 	p->canmsg[CID_CMD_MISC].can.cd.us[3] = p->cellbal;
 	return;
 }
-/* *************************************************************************
- * static void loadfloat(uint8_t* puc, float* pf);
- *	@brief	: Prepare and send a response to a received command
- *  @param  : puc = pointer to CAN msg payload
- *  @param  : pf = pointer to float to be loaded
- * *************************************************************************/
-static void loadfloat(uint8_t* puc, float* pf)
-{
-	union UF
-	{
-		uint8_t uc[4];
-		float f;
-	}uf;
 
-	uf.f = *pf;
-	*(puc+0) = uf.uc[0];
-	*(puc+1) = uf.uc[1];
-	*(puc+2) = uf.uc[2];
-	*(puc+3) = uf.uc[3];
-	return;
-}
 /* *************************************************************************
  * void cancomm_items_filter(uint16_t* pi);
  *	@brief	: Pass raw readings through filter 
@@ -365,7 +373,6 @@ void cancomm_items_filter(uint16_t* pi)
 	struct ADCCALABS* pcabsbms = &adc1.lc.cabsbms[0];
 	float* pout = &bqfunction.raw_filt[0]; // Filtered output
 	float* pcal = &bqfunction.cal_filt[0]; // Flitered and calibrated
-	float x;
 	int i;
 
 	for (i = 0; i < ADCBMSMAX; i++)

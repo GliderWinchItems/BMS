@@ -127,7 +127,10 @@ void StartCanComm(void* argument)
 
 	/* A notification copies the internal notification word to this. */
 	uint32_t noteval = 0;    // Receives notification word upon an API notify
+	uint32_t timeoutwait;
+	uint8_t intadj = 0;
 	uint8_t code;
+
 
 //	while (CANTaskreadyflag == 0) osDelay(1); // Debug
 
@@ -142,7 +145,11 @@ void StartCanComm(void* argument)
 	adcreadreq.encycle    = 0;     // Cycle EN: 0 = after read; 1 = before read w osDelay; 2 = neither
 	adcreadreq.readbmsfets= 1;//0;        // Clear discharge fets before readbms.	
 dbupdnx = adcreadreq.updn;
-extern CAN_HandleTypeDef hcan1;
+
+	/* CAN communications parameter init. */
+	CanComm_init(p);
+
+	extern CAN_HandleTypeDef hcan1;
 	HAL_CAN_Start(&hcan1); // CAN1
 
 	rdyflag_cancomm = 1; // Initialization complete and ready
@@ -150,7 +157,29 @@ extern CAN_HandleTypeDef hcan1;
 	for (;;)
 	{
 		/* Wait for notifications */
-		xTaskNotifyWait(0,0xffffffff, &noteval, p->hbct_k);
+		/* Do exactly 12 timeouts per second. */
+		intadj += 1;
+		if (intadj >= 3)
+		{
+			timeoutwait = 84;
+			intadj = 0;
+		}
+		else
+		{
+			timeoutwait = 83;
+		}
+		xTaskNotifyWait(0,0xffffffff, &noteval,timeoutwait);
+
+		/* Read BMS cells. */
+		qret = xQueueSendToBack(ADCTaskReadReqQHandle, &padcreadreq, 5000);
+if (qret != pdPASS) morse_trap(720); // JIC debug
+
+		/* Wait for ADCTask to signal request complete. */
+		xTaskNotifyWait(0,0xffffffff, &noteval2, 5000);
+if (noteval2 != CANCOMMBIT03) morse_trap(721); // JIC debug
+
+		/* Filter readings for calibration purposes. */
+		cancomm_items_filter(pssb->taskdatai16); // Filter 	
 
 		/* CAN msg request for sending CELL VOLTAGES. */
 			// Code for which modules should respond bits [7:6]
@@ -166,7 +195,14 @@ extern CAN_HandleTypeDef hcan1;
 				((code == (2 << 6)) && ((pcan->cd.uc[0] & 0x30) == p->ident_string)) ||
 				((code == (1 << 6)) && ((pcan->cd.uc[0] & 0x3F) == p->ident_onlyus)) )
 			{ // Here, respond to request, otherwise, ignore.
-				cancomm_items_sendcell(pcan);
+				qret = xQueueSendToBack(ADCTaskReadReqQHandle, &padcreadreq, 5000);
+if (qret != pdPASS) morse_trap(726); // JIC debug
+
+				/* Wait for ADCTask to signal request complete. */
+				xTaskNotifyWait(0,0xffffffff, &noteval2, 5000);
+if (noteval2 != CANCOMMBIT03) morse_trap(727); // JIC debug
+
+				cancomm_items_uni_bms(&can_hb, &fbms[0]);
 			}
 		}
 		/* CAN msg request for sending MISC READINGS. */
@@ -177,6 +213,7 @@ extern CAN_HandleTypeDef hcan1;
        		// 00 = spare; no response expected
 		if ((noteval & CANCOMMBIT01) != 0)
 		{
+morse_trap(5555);
 			pcan = &p->pmbx_cid_cmd_bms_miscq->ncan.can;
 			code = pcan->cd.uc[0] & 0xC0; // Extract identification code
 			if (((code == (3 << 6))) ||
@@ -189,7 +226,7 @@ extern CAN_HandleTypeDef hcan1;
 		/* Multi-purpose command */
 		if ((noteval & CANCOMMBIT02) != 0)
 		{
-			cancomm_items_uni_bms(&p->pmbx_cid_uni_bms_i->ncan.can);
+			cancomm_items_uni_bms(&p->pmbx_cid_uni_bms_i->ncan.can, NULL);
 		}
 
 		/* Timeout notification. */
@@ -212,29 +249,26 @@ extern CAN_HandleTypeDef hcan1;
 //				adcreadreq.cellbits = (1 << dbdischargebit);
 			}
 
-			qret = xQueueSendToBack(ADCTaskReadReqQHandle, &padcreadreq, 5000);
-if (qret != pdPASS) morse_trap(720); // JIC debug
+			/* Here, 12 times per second. Slow down for heartbeat. */
+			bqfunction.CanComm_hb_ctr += 1;
+			if (bqfunction.CanComm_hb_ctr >= bqfunction.lc.CanComm_hb)
+			{
+				bqfunction.CanComm_hb_ctr = 0;
 
-			/* Wait for ADCTask to signal request complete. */
-			xTaskNotifyWait(0,0xffffffff, &noteval2, 5000);
-if (noteval2 != CANCOMMBIT03) morse_trap(721); // JIC debug
+				/* Use dummy CAN msg, then it looks the same as a request CAN msg. */
+				can_hb.cd.uc[0] = CMD_CMD_TYPE2;  // Misc subcommands code
+				can_hb.cd.uc[1] = MISCQ_STATUS;   // status code
+				cancomm_items_uni_bms(&can_hb,&bqfunction.cal_filt[0]); // filtered
 
-			/* Filter readings for calibration purposes. */
-			cancomm_items_filter(pssb->taskdatai16); // Filter raw readings
+				/* Use dummy CAN msg, then it looks the same as a request CAN msg. */
+				can_hb.cd.uc[0] = CMD_CMD_TYPE1;  // cell readings code
+				can_hb.cd.uc[1] = (hbseq & 0x0f); // Group sequence number
+				cancomm_items_uni_bms(&can_hb, &bqfunction.cal_filt[0]); // filtered
 
-			/* Use dummy CAN msg, then it looks the same as a request CAN msg. */
-			can_hb.cd.uc[0] = CMD_CMD_TYPE2;  // Misc subcommands code
-			can_hb.cd.uc[1] = MISCQ_STATUS;   // status code
-			cancomm_items_uni_bms(&can_hb);
-
-			/* Use dummy CAN msg, then it looks the same as a request CAN msg. */
-			can_hb.cd.uc[0] = CMD_CMD_TYPE1;  // cell readings code
-			can_hb.cd.uc[1] = (hbseq & 0x0f); // Group sequence number
-			cancomm_items_uni_bms(&can_hb);
-
-			/* Increment 4 bit CAN msg group sequence counter .*/
-			hbseq += 1;
-   	//		xQueueSendToBack(CanTxQHandle,&p->canmsg[CID_CMD_MISC],4);   
+				/* Increment 4 bit CAN msg group sequence counter .*/
+				hbseq += 1;
+	   			xQueueSendToBack(CanTxQHandle,&p->canmsg[CID_CMD_MISC],4);   
+   			}
 		}	
 	} 	
 }

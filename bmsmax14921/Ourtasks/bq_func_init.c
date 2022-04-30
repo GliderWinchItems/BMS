@@ -24,6 +24,8 @@ void bq_func_init(struct BQFUNCTION* p)
 	/* Hearbeat timing. */
 	p->hbct_k =  pdMS_TO_TICKS(p->lc.hbct_t); // Convert ms to RTOS ticks
 
+	p->CanComm_hb_ctr = 0;   // Cell readings heartbeat tick counter
+
 	// Packed: string and module numbers
 	p->ident_onlyus = ((p->lc.stringnum-1) << 4) | ((p->lc.modulenum-1) << 0); 
 	p->ident_string = ((p->lc.stringnum-1) << 4); 

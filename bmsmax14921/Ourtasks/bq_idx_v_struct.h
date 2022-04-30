@@ -43,7 +43,7 @@ struct BQLC
 	uint32_t hbct_t;     // Heartbeat ct: ms between sending 
    uint32_t hbct;       // Number of ticks between hb msgs
 
-   uint32_t adc_hb;     // Number of ticks for heartbeat ADC readout
+   uint32_t CanComm_hb;     // Number of ticks for heartbeat ADC readout
 
    uint16_t dac1_hv_setting;  // 65.2 volt limit
    uint16_t dac2_ix_setting;  //62;   // Current sense level setting
