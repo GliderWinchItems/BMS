@@ -25,11 +25,11 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
 
 
    /* Identification of this module node. */
-   p->winchnum    = 1; // Winch number (1 - 4)
+   p->winchnum     = 1; // Winch number (1 - 4)
    if ((p->winchnum == 0) || (p->winchnum > 4)) morse_trap(700);
    p->stringnum    = 1; // Battery string number (1 - 4)
    if ((p->stringnum == 0) || (p->stringnum > 4)) morse_trap(701);
-   p->modulenum    = 1; // Module number on string (1-16)
+   p->modulenum    = 2; // Module number on string (1-16)
    if ((p->modulenum == 0) || (p->modulenum > 16)) morse_trap(702);
 
    p->hbct_t       = 64;//1001;   // Heartbeat ct: milliseconds between sending 

@@ -99,7 +99,7 @@ void CanComm_init(struct BQFUNCTION* p )
 	/* Pre-load dummy CAN msg request for requesting heartbeat. */
 	can_hb.id = p->lc.cid_uni_bms_i;
 	can_hb.cd.ull = 0; // Clear entire payload
-	can_hb.cd.uc[0] = CMD_CMD_TYPE1;  // request code
+	can_hb.cd.uc[0] = CMD_CMD_TYPE1;  // request code (initial, changed later)
 	can_hb.cd.uc[1] = 0;  // cell msg sequence number 
 	can_hb.cd.uc[4] = p->lc.cid_msg_bms_cellvsmr >>  0; // Our CAN ID
 	can_hb.cd.uc[5] = p->lc.cid_msg_bms_cellvsmr >>  8;
@@ -153,7 +153,7 @@ dbupdnx = adcreadreq.updn;
 	HAL_CAN_Start(&hcan1); // CAN1
 
 	rdyflag_cancomm = 1; // Initialization complete and ready
-
+/* ******************************************************************* */
 	for (;;)
 	{
 		/* Wait for notifications */
@@ -176,19 +176,21 @@ if (qret != pdPASS) morse_trap(720); // JIC debug
 
 		/* Wait for ADCTask to signal request complete. */
 		xTaskNotifyWait(0,0xffffffff, &noteval2, 5000);
+
 if (noteval2 != CANCOMMBIT03) morse_trap(721); // JIC debug
 
 		/* Filter readings for calibration purposes. */
 		cancomm_items_filter(pssb->taskdatai16); // Filter 	
 
-		/* CAN msg request for sending CELL VOLTAGES. */
+/* ******* CAN msg request for sending CELL VOLTAGES. */
 			// Code for which modules should respond bits [7:6]
 	   		// 11 = All modules respond
        		// 10 = All modules on identified string respond
        		// 01 = Only identified string and module responds
        		// 00 = spare; no response expected
-		if ((noteval & CANCOMMBIT00) != 0)
+		if ((noteval & CANCOMMBIT00) != 0) 
 		{
+morse_trap(6666);			
 			pcan = &p->pmbx_cid_cmd_bms_cellvq->ncan.can;
 			code = pcan->cd.uc[0] & 0xC0; // Extract identification code
 			if (((code == (3 << 6))) ||
@@ -196,16 +198,16 @@ if (noteval2 != CANCOMMBIT03) morse_trap(721); // JIC debug
 				((code == (1 << 6)) && ((pcan->cd.uc[0] & 0x3F) == p->ident_onlyus)) )
 			{ // Here, respond to request, otherwise, ignore.
 				qret = xQueueSendToBack(ADCTaskReadReqQHandle, &padcreadreq, 5000);
-if (qret != pdPASS) morse_trap(726); // JIC debug
+				if (qret != pdPASS) morse_trap(726); // JIC debug
 
 				/* Wait for ADCTask to signal request complete. */
 				xTaskNotifyWait(0,0xffffffff, &noteval2, 5000);
-if (noteval2 != CANCOMMBIT03) morse_trap(727); // JIC debug
+				if (noteval2 != CANCOMMBIT03) morse_trap(727); // JIC debug
 
 				cancomm_items_uni_bms(&can_hb, &fbms[0]);
 			}
 		}
-		/* CAN msg request for sending MISC READINGS. */
+/* ******* CAN msg request for sending MISC READINGS. */
 			// Code for which modules should respond bits [7:6]
 	   		// 11 = All modules respond
        		// 10 = All modules on identified string respond
@@ -223,13 +225,14 @@ morse_trap(5555);
 				cancomm_items_sendcmdr(pcan);
 			}
 		}
-		/* Multi-purpose command */
+/* ******* CAN msg request for sending MISC READINGS. */
 		if ((noteval & CANCOMMBIT02) != 0)
 		{
+bqfunction.CanComm_hb_ctr = 0;			
 			cancomm_items_uni_bms(&p->pmbx_cid_uni_bms_i->ncan.can, NULL);
 		}
 
-		/* Timeout notification. */
+/* ******* Timeout notification. */
 		if (noteval == 0)
 		{ // Send heartbeat
 			/* Queue a read BMS request to ADCTask.c */
@@ -267,7 +270,7 @@ morse_trap(5555);
 
 				/* Increment 4 bit CAN msg group sequence counter .*/
 				hbseq += 1;
-	   			xQueueSendToBack(CanTxQHandle,&p->canmsg[CID_CMD_MISC],4);   
+//	   			xQueueSendToBack(CanTxQHandle,&p->canmsg[CID_CMD_MISC],4);   
    			}
 		}	
 	} 	

@@ -26,7 +26,8 @@
  #define MISCQ_DUMP_OFF	  14 // Turn off Dump FET
  #define MISCQ_HEATER_ON  15 // Enable Heater mode to ‘payload [3] temperature
  #define MISCQ_HEATER_OFF 16 // Turn Heater mode off.
- #define MISCQ_TRICKL_OFF 17 // Turn trickle charger off fofor no more than ‘payload [3]’ secs
+ #define MISCQ_TRICKL_OFF 17 // Turn trickle charger off for no more than ‘payload [3]’ secs
+ #define MISCQ_TOPOFSTACK 18 // BMS top-of-stack voltage
 
 /* *************************************************************************/
 void cancomm_items_sendcell(struct CANRCVBUF* pcan, float *pf);

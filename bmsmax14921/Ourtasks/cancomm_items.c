@@ -7,6 +7,7 @@
 #include "CanTask.h"
 #include "BQTask.h"
 #include "cancomm_items.h"
+#include "CanCommTask.h"
 #include "adcparams.h"
 #include "../../../../GliderWinchCommons/embed/svn_common/trunk/db/gen_db.h"
 #include "ADCTask.h"
@@ -15,9 +16,10 @@
 void cancomm_items_sendcell(struct CANRCVBUF* pcan, float *pf);
 
 static void loadfloat(uint8_t* puc, float* f);
-static void cellv_cal(struct CANRCVBUF* pcan);
-static void cellv_adc(struct CANRCVBUF* pcan);
 static void status_group(void);
+static void send_bms_array(struct CANRCVBUF* pcan, float* pout, uint8_t n);
+
+static uint8_t skip;
 
 /* *************************************************************************
  * static void returncmd(struct CANTXQMSG* pmsg);
@@ -79,24 +81,25 @@ void cancomm_items_uni_bms(struct CANRCVBUF* pcan, float* pf)
 	uint32_t canid; // CANID requested to respond, if applicable
 	uint8_t code;
 
-	/* Skip if this request is not for us. */
-	code = pcan->cd.uc[2] & 0xC0;
-	// Code for which modules should respond bits [7:6]
+	 /* Extract CAN id for unit to respond. */
+    canid = (pcan->cd.uc[4] << 0)|(pcan->cd.uc[5] << 8)|
+            (pcan->cd.uc[6] <<16)|(pcan->cd.uc[7] <<24);
+
+	// Code for which modules should respond: bits [7:6]
 	// 11 = All modules respond
     // 10 = All modules on identified string respond
     // 01 = Only identified string and module responds
     // 00 = spare; no response expected
-    canid = (pcan->cd.uc[4] << 0)|(pcan->cd.uc[5] << 8)|
-            (pcan->cd.uc[6] <<16)|(pcan->cd.uc[7] <<24);
+	code = pcan->cd.uc[2] & 0xC0;
 
-    // Respond if CAN ID for this node was sent
-//	if (!(((code == (3 << 6))) ||
-//		  ((code == (2 << 6)) && ((pcan->cd.uc[2] & (3 << 4)) == p->ident_string)) ||
-//		  ((code == (1 << 6)) && ((pcan->cd.uc[2] & 0x0F) == p->ident_onlyus)) ||
-//		  ((canid == p->lc.cid_msg_bms_cellvsmr))))
-//		return; // Skip. This request is not for us.
+    // Respond if CAN ID for this node is in request
+	if (!(((code == (3 << 6))) ||
+		  ((code == (2 << 6)) && ((pcan->cd.uc[2] & (3 << 4)) == p->ident_string)) ||
+		  ((code == (1 << 6)) && ((pcan->cd.uc[2] & 0x0F) == p->ident_onlyus)) ||
+		  ((canid == p->lc.cid_msg_bms_cellvsmr))))
+		return; // Skip. This request is not for us.
     // Simplified for TEST
-	if (canid != p->lc.cid_msg_bms_cellvsmr) return;
+	//if (canid != p->lc.cid_msg_bms_cellvsmr) return;
 
 	/* Set up response to command. */
 	switch(pcan->cd.uc[0])
@@ -105,11 +108,12 @@ void cancomm_items_uni_bms(struct CANRCVBUF* pcan, float* pf)
 		cancomm_items_sendcell(pcan, pf);
 		break;
 
-	case CMD_CMD_TYPE2: // Respond to command
+	case CMD_CMD_TYPE2: // Respond according to the code
 		cancomm_items_sendcmdr(pcan);
 		break;
 
-	case CMD_CMD_TYPE3:
+	case CMD_CMD_TYPE3: // spare types
+	case CMD_CMD_TYPE4:
 		break;
 	}
 	return;
@@ -204,24 +208,32 @@ payload [1] U8: Command code
 void cancomm_items_sendcmdr(struct CANRCVBUF* pcan)
 {
 	struct BQFUNCTION* p = &bqfunction;
-	uint8_t skip = 0;
 
 	/* Pointer to payload 4 byte value is used often. */
 	uint8_t* puc = &p->canmsg[CID_CMD_MISC].can.cd.uc[4];
 
+	skip = 0;
+
 	/* Data in payload is always X4 (4 bytes, any format) */
 	p->canmsg[CID_CMD_MISC].can.dlc = 8;
-	// Return what was requested: copy four bytes
-	p->canmsg[CID_CMD_MISC].can.cd.ui[0] = pcan->cd.ui[0];
-/*	 Byte-at-a-time is slow and fattening.
+	
+/*	Return what was requested: copy as a uint32_t since,
+	byte-at-a-time is slow and fattening, e.g.,
 	p->canmsg[CID_CMD_MISC].can.cd.uc[0] = CMD_CMD_TYPE2;
 	// Code for response
 	p->canmsg[CID_CMD_MISC].can.cd.uc[1] = pcan->cd.uc[1];
 	// Module identification
 	p->canmsg[CID_CMD_MISC].can.cd.uc[2] = pcan->cd.uc[2];
 	// Item number, or thermistor number, or ...
-	p->canmsg[CID_CMD_MISC].can.cd.uc[3] = pcan->cd.uc[3];
-*/
+	p->canmsg[CID_CMD_MISC].can.cd.uc[3] = pcan->cd.uc[3]; */
+	p->canmsg[CID_CMD_MISC].can.cd.ui[0] = pcan->cd.ui[0];
+
+	/* Add string and module number to response. It may or
+	   may not have been included in the request. */
+	p->canmsg[CID_CMD_MISC].can.cd.uc[2] = 
+			(p->canmsg[CID_CMD_MISC].can.cd.uc[2] & 0xC0) | 
+			((p->lc.stringnum-1) << 4) | (p->lc.modulenum -1);
+
 	/* Command code. */
 	switch(p->canmsg[CID_CMD_MISC].can.cd.uc[1])
 	{
@@ -230,102 +242,86 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pcan)
 		break;
 
  	case MISCQ_CELLV_CAL:   // 2 cell voltage: calibrated
- 		cellv_cal(pcan);
- 			break;
+ 		send_bms_array(pcan, &bqfunction.cal_filt[0], p->lc.ncell);
+ 		break;
 
  	case MISCQ_CELLV_ADC:   // 3 cell voltage: adc counts
- 		cellv_adc(pcan);
- 		skip = 1;
- 			break;
+ 		send_bms_array(pcan, &p->raw_filt[0], p->lc.ncell);
+ 		break;
 
  	case MISCQ_TEMP_CAL:    // 4 temperature sensor: calibrated
- 			break;
+ 		send_bms_array(pcan, &bqfunction.cal_filt[16], 3);
+ 		break;
 
  	case MISCQ_TEMP_ADC:    // 5 temperature sensor: adc counts
- 			break;
+ 		send_bms_array(pcan, &p->raw_filt[16], 3);
+ 		break;
 
  	case MISCQ_DCDC_V:      // 6 isolated dc-dc converter output voltage
  		loadfloat(puc, &adc1.abs[ADC1IDX_PA4_DC_DC].filt);
- 			break;
+ 		break;
 
  	case MISCQ_CHGR_V:      // 7 charger hv voltage
  		loadfloat(puc, &adc1.abs[ADC1IDX_PA7_HV_DIV].filt);
- 			break;
+ 		break;
 
  	case MISCQ_HALL_CAL:    // 8 Hall sensor: calibrated
- 			break;
+ 		skip = 1;
+ 		break;
 
  	case MISCQ_HALL_ADC:    // 9 Hall sensor: adc counts
- 			break;
+ 		skip = 1;
+ 		break;
 
  	case MISCQ_CELLV_HI:   // 10 Highest cell voltage
  		p->canmsg[CID_CMD_MISC].can.cd.uc[2] = p->cellx_high;
  		loaduint32(puc, p->cellv_high);
- 			break;
+ 		break;
 
  	case MISCQ_CELLV_LO:   // 11 Lowest cell voltage
  		p->canmsg[CID_CMD_MISC].can.cd.uc[2] = p->cellx_low;
  		loaduint32(puc, p->cellv_low);
- 			break;
+ 		break;
 
  	case MISCQ_FETBALBITS: // 12 FET on/off discharge bits
- 		loaduint32(&p->canmsg[CID_CMD_MISC].can.cd.uc[3],adcspiall.cellbitssave);
+ 		loaduint32(puc,adcspiall.cellbitssave);
 		break;
+
+	case MISCQ_TOPOFSTACK: // BMS top-of-stack voltage
+		send_bms_array(pcan, &bqfunction.cal_filt[19], 1);
+		break;		
 	}
 	if (skip == 0)
-	{
+	{ // Here, single CAN msg has not been queued for sending
 		/* Queue CAN msg response. */
-//	returncmd(&p->canmsg[CID_CMD_MISC], pcan); // Return command bytes
 		xQueueSendToBack(CanTxQHandle,&p->canmsg[CID_CMD_MISC],4);
 	}
 	return;
 }
 /* *************************************************************************
- * static void cellv_cal(struct CANRCVBUF* pcan);
- *	@brief	: Prepare and send a response to a received command
+ * static void send_bms_array(struct CANRCVBUF* pcan, float* pout, uint8_t n);
+ *	@brief	: Prepare and send a series of CAN msgs 
  *  @param  : pcan = pointer to CAN msg requesting response
+ *  @param  : pout = pointer to output array of floats for first reading
+ *  @param  : n = number of readings (CAN msgs) to send
  * *************************************************************************/
-static void cellv_cal(struct CANRCVBUF* pcan)
+static void send_bms_array(struct CANRCVBUF* pcan, float* pout, uint8_t n)
 {
 	struct BQFUNCTION* p = &bqfunction;
-	int32_t  tmp;
-
-	/* Get index into array for requested reading. */
-	uint8_t idx = pcan->cd.uc[3];
-	if (idx >= (p->lc.ncell - 1))
-		tmp = 99999999;//x80000000; // Bogus
-	else
-		tmp = p->cellv_latest[idx];
-
-	p->canmsg[CID_CMD_MISC].can.cd.uc[3] = idx;
-
-	// Reading into 4 byte payload
-	loaduint32(&p->canmsg[CID_CMD_MISC].can.cd.uc[4], tmp);
-	return;
-}
-/* *************************************************************************
- * static void cellv_adc(struct CANRCVBUF* pcan);
- *	@brief	: Prepare and send a response to a received command
- *  @param  : pcan = pointer to CAN msg requesting response
- * *************************************************************************/
-static void cellv_adc(struct CANRCVBUF* pcan)
-{
-	struct BQFUNCTION* p = &bqfunction;
-	float* pout = &bqfunction.raw_filt[0]; // Filtered output
 	uint8_t i;
 
-	for (i = 0; i < p->lc.ncell; i++)
+	for (i = 0; i < n; i++)
 	{
-		// Array index
 		p->canmsg[CID_CMD_MISC].can.cd.uc[3] = i;
 
-		// Load 4 byte reading into 4 byte payload
+		// Reading into 4 byte payload
 		loadfloat(&p->canmsg[CID_CMD_MISC].can.cd.uc[4], pout);
 
 		// Queue CAN msg
 		xQueueSendToBack(CanTxQHandle,&p->canmsg[CID_CMD_MISC],4);
 		pout += 1;
 	}
+	skip = 1;
 	return;
 }
 /* *************************************************************************
