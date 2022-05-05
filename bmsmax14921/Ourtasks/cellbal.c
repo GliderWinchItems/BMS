@@ -39,14 +39,15 @@ float fcell[ADCBMSMAX]; // (16+3+1) = 20; Number of MAX14921 (cells+thermistors+
 	void cellbal_init(void)
 	{
 	/* Pre-load BMS readout request queue block. */	
-	adcreadreq.taskhandle = xTaskGetCurrentTaskHandle();// Requesting task's handle
-	adcreadreq.tasknote   = CALLBALBIT00;// ADCTask completed BMS read 
+//	adcreadreq.taskhandle = xTaskGetCurrentTaskHandle();// Requesting task's handle
+//	adcreadreq.tasknote   = CALLBALBIT00;// ADCTask completed BMS read 
 	adcreadreq.taskdata   = &fcell[0];   // Requesting task's pointer to buffer to receive data
 	adcreadreq.cellbits   = 0;           // Bits to set FETs
 	adcreadreq.updn       = 0;           // BMS readout direction high->low cell numbers
 	adcreadreq.reqcode    = REQ_SETFETS; // Set discharge fets.
-	adcreadreq.encycle    = 0;     // Cycle EN: 0 = after read; 1 = before read w osDelay
+	adcreadreq.encycle    = 1;     // Cycle EN: 0 = after read; 1 = before read w osDelay
 	adcreadreq.readbmsfets= 0;           // Clear discharge fets before readbms.
+	adcreadreq.doneflag   = 0; // 1 = ADCTask completed BMS read 
 	return;	
 }
 /* *************************************************************************
@@ -65,6 +66,7 @@ void cellbal_do(struct ADCREADREQ* parq)
 	uint32_t noteval;
 	uint32_t flag_dump; // PC8 & PC10 for DUMP ON/OFF
 	uint32_t flag_extchgr; // External charger fet on/off
+	uint32_t doneflagctr;
 	uint16_t fetbits; // Discharge FET bits
 	uint16_t flag_trickle; // PWM count for trickle charge level
 	uint8_t  ctr1; // Count of cells at or above maximum (target)
@@ -88,9 +90,11 @@ void cellbal_do(struct ADCREADREQ* parq)
 	qret = xQueueSendToBack(ADCTaskReadReqQHandle, parq, 3500);
 if (qret != pdPASS) morse_trap(722); // JIC debug
 
-	/* Wait for notifications */
-	xTaskNotifyWait(0,0xffffffff, &noteval, 4800);
-	if (noteval != parq->tasknote) morse_trap(723); // JIC debug
+#define DONEFLAGCT 200
+		doneflagctr = 0;
+		while ((adcreadreq.doneflag == 0) && (doneflagctr++ < DONEFLAGCT)) 
+			osDelay(1);
+		if (doneflagctr >= DONEFLAGCT) morse_trap(733);
 
 	/* Categorize for setting discharging and charging.
 	   and set discharge FET bits. */
@@ -149,9 +153,10 @@ if (qret != pdPASS) morse_trap(722); // JIC debug
 	qret = xQueueSendToBack(ADCTaskReadReqQHandle, &adcreadreq, 3500);
 if (qret != pdPASS) morse_trap(724); // JIC debug
 
-	/* Wait for notifications */
-	xTaskNotifyWait(0,0xffffffff, &noteval, 4800);
-	if (noteval != parq->tasknote) morse_trap(725); // JIC debug
+	doneflagctr = 0;
+	while ((adcreadreq.doneflag == 0) && (doneflagctr++ < DONEFLAGCT)) 
+		osDelay(1);
+	if (doneflagctr >= DONEFLAGCT) morse_trap(732);
 
 	return;
 }

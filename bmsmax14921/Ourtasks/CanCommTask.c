@@ -125,25 +125,27 @@ void StartCanComm(void* argument)
 	struct BQFUNCTION* p = &bqfunction;
 	struct CANRCVBUF* pcan;
 
+	uint32_t doneflagctr;
+
 	/* A notification copies the internal notification word to this. */
 	uint32_t noteval = 0;    // Receives notification word upon an API notify
 	uint32_t timeoutwait;
 	uint8_t intadj = 0;
 	uint8_t code;
 
-
 //	while (CANTaskreadyflag == 0) osDelay(1); // Debug
 
 	/* Pre-load BMS readout request queue block. */	
-	adcreadreq.taskhandle = CanCommHandle;// Requesting task's handle
-	adcreadreq.tasknote   = CANCOMMBIT03; // ADCTask completed BMS read 
+//	adcreadreq.taskhandle = CanCommHandle; // Requesting task's handle
+//	adcreadreq.tasknote   = CANCOMMBIT03;  // ADCTask completed BMS read 
 	adcreadreq.taskdata   = &fbms[0];  // Requesting task's pointer to buffer to receive data
 	adcreadreq.taskdatai16= &uibms[0]; // Requesting task's pointer to int16_t buffer to receive data
 	adcreadreq.cellbits   = 0x0000;    // Depends on command: FET to set; Open cell wires
 	adcreadreq.updn       = 0; // BMS readout direction 0 = high->low cell numbers; 1 = low->high
 	adcreadreq.reqcode    = REQ_READBMS;  // Read MAX1921 cells, thermistor, Top-of-stack
-	adcreadreq.encycle    = 0;     // Cycle EN: 0 = after read; 1 = before read w osDelay; 2 = neither
+	adcreadreq.encycle    = 1;     // Cycle EN: 0 = after read; 1 = before read w osDelay; 2 = neither
 	adcreadreq.readbmsfets= 1;//0;        // Clear discharge fets before readbms.	
+	adcreadreq.doneflag   = 0; // 1 = ADCTask completed BMS read 
 dbupdnx = adcreadreq.updn;
 
 	/* CAN communications parameter init. */
@@ -168,16 +170,22 @@ dbupdnx = adcreadreq.updn;
 		{
 			timeoutwait = 83;
 		}
+//timeoutwait = 40;
+
 		xTaskNotifyWait(0,0xffffffff, &noteval,timeoutwait);
 
 		/* Read BMS cells. */
+		adcreadreq.doneflag   = 0;
+		doneflagctr = 0;
+
 		qret = xQueueSendToBack(ADCTaskReadReqQHandle, &padcreadreq, 5000);
 if (qret != pdPASS) morse_trap(720); // JIC debug
 
-		/* Wait for ADCTask to signal request complete. */
-		xTaskNotifyWait(0,0xffffffff, &noteval2, 5000);
+#define DONEFLAGCT 200
+		while ((adcreadreq.doneflag == 0) && (doneflagctr++ < DONEFLAGCT)) 
+			osDelay(1);
+		if (doneflagctr >= DONEFLAGCT) morse_trap(731);
 
-if (noteval2 != CANCOMMBIT03) morse_trap(721); // JIC debug
 
 		/* Filter readings for calibration purposes. */
 		cancomm_items_filter(pssb->taskdatai16); // Filter 	

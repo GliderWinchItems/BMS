@@ -16,6 +16,7 @@
 #include "adcbms.h"
 #include "adcspi.h"
 
+
 extern ADC_HandleTypeDef hadc1;
 extern osThreadId_t defaultTaskHandle;
 
@@ -48,7 +49,7 @@ uint32_t dwt1,dwt2,dwtdiff;
 
 void StartADCTask(void *argument)
 {
-	BaseType_t qret;
+	BaseType_t ret; // 
 	struct ADCSPIALL* p = &adcspiall; // Convenience pointer
 	
 	/* Initialize params for ADC. */
@@ -58,17 +59,18 @@ void StartADCTask(void *argument)
 	adcbms_preinit();
 
 	/* ADC calibration sequence before enabling ADC. */
-	BaseType_t ret = HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
+	ret = HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
 	if (ret == HAL_ERROR)  morse_trap(330);
 
 	/* Max14921 output buffer offset self-calibration. */
 	// Setup dummy struct for request by this task.
 	pssb = &adccalibreq; // Point to "our" request struct
-	pssb->taskhandle = xTaskGetCurrentTaskHandle(); // Requesting task's handle
-	pssb->tasknote = TSKNOTEBIT00; // Requesting task's notification bit
+//	pssb->taskhandle = xTaskGetCurrentTaskHandle(); // Requesting task's handle
+//	pssb->tasknote = TSKNOTEBIT00; // Requesting task's notification bit
 	pssb->taskdata = NULL;   // Requesting task's pointer to buffer to receive data
 	pssb->updn     = 0;      // see above 'struct ADCSPIALL'
 	pssb->reqcode  = REQ_OPENCELL; // Code for service requested
+	pssb->doneflag = 0; // 1 = ADCTask completed BMS read 
 
 	adcspi_calib();
 
@@ -80,15 +82,15 @@ void StartADCTask(void *argument)
   	for(;;)
   	{
   		/* Check queue of any items, but do not wait. */
-		qret = xQueueReceive(ADCTaskReadReqQHandle ,&pssb, 0);
-		if (qret != pdPASS)
+		ret = xQueueReceive(ADCTaskReadReqQHandle ,&pssb, 0);
+		if (ret != pdPASS)
 		{ // No item was in the queue. Read ADC channels
 			adcspi_readadc();
 		}
 		else
 		{ // Request arrived
 
-if ((pssb->taskhandle == NULL)) morse_trap(802); // JIC debugging
+			pssb->doneflag = 0;
 
 			/* Execute request. */
 			switch (pssb->reqcode)
@@ -117,7 +119,7 @@ if ((pssb->taskhandle == NULL)) morse_trap(802); // JIC debugging
 			}
 
 			// Notify requesting task that data request has completed
-			xTaskNotify(pssb->taskhandle, pssb->tasknote, eSetBits);
+			pssb->doneflag = 1;
 
 			// Running count, jic
 			adcdbctr += 1;

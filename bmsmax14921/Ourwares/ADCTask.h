@@ -82,8 +82,8 @@ struct ADCSPIALL
 /* Queue is a pointer to the following for requesting a "service". */
 struct ADCREADREQ
 {
-	osThreadId	taskhandle; // Requesting task's handle
-	BaseType_t  tasknote;   // Requesting task's notification bit
+//	osThreadId	taskhandle; // Requesting task's handle
+//	BaseType_t  tasknote;   // Requesting task's notification bit
 	float*      taskdata;   // Requesting task's pointer to float buffer to receive data
 	uint16_t*   taskdatai16;// Requesting task's pointer to int16_t buffer to receive data
 	uint16_t    cellbits;   // Depends on command: FET to set; Open cell wires
@@ -91,6 +91,7 @@ struct ADCREADREQ
 	uint8_t     reqcode;    // Code for service requested
 	uint8_t     encycle;    // Cycle EN: 0 = after read; 1 = before read w osDelay
 	uint8_t     readbmsfets;// Code for handline discharge fets during read:
+	uint8_t     doneflag;   // 0 = Busy, 1 = Complete
 				// 0 = clear fets; fets remain clear after read sequence
 				// 1 = fet setting remains in place during read sequence
 				// 2 = new fet setting (from cellbits) applied after read sequence
