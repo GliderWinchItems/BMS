@@ -208,6 +208,8 @@ payload [1] U8: Command code
 void cancomm_items_sendcmdr(struct CANRCVBUF* pcan)
 {
 	struct BQFUNCTION* p = &bqfunction;
+	float ftmp[ADCDIRECTMAX];
+	uint8_t i;
 
 	/* Pointer to payload 4 byte value is used often. */
 	uint8_t* puc = &p->canmsg[CID_CMD_MISC].can.cd.uc[4];
@@ -290,6 +292,20 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pcan)
 	case MISCQ_TOPOFSTACK: // BMS top-of-stack voltage
 		send_bms_array(pcan, &bqfunction.cal_filt[19], 1);
 		break;		
+
+ 	case MISCQ_PROC_CAL: // Processor ADC calibrated readings
+ 		for (i = 0; i < ADCDIRECTMAX; i++) // Copy struct items to float array
+ 			ftmp[i] = adc1.abs[i].filt;
+ 		ftmp[1] = adc1.common.degC; // Insert special intermal temperature calibration 
+ 		send_bms_array(pcan, &ftmp[0], ADCDIRECTMAX);
+ 		break;
+
+ 	case MISCQ_PROC_ADC: // Processor ADC raw adc counts for making calibrations
+		for (i = 0; i < ADCDIRECTMAX; i++) // Copy struct items to float array
+ 			ftmp[i] = adc1.abs[i].sumsave;
+		send_bms_array(pcan, &ftmp[0], ADCDIRECTMAX); 	
+ 		break;
+
 	}
 	if (skip == 0)
 	{ // Here, single CAN msg has not been queued for sending
@@ -382,6 +398,5 @@ void cancomm_items_filter(uint16_t* pi)
 		 pout += 1;    pcal += 1;   pi += 1;
 		 pcabsbms += 1; pf1 += 1;
 	}
-
 	return;
 }

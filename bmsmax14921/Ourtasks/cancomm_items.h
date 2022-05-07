@@ -14,11 +14,11 @@
  #define MISCQ_CELLV_CAL   2 // cell voltage: calibrated
  #define MISCQ_CELLV_ADC   3 // cell voltage: adc counts
  #define MISCQ_TEMP_CAL    4 // temperature sensor: calibrated
- #define MISCQ_TEMP_ADC    5 // temperature sensor: adc counts
+ #define MISCQ_TEMP_ADC    5 // temperature sensor: adc counts for making calibration
  #define MISCQ_DCDC_V      6 // isolated dc-dc converter output voltage
  #define MISCQ_CHGR_V      7 // charger hv voltage
  #define MISCQ_HALL_CAL    8 // Hall sensor: calibrated
- #define MISCQ_HALL_ADC    9 // Hall sensor: adc counts
+ #define MISCQ_HALL_ADC    9 // Hall sensor: adc counts for making calibration
  #define MISCQ_CELLV_HI   10 // Highest cell voltage
  #define MISCQ_CELLV_LO   11 // Lowest cell voltage
  #define MISCQ_FETBALBITS 12 // FET on/off discharge bits
@@ -28,6 +28,9 @@
  #define MISCQ_HEATER_OFF 16 // Turn Heater mode off.
  #define MISCQ_TRICKL_OFF 17 // Turn trickle charger off for no more than ‘payload [3]’ secs
  #define MISCQ_TOPOFSTACK 18 // BMS top-of-stack voltage
+ #define MISCQ_PROC_CAL   19 // Processor ADC calibrated readings
+ #define MISCQ_PROC_ADC   20 // Processor ADC raw adc counts for making calibrations
+
 
 /* *************************************************************************/
 void cancomm_items_sendcell(struct CANRCVBUF* pcan, float *pf);

@@ -1314,7 +1314,7 @@ void StartDefaultTask(void *argument)
     {
       yprintf(&pbuf1,"%8.3f",padc->abs[i].f);
     }
-    yprintf(&pbuf1,"%8.3f", adc1.common.degC);
+    yprintf(&pbuf1," degC%8.3f", adc1.common.degC);
     yprintf(&pbuf1,"\n\rC     ");
     for (i = 0; i < ADCDIRECTMAX; i++)
     {
