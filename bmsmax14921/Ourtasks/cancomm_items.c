@@ -124,54 +124,53 @@ void cancomm_items_uni_bms(struct CANRCVBUF* pcan, float* pf)
  *  @param  : pcan = pointer to struct CANRCVBUF from mailbox 
  *  @param  : pf = pointer cell array
  * *************************************************************************/
+	/* Note: The CAN tx queue is a separate task, so until that task 
+	   copies the msg into its (priority sorted) array, the CAN msg
+	   has to remain unchanged. Hence the following loads six CAN
+	   msgs. This routine will not get called again until the EMC
+	   sends a request for a CAN msg readout. 
+	*/
 void cancomm_items_sendcell(struct CANRCVBUF* pcan, float *pf)
 {
 	struct BQFUNCTION* p = &bqfunction;
 	uint8_t i;
-	uint8_t n;
+	uint8_t j;
 
-	/* Load cell data into CAN msgs. */
-	for (i = 0; i < MAXNUMCELLMSGS; i++)
+	/* Load CAN msg payload with three cell readings, or codes that is a voltage 
+		   reading that is not possible. */
+	for (i = 0; i < MAXNUMCELLMSGS; i++) // 6 CAN msgs are sent.
 	{	
+		// DLC is the same for all
+		p->canmsg[CID_MSG_CELLV01 + i].can.dlc = 8;
+
 		// Set sequence number sent by requesting CAN msgs
-//		p->canmsg[CID_MSG_CELLV01 + i].can.cd.uc[1] &= ~0x0f;
 		p->canmsg[CID_MSG_CELLV01 + i].can.cd.uc[1] = (pcan->cd.uc[1] & 0x0f) | ((i*3) << 4);
 
-		p->canmsg[CID_MSG_CELLV01 + i].can.cd.us[1] = (uint16_t)(*(pf+0) * 10000);
-		p->canmsg[CID_MSG_CELLV01 + i].can.cd.us[2] = (uint16_t)(*(pf+1) * 10000);
-		p->canmsg[CID_MSG_CELLV01 + i].can.cd.us[3] = (uint16_t)(*(pf+2) * 10000);
+		/*
+			Three cells per CAN msg, and 18 possible readings are sent 
+			regardless of the number of installed cells (which will be
+			18,16, or maybe 12)*/
+		for (j = 0; j < 3; j++) // Load 
+		{
+			if (p->lc.cellpos[i*3+j] == CELLNONE)
+			{ // Here, cell was not installed in this position. Set code.
+				p->canmsg[CID_MSG_CELLV01 + i].can.cd.us[j+1] = 65534;//CELLVNONE;
+			}
+			else
+			{ // Here, cell is installed
+				if ((bqfunction.cellvopenbits & (1 << (i*3+j))) != 0)
+				{ // Here, unexpected open cell.
+					p->canmsg[CID_MSG_CELLV01 + i].can.cd.us[j+1] = CELLVOPEN;
+				}
+				else
+				{ // Cell voltage is in normal range.
+					p->canmsg[CID_MSG_CELLV01 + i].can.cd.us[j+1] = (uint16_t)(*(pf+j) * 10000);
+				}
+			}
+		}
+		xQueueSendToBack(CanTxQHandle,&p->canmsg[CID_MSG_CELLV01 + i],4);
 		pf += 3;
-
-		// DLC is the same except possibly last msg
-		p->canmsg[CID_MSG_CELLV01 + i].can.dlc = 8;
 	}
-
-	/* Adjust dlc if less than 18 cells. */
-	switch (p->lc.ncell)
-	{ // 
-	case 16: //16 cells
-		p->canmsg[CID_MSG_CELLV06].can.dlc = 4;
-		n = 6;
-		break;
-	case 14: // 14 cells
-		p->canmsg[CID_MSG_CELLV05].can.dlc = 6;
-		n = 5;
-		break;
-	case 12: // 12 cells
-		p->canmsg[CID_MSG_CELLV04].can.dlc = 8;
-		n = 4;
-		break;
-	default: // 18 cells (or garbage)
-		p->canmsg[CID_MSG_CELLV06].can.dlc = 8;
-		n = 6;
-	}
-
-	/* Queue CAN msgs for output. */
-	for (i = 0; i < n; i++)
-	{
-		xQueueSendToBack(CanTxQHandle,&p->canmsg[CID_MSG_CELLV01 + i],4);   
-	}
-
 	return;
 }
 /* *************************************************************************

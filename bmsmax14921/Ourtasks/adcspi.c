@@ -261,7 +261,7 @@ void adcspi_opencell(void)
 	{
 		// Calibrate 'raw'
 		*(pssb->taskdata+i) = adcparams_calibbms(adcspiall.raw[i],i);
-		if (*(pssb->taskdata+i) < bqfunction.lc.cellopenv)
+		if (*(pssb->taskdata+i) < bqfunction.lc.cellopenlo)
 		{
 			pssb->cellbits |= (1 << i);
 		}
@@ -635,11 +635,15 @@ dbbmst[p->adcidx] = DTWTIME - dbbmst[p->adcidx];
 
 dbbmst[p->adcidx] = DTWTIME;
 
-if (p->adcidx == 16)
-{
+	/* End of cell readouts? */
+	if (p->adcidx == 16)
+	{
 //	SELECT_GPIO_Port->BSRR = SELECT_Pin; // Set SMPL pin high
-dbadcspit3 = DTWTIME - dbadcspit1;
-}
+//		EN_GPIO_Port->BSRR = EN_Pin<<16; // Set low.	
+		p->spitx24.us[0] = p->cellbitssave; // Restore fet discharge bits
+dbadcspit3 = DTWTIME - dbadcspit1; // Readout time plus short delay for /CS pin
+//		EN_GPIO_Port->BSRR = EN_Pin; // Set high.
+	}
 
 	/* Set up command to select cell. */
 	// Allow for selecting up or down readout sequence (to check "slump")

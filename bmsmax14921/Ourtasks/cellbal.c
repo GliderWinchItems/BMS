@@ -59,7 +59,7 @@ float fcell[ADCBMSMAX]; // (16+3+1) = 20; Number of MAX14921 (cells+thermistors+
  *          : -  Trickle charger OFF, low rate, hight rate setting
  * @brief   : parq = pointer to INITIALIZED bms read request struct
  * *************************************************************************/
-void cellbal_do(struct ADCREADREQ* parq)
+void cellbal_do(struct ADCREADREQ* parg)
 {
 	BaseType_t qret;
 	int i;
@@ -67,7 +67,7 @@ void cellbal_do(struct ADCREADREQ* parq)
 	uint32_t flag_dump; // PC8 & PC10 for DUMP ON/OFF
 	uint32_t flag_extchgr; // External charger fet on/off
 	uint32_t doneflagctr;
-	uint16_t fetbits; // Discharge FET bits
+	uint32_t fetbits; // Discharge FET bits
 	uint16_t flag_trickle; // PWM count for trickle charge level
 	uint8_t  ctr1; // Count of cells at or above maximum (target)
 	uint8_t  ctr2; // Count of cells at or below minimum
@@ -84,10 +84,10 @@ void cellbal_do(struct ADCREADREQ* parq)
 	                 (1<<(11+ 0)) |
 		             (1<<(12+16)) );
 	// Trickle charger off
-	TIM1->CCR1 = 0;	// FET is off
+	TIM1->CCR1 = 0;	// Trickle FET is off
 
 	/* Queue a read BMS request to ADCTask.c */
-	qret = xQueueSendToBack(ADCTaskReadReqQHandle, parq, 3500);
+	qret = xQueueSendToBack(ADCTaskReadReqQHandle, parg, 3500);
 if (qret != pdPASS) morse_trap(722); // JIC debug
 
 #define DONEFLAGCT 200
@@ -98,33 +98,57 @@ if (qret != pdPASS) morse_trap(722); // JIC debug
 
 	/* Categorize for setting discharging and charging.
 	   and set discharge FET bits. */
-	ctr1 = 0; ctr2 = 0; fetbits = 0;
-	for ( i = 0; i < 16; i++)
-	{
-		if (*(parq->taskdata + i) < bqfunction.lc.cellv_min)
+	ctr1               = 0; // Above maximum count
+	ctr2               = 0; // Below minimum count
+	adcreadreq.cellbits= 0; // Dischage FET bits
+	parg->cellopenbits = 0; // Unexpected open wire bits
+
+	/* Go through array for a maximum size box. */
+	for ( i = 0; i < NCELLMAX; i++)
+	{ // Skip predetermined empty box positions
+		if (bqfunction.lc.cellpos[i] != CELLNONE)
 		{
-			ctr2 += 1; // Count cells below minimum
-		}		
-		else if (*(parq->taskdata + i) > bqfunction.lc.cellv_max)
-		{
-			ctr1 += 1; // Count cells above target (max)
-			fetbits |= (1<<i); // Set discharge fet for this cell
+			if (*(parg->taskdata + i) < bqfunction.lc.cellv_min)
+			{ // Below usable voltage range
+				if (*(parg->taskdata + i) < bqfunction.lc.cellopenlo)
+				{ // Very low voltage is assumed to be an open wire
+					parg->cellopenbits |= (1 << i);
+				}
+				else
+				{ // Here, low, but not an unexpected open wire
+					ctr2 += 1; // Count cells below minimum
+				}
+			}		
+			else if (*(parg->taskdata + i) > bqfunction.lc.cellv_max)
+			{ // Here voltage is above max
+				if (*(parg->taskdata + i) > bqfunction.lc.cellopenhi)
+				{ // Very high voltage is assumed to be an open wire
+					parg->cellopenbits |= (1 << i);
+				}
+				else
+				{ // Here, high but not an unexpected open wire
+					ctr1 += 1; // Count cells below minimum
+					adcreadreq.cellbits |= (1<<i); // Set discharge fet for this cell
+				}				
+			}
 		}
 	}
+	/* Save for others. */
+	bqfunction.cellvopenbits = adcreadreq.cellbits;
 
-	/* Are all cells above max (target)? */
-	if (ctr1 == 16)
+	/* Are =>ALL<= cells above max (target)? */
+	if (ctr1 == bqfunction.lc.ncell)
 	{ // All cells are above target.
-	// PC6  = 0: DUMP2 (external charger control on/off fet)
-	// PC8  = 1: DUMP (resistor load) 
-	// PC10 = 0: DUMP (resistor load)
+			// PC6  = 0: DUMP2 (external charger control on/off fet)
+			// PC8  = 1: DUMP (resistor load) 
+			// PC10 = 0: DUMP (resistor load)
 		flag_dump = ((1<<( 8+16))|(1<<(10+0))); // DUMP ON
-		fetbits     = 0xffff; // All discharge FETs ON
+		fetbits      = 0x3ffff; // All possible discharge FETs ON
 		flag_trickle = 0; // Trickle charger rate zero
 		flag_extchgr = (1<<( 6+16)); // External charger OFF
 	}
 
-	/* Are any cells above max (target)? */
+	/* Is =>ANY<= cell above max (target)? */
 	if (ctr1 > 0)
 	{ // Here, yes.
 		flag_dump = ((1<<( 8+0))|(1<<(10+16))); // DUMP OFF
@@ -132,11 +156,11 @@ if (qret != pdPASS) morse_trap(722); // JIC debug
 		flag_extchgr = (1<<( 6+16)); // External charger OFF
 	}
 
-	/* Are any cells below minimum? */
+	/* Is =>ANY<= cell below minimum? */
 	if (ctr2 > 0)
 	{ // Here, yes.
 		flag_dump = ((1<<( 8+0))|(1<<(10+16))); // DUMP OFF
-		flag_trickle = bqfunction.lc.tim1_ccr1_on_vlc; // Trickle charger rate normal
+		flag_trickle = bqfunction.lc.tim1_ccr1_on_vlc; // Trickle rate very low
 		flag_extchgr = (1<<( 6+16)); // External charger OFF
 	}
 
@@ -145,10 +169,10 @@ if (qret != pdPASS) morse_trap(722); // JIC debug
 	GPIOC->BSRR = flag_dump;
 	// Set externl charger on/off
 	GPIOC->BSRR = flag_extchgr;
-	// Set fets
+	// Set trickle charger rate
 	TIM1->CCR1 = flag_trickle;
 
-	/* Queue fet set request to ADCTask.c */
+	/* Queue request for ADCTask.c to set discharge FETS. */
 	cellbal_init();
 	qret = xQueueSendToBack(ADCTaskReadReqQHandle, &adcreadreq, 3500);
 if (qret != pdPASS) morse_trap(724); // JIC debug

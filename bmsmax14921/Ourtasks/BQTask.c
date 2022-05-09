@@ -68,7 +68,6 @@ for (i = 0; i < NCELLMAX; i++)
 
 	chgr_items_init(p);
 
-	
 	for (;;)
 	{
 		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_RESET); // GRN LED ON

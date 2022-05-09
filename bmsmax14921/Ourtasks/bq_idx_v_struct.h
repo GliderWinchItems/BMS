@@ -55,7 +55,8 @@ struct BQLC
    int16_t cellv_max;   // Max limit for charging any cell
    int16_t cellv_min;   // Min limit for any discharging
    int16_t cellv_vlc;   // Below this Very Low Charge (_vlc)required
-   uint16_t cellopenv;  // Below this cell wire is assumed open (mv)
+   uint16_t cellopenlo;  // Below this cell wire is assumed open (mv)
+   uint16_t cellopenhi;  // Above this cell wire is assumed open (mv)
    uint32_t modulev_max; // Battery module max limit
    uint32_t modulev_min; // Battery module min limit
 
@@ -64,7 +65,7 @@ struct BQLC
 
    uint8_t ncell;       // Number of series cells in module
    uint8_t npositions;  // Number of cell positions in module "box"
-    int8_t cellpos[NCELLMAX]; // Cell position - 1 given index [cell number - 1]
+   uint8_t cellpos[NCELLMAX]; // Cell position - 1 given index [cell number - 1]
 
  // CAN ids ...........................................................................
    //                                  CANID_NAME            CANID       PAYLOAD FORMAT

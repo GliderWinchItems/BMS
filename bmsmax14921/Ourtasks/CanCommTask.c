@@ -144,7 +144,7 @@ void StartCanComm(void* argument)
 	adcreadreq.updn       = 0; // BMS readout direction 0 = high->low cell numbers; 1 = low->high
 	adcreadreq.reqcode    = REQ_READBMS;  // Read MAX1921 cells, thermistor, Top-of-stack
 	adcreadreq.encycle    = 1;     // Cycle EN: 0 = after read; 1 = before read w osDelay; 2 = neither
-	adcreadreq.readbmsfets= 1;//0;        // Clear discharge fets before readbms.	
+	adcreadreq.readbmsfets= 0;        // Clear discharge fets before readbms.	
 	adcreadreq.doneflag   = 0; // 1 = ADCTask completed BMS read 
 dbupdnx = adcreadreq.updn;
 
@@ -181,6 +181,7 @@ dbupdnx = adcreadreq.updn;
 		qret = xQueueSendToBack(ADCTaskReadReqQHandle, &padcreadreq, 5000);
 if (qret != pdPASS) morse_trap(720); // JIC debug
 
+		/* Wait for ADCTask to complete request. */
 #define DONEFLAGCT 200
 		while ((adcreadreq.doneflag == 0) && (doneflagctr++ < DONEFLAGCT)) 
 			osDelay(1);
@@ -243,9 +244,8 @@ bqfunction.CanComm_hb_ctr = 0;
 /* ******* Timeout notification. */
 		if (noteval == 0)
 		{ // Send heartbeat
-			/* Queue a read BMS request to ADCTask.c */
-
-			/* Walk discharge FETs for testing. */
+			
+#if 0 /* Walk discharge FETs for testing. */
 			dbdischargectr += 1; // Time delay counter
 			if (dbdischargectr >= 32)
 			{ // Set FETs off
@@ -256,10 +256,8 @@ bqfunction.CanComm_hb_ctr = 0;
 				dbdischargectr = 0;
 				dbdischargebit += 1;
 				if (dbdischargebit >= 16) dbdischargebit = 0;
-	/* Uncomment to active cell bit walking. */
-//				adcreadreq.cellbits = (1 << dbdischargebit);
 			}
-
+#endif
 			/* Here, 12 times per second. Slow down for heartbeat. */
 			bqfunction.CanComm_hb_ctr += 1;
 			if (bqfunction.CanComm_hb_ctr >= bqfunction.lc.CanComm_hb)

@@ -86,7 +86,8 @@ struct ADCREADREQ
 //	BaseType_t  tasknote;   // Requesting task's notification bit
 	float*      taskdata;   // Requesting task's pointer to float buffer to receive data
 	uint16_t*   taskdatai16;// Requesting task's pointer to int16_t buffer to receive data
-	uint16_t    cellbits;   // Depends on command: FET to set; Open cell wires
+	uint32_t    cellbits;   // Depends on command: FET to set; Open cell wires
+	uint32_t    cellopenbits;// 1 = cell is unexpectedly open 
 	uint8_t     updn;       // see above 'struct ADCSPIALL'
 	uint8_t     reqcode;    // Code for service requested
 	uint8_t     encycle;    // Cycle EN: 0 = after read; 1 = before read w osDelay

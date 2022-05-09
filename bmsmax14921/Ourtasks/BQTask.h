@@ -44,8 +44,8 @@
 /* CAN msgs are scaled to 100uv (see ADBMS1818 datasheet)
   BQ76952 can measure negative voltages, so these are coded into the upper values
   that are not possible. */
-#define CELLV_OPEN  65534  // cellv_latest array, uint16_t value for open wire
-#define CELLV_MINUS 65535  // cellv_latest array, uint16_t value for negative voltage
+//#define CELLV_OPEN  65534  // cellv_latest array, uint16_t value for open wire
+//#define CELLV_MINUS 65535  // cellv_latest array, uint16_t value for negative voltage
 
 /* Cell current voltage for last measurement. */
 struct VI
@@ -105,11 +105,12 @@ struct BQFUNCTION
 
 	struct BQCELLV cellv_bal[NCELLMAX]; // Working array for cell balancing
 	uint16_t cellv_latest[NCELLMAX]; // Cell voltage readings x10 (millivolts)
-	int32_t cellv_total;  // Some of cell voltages
-	int16_t cellv_high;   // Highest cellv millivolts
-	int16_t cellv_low;    // Lowest  cellv millivolts
-	uint8_t cellx_high;   // Highest cellv index (0-15)
-	uint8_t cellx_low;    // Lowest  cellv index (0-15)
+	uint32_t cellvopenbits;// Bits for unexpected open cells (1 = open wire suspected) 
+	int32_t  cellv_total;  // Some of cell voltages
+	int16_t  cellv_high;   // Highest cellv millivolts
+	int16_t  cellv_low;    // Lowest  cellv millivolts
+	uint8_t  cellx_high;   // Highest cellv index (0-15)
+	uint8_t  cellx_low;    // Lowest  cellv index (0-15)
 
 	/* Filter raw readings for calibration purposes. */
 	struct FILTERIIRF1 filtiirf1_raw[ADCBMSMAX]; // Filter parameters

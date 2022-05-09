@@ -41,9 +41,6 @@ int adc_idx_v_struct_hardcode_params(struct ADCLC* p)
 	p->calintern.fvreftmpco= 15.0f;    // Vref temp coefficient (15 is based on similar parts)
 	p->calintern.fvtemp    =  1.40f;  // Vtemp voltage at 25 degC
 
-
-
-
 /* Cell # 1 */
 p->cabsbms[ 0].coef[0] = 1.7924937E-03f;
 p->cabsbms[ 0].coef[1] = 7.9808664E-05f;

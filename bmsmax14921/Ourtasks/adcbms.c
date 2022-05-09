@@ -280,9 +280,9 @@ static uint32_t adc_cfgr2;
 	p->spitx24.uc[2] = 0x20; // /SMPL bit set high
 //	p->spitx24.uc[2] = 0x00; // /SMPL bit set low
 
-	p->spitx24.us[0] = pssb->cellbits;	
-// Debug: Override CancommTask cellbits settings
-//p->spitx24.us[0] = 0x8000; // Test FET turn on
+	/* Turn off discharge FETs during read. */
+	p->spitx24.us[0] = 0;
+	p->cellbitssave  = pssb->cellbits; // Save FET bits "locally"
 
 //	SELECT_GPIO_Port->BSRR = SELECT_Pin<<16; // Set pin low
 //	SELECT_GPIO_Port->BSRR = SELECT_Pin; // Set pin high
