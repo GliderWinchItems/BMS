@@ -51,17 +51,21 @@ struct BQLC
    uint16_t tim1_ccr1_on_vlc; // PWM ON count: Very Low Charge rate required
    uint16_t tim1_arr_init;    // Initial ARR (PWM frame) count - 1
 
-   /* The following are measured at no-charging, no-load */
-   int16_t cellv_max;   // Max limit for charging any cell
-   int16_t cellv_min;   // Min limit for any discharging
-   int16_t cellv_vlc;   // Below this Very Low Charge (_vlc)required
-   uint16_t cellopenlo;  // Below this cell wire is assumed open (mv)
-   uint16_t cellopenhi;  // Above this cell wire is assumed open (mv)
    uint32_t modulev_max; // Battery module max limit
    uint32_t modulev_min; // Battery module min limit
+   uint16_t cellopenlo;  // Below this cell volatge wire is assumed open (mv)
+   uint16_t cellopenhi;  // Above this cell volatge wire is assumed open (mv)
+   int16_t cellv_max;    // Max limit for charging any cell
+   int16_t cellv_min;    // Min limit for any discharging
+   int16_t cellv_vlc;    // Below this Very Low Charge (_vlc)required
+
+   int16_t cellv_hyster; // Relax-to-voltage = (cellv_max - cellv_hyster)
+   uint32_t trip_max;   // Cells that have tripped max voltage when hyster_sw = 0;
+
+   int16_t cellbal_del; // Balance within this amount of lowest
+ 
 
    uint8_t balnummax;    // Max number of cells to discharge at one time
-   int16_t cellbal_del;  // Balance within lowest cellv + this delta (mv)
 
    uint8_t ncell;       // Number of series cells in module
    uint8_t npositions;  // Number of cell positions in module "box"

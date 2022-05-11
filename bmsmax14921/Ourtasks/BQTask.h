@@ -112,12 +112,18 @@ struct BQFUNCTION
 	uint8_t  cellx_high;   // Highest cellv index (0-15)
 	uint8_t  cellx_low;    // Lowest  cellv index (0-15)
 
+	// Cell balancing
+	uint8_t hyster_sw;    // Hysteresis switch: 1 = peak was reached	
+	uint32_t trip_max;    // Bits for cells that reached cellv_max (target)
+	float hysterv_lo;     // Hysteresis bottom voltage.
+
 	/* Filter raw readings for calibration purposes. */
 	struct FILTERIIRF1 filtiirf1_raw[ADCBMSMAX]; // Filter parameters
 	float raw_filt[ADCBMSMAX]; // Filtered output
 	float cal_filt[ADCBMSMAX]; // Filtered and calibrated
 
 	uint32_t cellbal;       // Bits to activate cell balance fets
+	uint32_t cellspresent;  // Bits for cell positions that are installed
 	uint8_t active_ct;      // Count of bits set in cellbal
 	uint8_t battery_status; // Cell status code bits 
 	uint8_t fet_status;     // This controls on/off of FETs

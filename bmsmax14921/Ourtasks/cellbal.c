@@ -61,13 +61,14 @@ float fcell[ADCBMSMAX]; // (16+3+1) = 20; Number of MAX14921 (cells+thermistors+
  * *************************************************************************/
 void cellbal_do(struct ADCREADREQ* parg)
 {
+	struct BQFUNCTION* pbq = &bqfunction;
+	struct BQLC* plc = &pbq->lc;
 	BaseType_t qret;
 	int i;
-	uint32_t noteval;
+	int32_t idata;
 	uint32_t flag_dump; // PC8 & PC10 for DUMP ON/OFF
 	uint32_t flag_extchgr; // External charger fet on/off
 	uint32_t doneflagctr;
-	uint32_t fetbits; // Discharge FET bits
 	uint16_t flag_trickle; // PWM count for trickle charge level
 	uint8_t  ctr1; // Count of cells at or above maximum (target)
 	uint8_t  ctr2; // Count of cells at or below minimum
@@ -106,11 +107,14 @@ if (qret != pdPASS) morse_trap(722); // JIC debug
 	/* Go through array for a maximum size box. */
 	for ( i = 0; i < NCELLMAX; i++)
 	{ // Skip predetermined empty box positions
-		if (bqfunction.lc.cellpos[i] != CELLNONE)
+		if (plc->cellpos[i] != CELLNONE)
 		{
-			if (*(parg->taskdata + i) < bqfunction.lc.cellv_min)
+/* NOTE:  Should idata be a filter (hence float)? */
+			idata = *(parg->taskdata + i);
+
+			if (idata < plc->cellv_min)
 			{ // Below usable voltage range
-				if (*(parg->taskdata + i) < bqfunction.lc.cellopenlo)
+				if (idata < plc->cellopenlo)
 				{ // Very low voltage is assumed to be an open wire
 					parg->cellopenbits |= (1 << i);
 				}
@@ -118,65 +122,89 @@ if (qret != pdPASS) morse_trap(722); // JIC debug
 				{ // Here, low, but not an unexpected open wire
 					ctr2 += 1; // Count cells below minimum
 				}
-			}		
-			else if (*(parg->taskdata + i) > bqfunction.lc.cellv_max)
+			}
+			else if (idata < pbq->hysterv_lo)
+			{ // Here, Cell is at low of hysteresis (relaxation)
+				pbq->hyster_sw = 0; // Set hysteresis off
+				pbq->trip_max  = 0; // All cells have to trip max again.
+			}
+			else if (idata > plc->cellv_max)
 			{ // Here voltage is above max
-				if (*(parg->taskdata + i) > bqfunction.lc.cellopenhi)
+				if (idata > plc->cellopenhi)
 				{ // Very high voltage is assumed to be an open wire
 					parg->cellopenbits |= (1 << i);
 				}
 				else
 				{ // Here, high but not an unexpected open wire
-					ctr1 += 1; // Count cells below minimum
+					ctr1 += 1; // Count cells above max
+				/* Note: cellibts is generated each pass. trip_max remains
+				   until hyster_sw turns off, then back on. Otherwise they
+				   are the same. */
 					adcreadreq.cellbits |= (1<<i); // Set discharge fet for this cell
+					pbq->trip_max       |= (1<<i); // Show it tripped the max
 				}				
 			}
 		}
 	}
+
+	/* Have =>ALL<= installed cells tripped the max voltage? */
+	if (pbq->cellspresent == pbq->trip_max)
+	{ // Here, yes. Go into hysteresis (relaxation) mode
+		pbq->hyster_sw = 1;
+	}
+
 	/* Save for others. */
 	bqfunction.cellvopenbits = adcreadreq.cellbits;
 
+
+	/* Default settings, if following doesn't override. */
+	flag_dump = ((1<<( 8+0))|(1<<(10+16))); // DUMP OFF
+	flag_trickle = 0; // Trickle charger rate zero
+	flag_extchgr = (1<<( 6+16)); // External charger OFF
+
 	/* Are =>ALL<= cells above max (target)? */
-	if (ctr1 == bqfunction.lc.ncell)
+	if (ctr1 == plc->ncell)
 	{ // All cells are above target.
 			// PC6  = 0: DUMP2 (external charger control on/off fet)
 			// PC8  = 1: DUMP (resistor load) 
 			// PC10 = 0: DUMP (resistor load)
 		flag_dump = ((1<<( 8+16))|(1<<(10+0))); // DUMP ON
-		fetbits      = 0x3ffff; // All possible discharge FETs ON
-		flag_trickle = 0; // Trickle charger rate zero
-		flag_extchgr = (1<<( 6+16)); // External charger OFF
 	}
-
-	/* Is =>ANY<= cell above max (target)? */
-	if (ctr1 > 0)
-	{ // Here, yes.
-		flag_dump = ((1<<( 8+0))|(1<<(10+16))); // DUMP OFF
-		flag_trickle = bqfunction.lc.tim1_ccr1_on; // Trickle charger rate normal
-		flag_extchgr = (1<<( 6+16)); // External charger OFF
+	else 
+	/* Here, one or more cells are below max target. */
+	{ // Are =>NO<= cells above max (target)?
+		if (ctr1 == 0)
+		{ // Here =>ALL<= cells below max target
+			/* Is =>ANY<= cell below minimum? */
+			if (ctr2 > 0)
+			{ // Here, yes. Cell is in charging danger zone.
+				flag_trickle = plc->tim1_ccr1_on_vlc; // Trickle rate very low
+			}
+			else
+			{ // No cells: below minimum, or above maximum.
+				if (pbq->hyster_sw == 0)
+				{ // Hysteresis (relaxaxtion) is off, so charging is permitted.
+					flag_trickle = plc->tim1_ccr1_on; // Trickle charger rate normal
+					flag_extchgr = (1<<( 6+ 0)); // External charger On
+				}
+			}		
+		}
 	}
-
-	/* Is =>ANY<= cell below minimum? */
-	if (ctr2 > 0)
-	{ // Here, yes.
-		flag_dump = ((1<<( 8+0))|(1<<(10+16))); // DUMP OFF
-		flag_trickle = bqfunction.lc.tim1_ccr1_on_vlc; // Trickle rate very low
-		flag_extchgr = (1<<( 6+16)); // External charger OFF
-	}
-
-	/* Active this stuff. */
+	/* Active the settings from the foregoing logic. */
 	// Set DUMP on/off
 	GPIOC->BSRR = flag_dump;
-	// Set externl charger on/off
+	// Set external charger on/off
 	GPIOC->BSRR = flag_extchgr;
 	// Set trickle charger rate
 	TIM1->CCR1 = flag_trickle;
 
 	/* Queue request for ADCTask.c to set discharge FETS. */
-	cellbal_init();
+	cellbal_init(); // Update read request control block.
 	qret = xQueueSendToBack(ADCTaskReadReqQHandle, &adcreadreq, 3500);
 if (qret != pdPASS) morse_trap(724); // JIC debug
 
+	/* This waits for completion of request, but may not be necessary
+	   for just setting the discharge FET bits. */
 	doneflagctr = 0;
 	while ((adcreadreq.doneflag == 0) && (doneflagctr++ < DONEFLAGCT)) 
 		osDelay(1);

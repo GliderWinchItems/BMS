@@ -46,6 +46,11 @@ void bq_func_init(struct BQFUNCTION* p)
 	p->battery_status = 0; // Cell status Bits 
 	p->fet_status     = 0; // FET bits
 
+    p->hyster_sw  = 0; // 1 = means hysteresis (relaxation) currently in effect
+    p->trip_max   = 0; // Reset bits: 1 = cell reached max while hyster_sw = 0;
+    // End hysteresis (relaxation) when a cell reaches this voltage
+    p->hysterv_lo = (p->lc.cellv_max - p->lc.cellv_hyster);
+
 	p->state      = 0;  // main state
 	p->substateA  = 0;  // 
 	p->substateB  = 0;  // spare substate 
@@ -63,6 +68,15 @@ void bq_func_init(struct BQFUNCTION* p)
 		p->filtiirf1_raw[i].coef    = RAWTC;
 		p->filtiirf1_raw[i].onemcoef = 1.0 - p->filtiirf1_raw[i].coef;  // 1 - coef 
 		p->filtiirf1_raw[i].skipctr = RAWSKIPCT;
+	}
+
+	/* Build a word with bits showing installed cell positions. */
+	for ( i = 0; i < NCELLMAX; i++)
+	{ // Skip predetermined empty box positions
+		if (p->lc.cellpos[i] != CELLNONE)
+		{
+			p->cellspresent |= (1<<i);
+		}
 	}
 
 	return;

@@ -40,8 +40,8 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->CanComm_hb = 24; // CanCommTask 'wait' counts per heartbeat sending
  
             /* Initial test settings. */
-   p->dac1_hv_setting  = 3500; // HV volt limit
-   p->dac2_ix_setting  = 100;  // Current sense level setting
+   p->dac1_hv_setting  = 3500; // HV volt limit (DAC setting)
+   p->dac2_ix_setting  = 100;  // Current sense level setting (DAC setting)
    p->tim1_ccr1_on     =  50;  // PWM ON count: Normal charge rate
    p->tim1_ccr1_on_vlc =   2;  // PWM ON count: Very Low Charge rate required
    p->tim1_arr_init    =  79;  // At 16 MHz: count of 80 = 5 us PWM frame
@@ -54,8 +54,10 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->modulev_max = (16*3600); // Battery module max limit (mv)
    p->modulev_min = (16*2600); // Battery module min limit (mv)
 
-   p->balnummax   =  7;  // Max number of cells to discharge at one time
-   p->cellbal_del =  2;  // Balance within lowest cellv + this delta (mv)
+   p->balnummax    =  7;  // Max number of cells to discharge at one time
+   p->cellv_hyster = 75;  // Voltage below cellv_max to start recharging (mv)
+
+   p->cellbal_del  = 2; // Legacy
 
   /* Arrays have been compile using NCELLMAX [18] */
    p->ncell = 16; // Number of series cells in this module
