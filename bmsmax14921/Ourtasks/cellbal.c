@@ -28,8 +28,9 @@ PC8  PC10 DUMP
 */
 
 #define CALLBALBIT00 (1<<0) // Wait notification 
-struct ADCREADREQ adcreadreq;
-float fcell[ADCBMSMAX]; // (16+3+1) = 20; Number of MAX14921 (cells+thermistors+tos)   	
+struct ADCREADREQ arrbal;
+float fcell[ADCBMSMAX]; // (16+3+1) = 20; Number of MAX14921 (cells+thermistors+tos)   
+float fcellsum;	
 
 /* *************************************************************************
  * void cellbal_init(void);
@@ -39,15 +40,13 @@ float fcell[ADCBMSMAX]; // (16+3+1) = 20; Number of MAX14921 (cells+thermistors+
 	void cellbal_init(void)
 	{
 	/* Pre-load BMS readout request queue block. */	
-//	adcreadreq.taskhandle = xTaskGetCurrentTaskHandle();// Requesting task's handle
-//	adcreadreq.tasknote   = CALLBALBIT00;// ADCTask completed BMS read 
-	adcreadreq.taskdata   = &fcell[0];   // Requesting task's pointer to buffer to receive data
-	adcreadreq.cellbits   = 0;           // Bits to set FETs
-	adcreadreq.updn       = 0;           // BMS readout direction high->low cell numbers
-	adcreadreq.reqcode    = REQ_SETFETS; // Set discharge fets.
-	adcreadreq.encycle    = 1;     // Cycle EN: 0 = after read; 1 = before read w osDelay
-	adcreadreq.readbmsfets= 0;           // Clear discharge fets before readbms.
-	adcreadreq.doneflag   = 0; // 1 = ADCTask completed BMS read 
+	arrbal.taskdata   = &fcell[0];   // Requesting task's pointer to buffer to receive data
+	arrbal.cellbits   = 0;           // Bits to set FETs
+	arrbal.updn       = 0;           // BMS readout direction high->low cell numbers
+	arrbal.reqcode    = REQ_SETFETS; // Set discharge fets.
+	arrbal.encycle    = 1;     // Cycle EN: 0 = after read; 1 = before read w osDelay
+	arrbal.readbmsfets= 0;           // Clear discharge fets before readbms.
+	arrbal.doneflag   = 0; // 1 = ADCTask completed BMS read 
 	return;	
 }
 /* *************************************************************************
@@ -93,7 +92,7 @@ if (qret != pdPASS) morse_trap(722); // JIC debug
 
 #define DONEFLAGCT 200
 		doneflagctr = 0;
-		while ((adcreadreq.doneflag == 0) && (doneflagctr++ < DONEFLAGCT)) 
+		while ((arrbal.doneflag == 0) && (doneflagctr++ < DONEFLAGCT)) 
 			osDelay(1);
 		if (doneflagctr >= DONEFLAGCT) morse_trap(733);
 
@@ -101,7 +100,8 @@ if (qret != pdPASS) morse_trap(722); // JIC debug
 	   and set discharge FET bits. */
 	ctr1               = 0; // Above maximum count
 	ctr2               = 0; // Below minimum count
-	adcreadreq.cellbits= 0; // Dischage FET bits
+	fcellsum           = 0; // Installled cell voltage sum
+	arrbal.cellbits    = 0; // Dischage FET bits
 	parg->cellopenbits = 0; // Unexpected open wire bits
 
 	/* Go through array for a maximum size box. */
@@ -111,6 +111,9 @@ if (qret != pdPASS) morse_trap(722); // JIC debug
 		{
 /* NOTE:  Should idata be a filter (hence float)? */
 			idata = *(parg->taskdata + i);
+
+			/* Sum installed cells for later check against top-of-stack. */
+			fcellsum += idata;
 
 			if (idata < plc->cellv_min)
 			{ // Below usable voltage range
@@ -140,7 +143,7 @@ if (qret != pdPASS) morse_trap(722); // JIC debug
 				/* Note: cellibts is generated each pass. trip_max remains
 				   until hyster_sw turns off, then back on. Otherwise they
 				   are the same. */
-					adcreadreq.cellbits |= (1<<i); // Set discharge fet for this cell
+					arrbal.cellbits |= (1<<i); // Set discharge fet for this cell
 					pbq->trip_max       |= (1<<i); // Show it tripped the max
 				}				
 			}
@@ -154,7 +157,7 @@ if (qret != pdPASS) morse_trap(722); // JIC debug
 	}
 
 	/* Save for others. */
-	bqfunction.cellvopenbits = adcreadreq.cellbits;
+	bqfunction.cellvopenbits = arrbal.cellbits;
 
 
 	/* Default settings, if following doesn't override. */
@@ -200,13 +203,13 @@ if (qret != pdPASS) morse_trap(722); // JIC debug
 
 	/* Queue request for ADCTask.c to set discharge FETS. */
 	cellbal_init(); // Update read request control block.
-	qret = xQueueSendToBack(ADCTaskReadReqQHandle, &adcreadreq, 3500);
+	qret = xQueueSendToBack(ADCTaskReadReqQHandle, &arrbal, 3500);
 if (qret != pdPASS) morse_trap(724); // JIC debug
 
 	/* This waits for completion of request, but may not be necessary
 	   for just setting the discharge FET bits. */
 	doneflagctr = 0;
-	while ((adcreadreq.doneflag == 0) && (doneflagctr++ < DONEFLAGCT)) 
+	while ((arrbal.doneflag == 0) && (doneflagctr++ < DONEFLAGCT)) 
 		osDelay(1);
 	if (doneflagctr >= DONEFLAGCT) morse_trap(732);
 

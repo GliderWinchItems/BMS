@@ -18,6 +18,7 @@ void cancomm_items_sendcell(struct CANRCVBUF* pcan, float *pf);
 static void loadfloat(uint8_t* puc, float* f);
 static void status_group(void);
 static void send_bms_array(struct CANRCVBUF* pcan, float* pout, uint8_t n);
+static void send_allfets(struct CANRCVBUF* pcan);
 
 static uint8_t skip;
 
@@ -305,6 +306,18 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pcan)
 		send_bms_array(pcan, &ftmp[0], ADCDIRECTMAX); 	
  		break;
 
+	case MISCQ_R_BITS:      // 21 Dump, dump2, heater, discharge bits
+		send_allfets(pcan);
+ 		break;
+
+	case MISCQ_CURRENT_CAL: // 24 Below cell #1 minus, current resistor: calibrated
+		skip = 1;
+ 		break;
+
+	case MISCQ_CURRENT_ADC: // 25 Below cell #1 minus, current resistor: adc counts		
+		skip = 1;
+ 		break;
+
 	}
 	if (skip == 0)
 	{ // Here, single CAN msg has not been queued for sending
@@ -340,12 +353,61 @@ static void send_bms_array(struct CANRCVBUF* pcan, float* pout, uint8_t n)
 	return;
 }
 /* *************************************************************************
+ * static void send_bms_array(struct CANRCVBUF* pcan, float* pout, uint8_t n);
+ *	@brief	: Prepare and send CAN msgs for FETs
+ *  @param  : pcan = pointer to CAN msg requesting response
+ * *************************************************************************/
+/*
+Send three CAN msgs with fet and cell wiring status.
+
+payload [3] Defines payload data in payload [4-7]:
+  0 = all fets (1 = ON status)
+    [4-6] cells #1 - #18: bits 0-17
+    [7] 
+    	#define FET_DUMP     (1 << 0) // 1 = DUMP FET ON
+		#define FET_HEATER   (1 << 1) // 1 = HEATER FET ON
+		#define FET_DUMP2    (1 << 2) // 1 = DUMP2 FET ON (external charger)
+		#define FET_CHGR     (1 << 3) // 1 = Charger FET enabled: Normal charge rate
+		#define FET_CHGR_VLC (1 << 4) // 1 = Charger FET enabled: Very Low Charge rate
+
+  1 = unexpected open cells likely (1 = open wire)
+    [4-7] cells #1 - #18: bits 0-17
+
+  2 = installed cells (1 = installed)
+      [4-7] cells #1 - #18: bits 0-17
+*/
+static void send_allfets(struct CANRCVBUF* pcan)
+{
+	struct BQFUNCTION* p = &bqfunction;
+
+	/* FET status: (see cellball.c) */
+	p->canmsg[CID_CMD_MISC].can.cd.uc[3]  = 0;	
+	p->canmsg[CID_CMD_MISC].can.cd.ui[4]  = p->cellbal;
+	// Add Dump, Dump2, Heater, trickle FET status. */
+	p->canmsg[CID_CMD_MISC].can.cd.uc[7]  = p->fet_status;
+	xQueueSendToBack(CanTxQHandle,&p->canmsg[CID_CMD_MISC],4);	
+
+	/* Unexpected open cell voltage (see cellball.c)
+	p->canmsg[CID_CMD_MISC].can.cd.uc[3]  = 1;	
+	p->canmsg[CID_CMD_MISC].can.cd.ui[4]  = p->cellvopenbits;
+	xQueueSendToBack(CanTxQHandle,&p->canmsg[CID_CMD_MISC],4);	
+
+	/* Cells installed (see bq_idx_v_struct.c,h) */
+	p->canmsg[CID_CMD_MISC].can.cd.uc[3]  = 2;	
+	p->canmsg[CID_CMD_MISC].can.cd.ui[4]  = p->cellspresent;
+	xQueueSendToBack(CanTxQHandle,&p->canmsg[CID_CMD_MISC],4);	
+
+	skip = 1;
+	return;
+}
+/* *************************************************************************
  * static void status_group(void);
  *	@brief	: Load data for status
  * *************************************************************************/
 static void status_group(void)
 {
-	/*
+/* Status bits (see BQTask.h)
+Battery--
 #define BSTATUS_NOREADING (1 << 0)	// Exactly zero = no reading
 #define BSTATUS_OPENWIRE  (1 << 1)  // Negative or over 5v indicative of open wire
 #define BSTATUS_CELLTOOHI (1 << 2)  // One or more cells above max limit
@@ -353,14 +415,14 @@ static void status_group(void)
 #define BSTATUS_CELLBAL   (1 << 4)  // Cell balancing in progress
 #define BSTATUS_CHARGING  (1 << 5)  // Charging in progress
 #define BSTATUS_DUMPTOV   (1 << 6)  // Dump to a voltage in progress
-
+FETS--
 #define FET_DUMP     (1 << 0) // 1 = DUMP FET ON
 #define FET_HEATER   (1 << 1) // 1 = HEATER FET ON
 #define FET_DUMP2    (1 << 2) // 1 = DUMP2 FET ON (external charger)
 #define FET_CHGR     (1 << 3) // 1 = Charger FET enabled: Normal charge rate
 #define FET_CHGR_VLC (1 << 4) // 1 = Charger FET enabled: Very Low Charge rate
+*/
 
-	*/
 	struct BQFUNCTION* p = &bqfunction;
 
 	// Reserved byte
@@ -368,8 +430,7 @@ static void status_group(void)
 	// Status bytes (U8)
 	p->canmsg[CID_CMD_MISC].can.cd.uc[4] = p->battery_status;
 	p->canmsg[CID_CMD_MISC].can.cd.uc[5] = p->fet_status;
-	// Bits for discharge FETs (U16)
-	p->canmsg[CID_CMD_MISC].can.cd.us[3] = p->cellbal;
+
 	return;
 }
 

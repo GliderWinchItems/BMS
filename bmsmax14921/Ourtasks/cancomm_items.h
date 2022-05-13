@@ -30,7 +30,9 @@
  #define MISCQ_TOPOFSTACK 18 // BMS top-of-stack voltage
  #define MISCQ_PROC_CAL   19 // Processor ADC calibrated readings
  #define MISCQ_PROC_ADC   20 // Processor ADC raw adc counts for making calibrations
-
+ #define MISCQ_R_BITS     21 // Dump, dump2, heater, discharge bits
+ #define MISCQ_CURRENT_CAL 24 // Below cell #1 minus, current resistor: calibrated
+ #define MISCQ_CURRENT_ADC 25 // Below cell #1 minus, current resistor: adc counts
 
 /* *************************************************************************/
 void cancomm_items_sendcell(struct CANRCVBUF* pcan, float *pf);

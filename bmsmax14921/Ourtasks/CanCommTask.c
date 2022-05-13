@@ -96,11 +96,10 @@ void CanComm_init(struct BQFUNCTION* p )
 	p->canmsg[CID_CMD_MISC].can.id = p->lc.cid_msg_bms_cellvsmr;
 	p->canmsg[CID_CMD_MISC].can.cd.uc[2] = p->ident_onlyus;
 
-	/* Pre-load dummy CAN msg request for requesting heartbeat. */
-	can_hb.id = p->lc.cid_uni_bms_i;
-	can_hb.cd.ull = 0; // Clear entire payload
+	/* Pre-load a dummy CAN msg request for sending heartbeat CAN msg. */
+	can_hb.id       = p->lc.cid_uni_bms_i;
+	can_hb.cd.ull   = 0; // Clear entire payload
 	can_hb.cd.uc[0] = CMD_CMD_TYPE1;  // request code (initial, changed later)
-	can_hb.cd.uc[1] = 0;  // cell msg sequence number 
 	can_hb.cd.uc[4] = p->lc.cid_msg_bms_cellvsmr >>  0; // Our CAN ID
 	can_hb.cd.uc[5] = p->lc.cid_msg_bms_cellvsmr >>  8;
 	can_hb.cd.uc[6] = p->lc.cid_msg_bms_cellvsmr >> 16;
@@ -197,7 +196,7 @@ if (qret != pdPASS) morse_trap(720); // JIC debug
        		// 10 = All modules on identified string respond
        		// 01 = Only identified string and module responds
        		// 00 = spare; no response expected
-		if ((noteval & CANCOMMBIT00) != 0) 
+		if ((noteval & CANCOMMBIT00) != 0) // cid_cmd_bms_cellvq
 		{
 morse_trap(6666);			
 			pcan = &p->pmbx_cid_cmd_bms_cellvq->ncan.can;
@@ -222,7 +221,7 @@ morse_trap(6666);
        		// 10 = All modules on identified string respond
        		// 01 = Only identified string and module responds
        		// 00 = spare; no response expected
-		if ((noteval & CANCOMMBIT01) != 0)
+		if ((noteval & CANCOMMBIT01) != 0) // cid_cmd_bms_miscq
 		{
 morse_trap(5555);
 			pcan = &p->pmbx_cid_cmd_bms_miscq->ncan.can;
@@ -235,7 +234,7 @@ morse_trap(5555);
 			}
 		}
 /* ******* CAN msg request for sending MISC READINGS. */
-		if ((noteval & CANCOMMBIT02) != 0)
+		if ((noteval & CANCOMMBIT02) != 0) // cid_uni_bms_i
 		{
 bqfunction.CanComm_hb_ctr = 0;			
 			cancomm_items_uni_bms(&p->pmbx_cid_uni_bms_i->ncan.can, NULL);
@@ -244,7 +243,7 @@ bqfunction.CanComm_hb_ctr = 0;
 /* ******* Timeout notification. */
 		if (noteval == 0)
 		{ // Send heartbeat
-			
+
 #if 0 /* Walk discharge FETs for testing. */
 			dbdischargectr += 1; // Time delay counter
 			if (dbdischargectr >= 32)
