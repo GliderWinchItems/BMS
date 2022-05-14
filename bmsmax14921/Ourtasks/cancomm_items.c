@@ -387,7 +387,7 @@ static void send_allfets(struct CANRCVBUF* pcan)
 	p->canmsg[CID_CMD_MISC].can.cd.uc[7]  = p->fet_status;
 	xQueueSendToBack(CanTxQHandle,&p->canmsg[CID_CMD_MISC],4);	
 
-	/* Unexpected open cell voltage (see cellball.c)
+	/* Unexpected open cell voltage (see cellball.c) */
 	p->canmsg[CID_CMD_MISC].can.cd.uc[3]  = 1;	
 	p->canmsg[CID_CMD_MISC].can.cd.ui[4]  = p->cellvopenbits;
 	xQueueSendToBack(CanTxQHandle,&p->canmsg[CID_CMD_MISC],4);	

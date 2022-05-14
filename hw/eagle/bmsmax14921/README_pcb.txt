@@ -64,3 +64,18 @@ V    R1    R2     Vr
 - ITEM: Vl connected to 3.3v would eliminate the need
   for the level shifting.
   
+  05/13/22
+
+  MCP5213 LDO
+
+  - SC-70 pad spacing problem
+  - Droppng resistor (100K) must be about
+     1K for it to regulate
+     330 ohms installed R26
+     zero on R23 (this could be 10K?)
+  - Current drain, no load, about 86 ua.
+
+  Substitute STLQ050, requires pin assignment
+  change (as well as package pads assignments, etc.)
+
+
