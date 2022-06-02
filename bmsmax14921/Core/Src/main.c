@@ -250,7 +250,7 @@ int main(void)
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
 
-  Thrdret = xADCTaskCreate(osPriorityNormal+1); // (arg) = priority
+  Thrdret = xADCTaskCreate(osPriorityNormal+2); // (arg) = priority
   if (Thrdret == NULL) morse_trap(117);
   // Save HAL initialized settings ADC registers.
   // Used in adcbms.c for BMS readout sequence swapping
@@ -269,7 +269,7 @@ int main(void)
 
   /* Setup TX linked list for CAN  */
    // CAN1 (CAN_HandleTypeDef *phcan, uint8_t canidx, uint16_t numtx, uint16_t numrx);
-  pctl0 = can_iface_init(&hcan1, 0, 64, 32);
+  pctl0 = can_iface_init(&hcan1, 0, 64, 32);       
   if (pctl0 == NULL) morse_trap(118); // Panic LED flashing
   if (pctl0->ret < 0) morse_trap(119);
 
@@ -289,7 +289,7 @@ int main(void)
   bq_func_init(&bqfunction);
 
   /* definition and creation of CanTxTask - CAN driver TX interface. */
-  QueueHandle_t QHret = xCanTxTaskCreate(osPriorityNormal, 32); // CanTask priority, Number of msgs in queue
+  QueueHandle_t QHret = xCanTxTaskCreate(osPriorityNormal, 48); // CanTask priority, Number of msgs in queue
   if (QHret == NULL) morse_trap(120); // Panic LED flashing
 
   /* definition and creation of CanRxTask - CAN driver RX interface. */
@@ -312,7 +312,7 @@ int main(void)
   if (Cret == HAL_ERROR) morse_trap(122);
 
   /* CAN communication */
-  retT = xCanCommCreate(osPriorityNormal);
+  retT = xCanCommCreate(osPriorityNormal+1);
   if (retT == NULL) morse_trap(121);
 
     /* Select interrupts for CAN1 */
@@ -1281,7 +1281,7 @@ void StartDefaultTask(void *argument)
   /* USER CODE BEGIN 5 */
   int32_t i;
   uint32_t mctr = 0;
-//  uint32_t noteval = 0; // TaskNotifyWait notification word
+  uint32_t noteval = 0; // TaskNotifyWait notification word
 
 /* These #defines select uart output for monitoring. */
 
@@ -1294,9 +1294,145 @@ void StartDefaultTask(void *argument)
 
   TickType_t tickcnt = xTaskGetTickCount();
 
+#define INCTICKS (1000*10)
+TickType_t ticks1 = xTaskGetTickCount()+INCTICKS;
+#define HMAX 40 // Number of histogram bins
+int8_t hidx = 0;
+uint16_t histo[HMAX];
+for ( i = 0; i < HMAX; i++)
+{
+  histo[i] = 0;
+}
+
+uint32_t nctr = 0;
+uint32_t avectr = 0;
+float fmax[16];
+float fmin[16];
+float fmaxx[16];
+float fminx[16];
+float fave[16];
+float favelong = 0;
+uint8_t favesw = 1;
+float avelongctr = 0;
+for (i = 0; i < 16; i++)
+{
+  fmax[i] = 0;
+  fave[i] = 0;
+  fmin[i] = 10;
+  fmaxx[i] = 0;
+  fminx[i] = 10;
+}
+
   /* Infinite loop */
   for(;;)
   {
+
+    xTaskNotifyWait(0,0xffffffff, &noteval,10000);
+
+#if 0
+for (i = 0; i < 1; i++)
+{
+  fave[i] += fbms[i];
+}
+
+avelongctr += 1;
+if (favesw != 0)
+{
+  favesw = 0;
+  favelong = fbms[0]*1000;
+}
+else
+{
+  favelong = favelong + (fbms[0]*1000 - favelong)/avelongctr;
+}
+
+#define AVEDIV 1
+avectr += 1;
+if (avectr < AVEDIV) continue;
+avectr = 0;
+
+for (i = 0; i < 1; i++)
+{
+  fave[i] = fave[i]/AVEDIV;
+  if (fave[i] > fmax[i]) fmax[i] = fave[i];
+  if (fave[i] < fmin[i]) fmin[i] = fave[i];
+  hidx = ((fave[i]*1000.0 - favelong) +0.5f) + HMAX/2;
+  if ( hidx >= HMAX) hidx = HMAX-1;
+  if ( hidx < 0) hidx = 0;
+  histo[hidx] += 1;
+}
+
+nctr += 1;
+
+ //   yprintf(&pbuf2,"\n\r%4d %4d", mctr++,nctr);
+    for (i = 0; i < 1; i++)
+    {
+
+      if (fmax[i] > fmaxx[i]) fmaxx[i] = fmax[i];
+      if (fmin[i] < fminx[i]) fminx[i] = fmin[i];
+
+ //     yprintf(&pbuf1," %7.1f %7.1f %7.1f %7.1f %7.4f",(fmax[i]-fmin[i])*1000,fmaxx[i]*1000,fminx[i]*1000,(fmaxx[i]-fminx[i])*1000,fave[i]);
+      fave[i] = 0;
+    }
+
+//yprintf(&pbuf2,"\n\r%7.4f %7.4f %7.4f",fave[0],fmax[0],fmin[0]);
+//if ( (int)(DTWTIME-dtw1) > INCDTW)
+if ( (int)(xTaskGetTickCount() - ticks1) > 0)  
+{
+ //   yprintf(&pbuf2,"\n\r%4d %4d", mctr++,nctr);
+    for (i = 0; i < 1; i++)
+    {
+//      yprintf(&pbuf1," %7.1f",(fmax[i]-fmin[i])*1000);
+      fave[i] = 0;
+      fmax[i] = -1; fmin[i] = 10;  
+//      yprintf(&pbuf1," %7.4f",fbms[i]);
+    }
+    yprintf(&pbuf1,"\n\rX %4d %9.2f =============================",nctr,favelong);
+
+    uint16_t idxlo = 0;
+    for (i = 0; i < HMAX; i++)
+    {
+      if (histo[i] != 0)
+      {
+        if (i > 0)
+          idxlo = i;
+        else
+          idxlo = 0;
+        break;
+      }
+    }
+    uint16_t idxhi = HMAX-1;
+    for (i = HMAX-1; i > 0; i--)
+    {
+      if (histo[i] != 0)
+      {
+        if (i > 0)
+          idxhi = i;
+        else
+          idxhi = HMAX-1;
+        break;
+      }
+    }
+    uint32_t hsum = 0;
+    for (i = idxlo; i < idxhi+1; i++)
+    {
+      if (histo[i] == 0)
+        yprintf(&pbuf2,"\n\r.");
+      else
+      {
+        yprintf(&pbuf2,"\n\r%2d %4d",i,histo[i]);
+        hsum += histo[i];
+        histo[i] = 0;
+      }
+    }
+    yprintf(&pbuf1,"\n\n\r");
+
+  nctr = 0;
+//  dtw1 += INCDTW;
+  ticks1 += INCTICKS;
+}    
+continue;
+#endif
     /* One second loop. */
     vTaskDelayUntil( &tickcnt, 1000);
     tickcnt = xTaskGetTickCount();

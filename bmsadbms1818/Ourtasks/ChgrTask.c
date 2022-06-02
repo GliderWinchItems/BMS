@@ -30,6 +30,7 @@ TaskHandle_t ChgrTaskHandle = NULL;
 void StartChgrTask(void* argument)
 {
 //while(1==1) osDelay(100);
+//HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_RESET); // GRN LED
 
 	struct BQFUNCTION* p = &bqfunction; // convenience pointer
 
@@ -68,10 +69,11 @@ void StartChgrTask(void* argument)
 	for (;;)
 	{
 		/* Wink green led */
-		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_RESET); // GRN LED
-		osDelay(15); 	
-		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_SET); // GRN LED
+//		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_RESET); // GRN LED
+//		osDelay(15); 	
+//		HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_SET); // GRN LED
 		osDelay(1985); 	
+		
 #ifdef USECHARGERUPDATEINCHRGTASK
 		/* Internal charger control. */
 		if ((p->fet_status & FET_CHGR) != 0)

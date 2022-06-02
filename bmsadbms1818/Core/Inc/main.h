@@ -104,6 +104,8 @@ void Error_Handler(void);
 #define HEATER_GPIO_Port GPIOC
 #define BQ_LD_Pin GPIO_PIN_2
 #define BQ_LD_GPIO_Port GPIOD
+#define WDT_Pin GPIO_PIN_7
+#define WDT_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
 // USART/UART assignments
 #define HUARTMON  huart1 // uart  for PC monitoring

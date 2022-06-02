@@ -1,0 +1,1151 @@
+Netlist
+
+Exported from bms14921.sch at  1/01/2022 21:01:52 
+
+EAGLE Version 4.13 Copyright (c) 1988-2004 CadSoft
+
+Net      Part     Pad      Pin        Sheet
+
+Change Class 0;
++5V      R43      1        1          1
+         R44      1        1          1
+         R45      1        1          1
+
+Change Class 0;
++5V/1    BEAD1    2        2          1
+         C123     1        1          1
+         IC2      14       VCC        1
+         IC4      5        VCC+       1
+         JP21     2        2          1
+         R21      2        2          1
+         R22      2        2          1
+         R31      1        1          1
+         REG100   3        VO         1
+
+Change Class 0;
++5V/2    5V2      MP       MP         1
+         C108     1        1          1
+         IC100    5        VCC        1
+         IC1B     3        CTL        1
+         IC2A     11       VCC21      1
+         IC2A     16       VCC22      1
+         IC2B     8        VCC2       1
+         OPT100   P$6      VCC        1
+         R106     1        1          1
+         R107     2        2          1
+         REG1     3        VO         1
+
+Change Class 0;
++12V     JP6      1        1          1
+         JP6      7        7          1
+         JP6      8        8          1
+         JP8      2        2          1
+         R121     1        1          1
+         R5       1        1          1
+
+Change Class 0;
++15V     C113     1        1          1
+         C114     1        1          1
+         C115     1        1          1
+         C4       1        1          1
+         D1       A        A          1
+         IC102    2        VDD        1
+         IC1B     6        VO+        1
+         L1       1        1          1
+         R114     1        1          1
+         U$4      P$6      +VO        1
+
+Change Class 0;
+/CS      U1       80       !CS        1
+         U2       50       PA15       1
+
+Change Class 0;
+/PC10    IC2      3        I1         1
+         IC2      4        O          1
+
+Change Class 0;
+12V-R    FET103   3        D          1
+         JP8      1        1          1
+         R5       2        2          1
+
+Change Class 0;
+AOUT     R40      1        1          1
+         U1       10       AOUT       1
+
+Change Class 0;
+BA1      F$1      1        G          1
+         U1       76       BA1        1
+
+Change Class 0;
+BA2      F$2      1        G          1
+         U1       72       BA2        1
+
+Change Class 0;
+BA3      F$3      1        G          1
+         U1       68       BA3        1
+
+Change Class 0;
+BA4      F$4      1        G          1
+         U1       64       BA4        1
+
+Change Class 0;
+BA5      F$5      1        G          1
+         U1       60       BA5        1
+
+Change Class 0;
+BA6      F$6      1        G          1
+         U1       56       BA6        1
+
+Change Class 0;
+BA7      F$7      1        G          1
+         U1       52       BA7        1
+
+Change Class 0;
+BA8      F$8      1        G          1
+         U1       48       BA8        1
+
+Change Class 0;
+BA9      F$9      1        G          1
+         U1       44       BA9        1
+
+Change Class 0;
+BA10     F$10     1        G          1
+         U1       40       BA10       1
+
+Change Class 0;
+BA11     F$11     1        G          1
+         U1       36       BA11       1
+
+Change Class 0;
+BA12     F$12     1        G          1
+         U1       32       BA12       1
+
+Change Class 0;
+BA13     F$13     1        G          1
+         U1       28       BA13       1
+
+Change Class 0;
+BA14     F$14     1        G          1
+         U1       24       BA14       1
+
+Change Class 0;
+BA15     F$15     1        G          1
+         U1       20       BA15       1
+
+Change Class 0;
+BA16     F$16     1        G          1
+         U1       16       BA16       1
+
+Change Class 0;
+BATSW-NDRAIN FET1     3        D          1
+         JP1      2        2          1
+         R1       2        2          1
+
+Change Class 0;
+BATSW-NDRAIN1 FET5     3        D          1
+         R11      2        2          1
+
+Change Class 0;
+BATSW-NDRAIN2 FET7     3        D          1
+         R19      2        2          1
+
+Change Class 0;
+BATSW-PGATE FET104   1        G          1
+         R1       1        1          1
+         R125     1        1          1
+
+Change Class 0;
+BATSW-PGATE1 FET4     1        G          1
+         R11      1        1          1
+         R9       1        1          1
+
+Change Class 0;
+BATSW-PGATE2 FET6     1        G          1
+         R14      1        1          1
+         R19      1        1          1
+
+Change Class 0;
+BIGFET-DRAIN FET2     2        D          1
+         LUG-RES  G1       G1         1
+         LUG-RES  G2       G2         1
+
+Change Class 0;
+BIGFET-GATE FET2     1        G          1
+         FET6     3        D          1
+         R124     2        2          1
+
+Change Class 0;
+BIGFET-SOURCE FET2     3        S          1
+         LUG-GND  G1       G1         1
+         LUG-GND  G2       G2         1
+         R124     1        1          1
+         R126     1        1          1
+
+Change Class 0;
+CAN+12PRO C121     1        1          1
+         C122     1        1          1
+         C3       +        +          1
+         D7       C        C          1
+         FET103   2        S          1
+         IC1B     1        VIN-       1
+         LED1     A        A          1
+         REG1     2        VI         1
+         REG1     4        VITAB      1
+         REG3A    2        VI         1
+         REG3A    4        VITAB      1
+         REG3B    1        VI         1
+         U$4      P$1      VIN-       1
+
+Change Class 0;
+CANH2    CANH     MP       MP         1
+         IC2A     13       CANH2      1
+         IC2B     7        CANH2      1
+         JP6      4        4          1
+
+Change Class 0;
+CANL2    CANL     MP       MP         1
+         IC2A     12       CANL2      1
+         IC2B     6        CANL2      1
+         JP6      3        3          1
+
+Change Class 0;
+CB2      CX2      1        1          1
+         U1       74       CB2        1
+
+Change Class 0;
+CB3      CX3      1        1          1
+         U1       70       CB3        1
+
+Change Class 0;
+CB4      CX4      1        1          1
+         U1       66       CB4        1
+
+Change Class 0;
+CB5      CX5      1        1          1
+         U1       62       CB5        1
+
+Change Class 0;
+CB6      CX6      1        1          1
+         U1       58       CB6        1
+
+Change Class 0;
+CB7      CX7      1        1          1
+         U1       54       CB7        1
+
+Change Class 0;
+CB8      CX8      1        1          1
+         U1       50       CB8        1
+
+Change Class 0;
+CB9      CX9      1        1          1
+         U1       46       CB9        1
+
+Change Class 0;
+CB10     CX10     1        1          1
+         U1       42       CB10       1
+
+Change Class 0;
+CB11     CX11     1        1          1
+         U1       38       CB11       1
+
+Change Class 0;
+CB12     CX12     1        1          1
+         U1       34       CB12       1
+
+Change Class 0;
+CB13     CX13     1        1          1
+         U1       30       CB13       1
+
+Change Class 0;
+CB14     CX14     1        1          1
+         U1       26       CB14       1
+
+Change Class 0;
+CB15     CX15     1        1          1
+         U1       22       CB15       1
+
+Change Class 0;
+CB16     CX16     1        1          1
+         U1       18       CB16       1
+
+Change Class 0;
+CELL1-PFET-DRAIN D2       A        A          1
+         FET104   3        D          1
+
+Change Class 0;
+CH1      F$2      3        D          1
+         JP9      12       12         1
+         R$1      1        1          1
+         R26      2        2          1
+         RV1      1        1          1
+
+Change Class 0;
+CH2      F$3      3        D          1
+         JP9      3        3          1
+         R$2      1        1          1
+         RV2      1        1          1
+
+Change Class 0;
+CH3      F$4      3        D          1
+         FET104   2        S          1
+         JP9      13       13         1
+         R$3      1        1          1
+         R125     2        2          1
+         RV3      1        1          1
+
+Change Class 0;
+CH4      F$5      3        D          1
+         JP9      4        4          1
+         R$4      1        1          1
+         RV4      1        1          1
+
+Change Class 0;
+CH5      F$6      3        D          1
+         JP9      14       14         1
+         R$5      1        1          1
+         RV5      1        1          1
+
+Change Class 0;
+CH6      F$7      3        D          1
+         JP9      5        5          1
+         R$6      1        1          1
+         RV6      1        1          1
+
+Change Class 0;
+CH7      F$8      3        D          1
+         JP9      15       15         1
+         R$7      1        1          1
+         RV7      1        1          1
+
+Change Class 0;
+CH8      F$9      3        D          1
+         JP9      6        6          1
+         R$8      1        1          1
+         RV8      1        1          1
+
+Change Class 0;
+CH9      F$10     3        D          1
+         JP9      16       16         1
+         R$9      1        1          1
+         RV9      1        1          1
+
+Change Class 0;
+CH10     F$11     3        D          1
+         JP9      7        7          1
+         R$10     1        1          1
+         RV10     1        1          1
+
+Change Class 0;
+CH11     F$12     3        D          1
+         JP9      17       17         1
+         R$11     1        1          1
+         RV11     1        1          1
+
+Change Class 0;
+CH12     F$13     3        D          1
+         JP9      8        8          1
+         R$12     1        1          1
+         RV12     1        1          1
+
+Change Class 0;
+CH13     F$14     3        D          1
+         JP9      18       18         1
+         R$13     1        1          1
+         RV13     1        1          1
+
+Change Class 0;
+CH14     F$15     3        D          1
+         JP9      9        9          1
+         R$14     1        1          1
+         RV14     1        1          1
+
+Change Class 0;
+CH15     F$16     3        D          1
+         JP9      19       19         1
+         R$15     1        1          1
+         RV15     1        1          1
+
+Change Class 0;
+CH16     D109     A        C          1
+         JP9      10       10         1
+         R$16     1        1          1
+         R117     1        1          1
+         RV17     1        1          1
+         U1       15       CV16       1
+
+Change Class 0;
+CHGR-FET-DRAIN D8       A        A          1
+         FET3     3        D          1
+         L1       2        2          1
+         R128     2        2          1
+
+Change Class 0;
+CHGR-TEST-V+ D109     C        A          1
+         JP3      1        1          1
+         R117     2        2          1
+         R119     2        2          1
+         R120     2        2          1
+
+Change Class 0;
+CHGR-V+  C112     1        1          1
+         C5       1        1          1
+         D4       2        C          1
+         D6       C        C          1
+         D8       C        C          1
+         JP3      2        2          1
+         R120     1        1          1
+
+Change Class 0;
+CT1      CX1      2        2          1
+         U1       77       CT1        1
+
+Change Class 0;
+CT2      CX2      2        2          1
+         U1       73       CT2        1
+
+Change Class 0;
+CT3      CX3      2        2          1
+         U1       69       CT3        1
+
+Change Class 0;
+CT4      CX4      2        2          1
+         U1       65       CT4        1
+
+Change Class 0;
+CT5      CX5      2        2          1
+         U1       61       CT5        1
+
+Change Class 0;
+CT6      CX6      2        2          1
+         U1       57       CT6        1
+
+Change Class 0;
+CT7      CX7      2        2          1
+         U1       53       CT7        1
+
+Change Class 0;
+CT8      CX8      2        2          1
+         U1       49       CT8        1
+
+Change Class 0;
+CT9      CX9      2        2          1
+         U1       45       CT9        1
+
+Change Class 0;
+CT10     CX10     2        2          1
+         U1       41       CT10       1
+
+Change Class 0;
+CT11     CX11     2        2          1
+         U1       37       CT11       1
+
+Change Class 0;
+CT12     CX12     2        2          1
+         U1       33       CT12       1
+
+Change Class 0;
+CT13     CX13     2        2          1
+         U1       29       CT13       1
+
+Change Class 0;
+CT14     CX14     2        2          1
+         U1       25       CT14       1
+
+Change Class 0;
+CT15     CX15     2        2          1
+         U1       21       CT15       1
+
+Change Class 0;
+CT16     CX16     2        2          1
+         U1       17       CT16       1
+
+Change Class 0;
+CV1      RV1      2        2          1
+         U1       75       CV1        1
+
+Change Class 0;
+CV2      RV2      2        2          1
+         U1       71       CV2        1
+
+Change Class 0;
+CV3      RV3      2        2          1
+         U1       67       CV3        1
+
+Change Class 0;
+CV4      RV4      2        2          1
+         U1       63       CV4        1
+
+Change Class 0;
+CV5      RV5      2        2          1
+         U1       59       CV5        1
+
+Change Class 0;
+CV6      RV6      2        2          1
+         U1       55       CV6        1
+
+Change Class 0;
+CV7      RV7      2        2          1
+         U1       51       CV7        1
+
+Change Class 0;
+CV8      RV8      2        2          1
+         U1       47       CV8        1
+
+Change Class 0;
+CV9      RV9      2        2          1
+         U1       43       CV9        1
+
+Change Class 0;
+CV10     RV10     2        2          1
+         U1       39       CV10       1
+
+Change Class 0;
+CV11     RV11     2        2          1
+         U1       35       CV11       1
+
+Change Class 0;
+CV12     RV12     2        2          1
+         U1       31       CV12       1
+
+Change Class 0;
+CV13     RV13     2        2          1
+         U1       27       CV13       1
+
+Change Class 0;
+CV14     RV14     2        2          1
+         U1       23       CV14       1
+
+Change Class 0;
+CV15     RV15     2        2          1
+         U1       19       CV15       1
+
+Change Class 0;
+DUMP2    FET101   3        D          1
+         JP16     2        2          1
+
+Change Class 0;
+DUMP2FET-SOURCE FET101   2        S          1
+         JP16     1        1          1
+         R100     1        1          1
+         R103     2        2          1
+
+Change Class 0;
+DUMPFET-DRAIN FET100   3        D          1
+         JP17     2        2          1
+
+Change Class 0;
+DUMPFET-GATE FET100   1        G          1
+         FET4     3        D          1
+         R101     2        2          1
+
+Change Class 0;
+DUMPFET-SOURCE FET100   2        S          1
+         JP17     1        1          1
+         R101     1        1          1
+         R102     2        2          1
+
+Change Class 0;
+EN       R32      1        1          1
+         U1       79       EN         1
+         U2       54       PD2        1
+
+Change Class 0;
+FAN+12   C1       1        1          1
+         JP15     2        2          1
+         REG3A    3        VO         1
+         REG3B    3        VO         1
+
+Change Class 0;
+FANPWN   IC100    2        I          1
+         OPT100   P$4      OUT        1
+         R107     1        1          1
+
+Change Class 0;
+FANPWN-INVERT IC100    4        P$1        1
+         JP15     4        4          1
+
+Change Class 0;
+FANTACH-H11DIODE JP15     3        3          1
+         OPT1     P$2      C          1
+
+Change Class 0;
+FANTACH-RESISTOR OPT1     P$1      A          1
+         R106     2        2          1
+
+Change Class 0;
+FET103-GATE D7       A        A          1
+         FET103   1        G          1
+         R24      1        1          1
+
+Change Class 0;
+GATE-DRV-MCP1416 IC102    5        OUT        1
+         R118     2        2          1
+
+Change Class 0;
+GHR_FET_GATE FET3     1        G          1
+         R118     1        1          1
+         TP1      MP       MP         1
+
+Change Class 0;
+GND      C10      2        2          1
+         C100     2        2          1
+         C101     2        2          1
+         C102     2        2          1
+         C103     2        2          1
+         C104     2        2          1
+         C105     2        2          1
+         C106     2        2          1
+         C107     2        2          1
+         C109     2        2          1
+         C11      2        2          1
+         C111     2        2          1
+         C112     2        2          1
+         C113     2        2          1
+         C114     2        2          1
+         C115     2        2          1
+         C117     2        2          1
+         C119     2        2          1
+         C12      2        2          1
+         C120     2        2          1
+         C123     2        2          1
+         C124     2        2          1
+         C128     2        2          1
+         C2       2        2          1
+         C4       2        2          1
+         C5       2        2          1
+         C6       2        2          1
+         C7       2        2          1
+         C8       2        2          1
+         C9       1        1          1
+         CP102    2        2          1
+         CP103    2        2          1
+         CX1      1        1          1
+         D4       1        A          1
+         D6       A        A          1
+         F$1      3        D          1
+         FET1     2        S          1
+         FET102   2        S          1
+         FET5     2        S          1
+         FET7     2        S          1
+         IC102    4        GND        1
+         IC1B     7        VO-        1
+         IC2      7        GND        1
+         IC2A     2        GND12      1
+         IC2A     8        GND11      1
+         IC2B     4        GND1       1
+         IC4      2        VCC-       1
+         JP1      1        1          1
+         JP12     1        1          1
+         JP12     3        3          1
+         JP14     1        1          1
+         JP18     1        1          1
+         JP2      1        1          1
+         JP21     1        1          1
+         JP4      1        1          1
+         JP5      1        1          1
+         JP9      2        2          1
+         OPT1     P$5      GND        1
+         OPT101   P$5      GND        1
+         R100     2        2          1
+         R102     1        1          1
+         R111     1        1          1
+         R113     2        2          1
+         R115     1        1          1
+         R12      2        2          1
+         R126     2        2          1
+         R127     2        2          1
+         R20      1        1          1
+         R29      1        1          1
+         R3       2        2          1
+         R30      1        1          1
+         R32      2        2          1
+         R4       1        1          1
+         R41      1        1          1
+         R6       1        1          1
+         REG100   1        GND        1
+         REG1A    1        GND        1
+         RESET    3        P$3        1
+         RESET    4        P$4        1
+         TP-GND   MP       MP         1
+         U$4      P$4      0V         1
+         U$5      3        GND        1
+         U1       11       AGND       1
+         U1       6        DGND       1
+         U1       78       CV0        1
+         U2       12       VSSA       1
+         U2       15       PA1        1
+         U2       18       VSS_4      1
+         U2       31       VSS_1      1
+         U2       47       VSS_2      1
+         U2       60       BOOT0      1
+         U2       63       VSS_3      1
+
+Change Class 0;
+GNDA     C1       2        2          1
+         C108     2        2          1
+         C121     2        2          1
+         C122     2        2          1
+         C3       -        -          1
+         IC100    3        GND        1
+         IC1B     2        VIN+       1
+         IC2A     10       GND22      1
+         IC2A     15       GND21      1
+         IC2A     9        GND23      1
+         IC2B     5        GND2       1
+         JP15     1        1          1
+         JP6      2        2          1
+         JP6      5        5          1
+         JP6      9        9          1
+         OPT100   P$5      GND        1
+         R2       1        1          1
+         R24      2        2          1
+         REG1     1        GND        1
+         REG3A    1        GND        1
+         REG3B    2        GND        1
+         TP-GNDA  MP       MP         1
+         U$4      P$2      CTL        1
+         U$4      P$3      GND        1
+
+Change Class 0;
+H11L-PWM-R OPT100   P$1      A          1
+         R105     1        1          1
+
+Change Class 0;
+H11PWM-FETDRV FET102   3        D          1
+         OPT100   P$2      C          1
+
+Change Class 0;
+K1       R3       1        1          1
+         SP1      1        P          1
+
+Change Class 0;
+LED-EXT-GRN-CATHODE JP13     2        2          1
+         LED2     C        C          1
+         R15      1        1          1
+
+Change Class 0;
+LED-EXT-RED-CATHODE JP13     3        3          1
+         LED3     C        C          1
+         R16      1        1          1
+
+Change Class 0;
+LED_BUS_PWR LED1     C        C          1
+         R2       2        2          1
+
+Change Class 0;
+MASTER-RESET-RESISTOR D5       C        C          1
+         OPT101   P$1      A          1
+         R121     2        2          1
+
+Change Class 0;
+MASTER-RESET-SYS D5       A        A          1
+         JP6      6        6          1
+         OPT101   P$2      C          1
+
+Change Class 0;
+MISO     R46      1        1          1
+         U1       3        SDO        1
+         U2       56       PB4        1
+
+Change Class 0;
+MOSI     U1       2        SDI        1
+         U2       57       PB5        1
+
+Change Class 0;
+N$2      JP9      1        1          1
+         R28      1        1          1
+         R30      2        2          1
+
+Change Class 0;
+NRST     OPT101   P$4      OUT        1
+         R8       1        1          1
+         RESET    1        P$1        1
+         RESET    2        P$2        1
+         U2       7        NRST       1
+
+Change Class 0;
+OPA-VIN+ IC4      1        +IN        1
+         R28      2        2          1
+         R31      2        2          1
+
+Change Class 0;
+OPA-VIN- IC4      3        -IN        1
+         R27      2        2          1
+         R29      2        2          1
+
+Change Class 0;
+PA0-OP-FILTERCURRENT C6       1        1          1
+         R7       2        2          1
+         TP2      MP       MP         1
+         U2       14       PA0        1
+
+Change Class 0;
+PA2-COMP2-OUT TP3      MP       MP         1
+         U2       16       PA2        1
+
+Change Class 0;
+PA3-OPAMP_INP TP4      MP       MP         1
+         U2       17       PA3        1
+
+Change Class 0;
+PA4-15V-OR-DIVIDED-IN4 R113     1        1          1
+         R114     2        2          1
+         U2       20       PA4        1
+
+Change Class 0;
+PA5-FETGATE-FAN-PWM FET102   1        G          1
+         R127     1        1          1
+         U2       21       PA5        1
+
+Change Class 0;
+PA6-T1-BKIN-COMP2 TP5      MP       MP         1
+         U2       22       PA6        1
+
+Change Class 0;
+PA8-T1C1-MCP1416_DRV IC102    3        IN         1
+         R111     2        2          1
+         U2       41       PA8        1
+
+Change Class 0;
+PA9-USART1-TX JP18     5        5          1
+         U2       42       PA9        1
+
+Change Class 0;
+PA10-USART1-RX JP18     4        4          1
+         U2       43       PA10       1
+
+Change Class 0;
+PA13-SWDIO JP14     3        3          1
+         U2       46       PA13       1
+
+Change Class 0;
+PA14-SWCLK JP14     2        2          1
+         U2       49       PA14       1
+
+Change Class 0;
+PB-13-I2C2-SCK JP21     3        3          1
+         R22      1        1          1
+         U2       34       PB13       1
+
+Change Class 0;
+PB-15    SP4      MP       MP         1
+         U2       36       PB15       1
+
+Change Class 0;
+PB0-LED-GRN R15      2        2          1
+         U2       26       PB0        1
+
+Change Class 0;
+PB1-LED-RED R16      2        2          1
+         U2       27       PB1        1
+
+Change Class 0;
+PB2-PA7-HV-DIV-COMP1_INP R115     2        2          1
+         R119     1        1          1
+         R128     1        1          1
+         U2       23       PA7        1
+         U2       28       PB2        1
+
+Change Class 0;
+PB6-PC3-COMP2_INP-CURRENT-SENSE FET3     2        S          1
+         R6       2        2          1
+         R7       1        1          1
+         TP7      MP       MP         1
+         U2       11       PC3        1
+         U2       58       PB6        1
+
+Change Class 0;
+PB8-CAN-RX IC2A     5        RXD        1
+         IC2B     3        RXD        1
+         RXD      MP       MP         1
+         U2       61       PB8        1
+
+Change Class 0;
+PB9-CAN-TX IC2A     3        TXD        1
+         IC2B     2        TXD        1
+         R109     1        1          1
+         TXD      MP       MP         1
+         U2       62       PB9        1
+
+Change Class 0;
+PB10-T2C3-FANTACH-H11L1OUT OPT1     P$4      OUT        1
+         R17      1        1          1
+         U2       29       PB10       1
+
+Change Class 0;
+PB11-I2C2-SDA|VCAP1 CP102    1        1          1
+         U2       30       PB11       1
+
+Change Class 0;
+PB12-SPI2-NSS SP3      MP       MP         1
+         U2       33       PB12       1
+
+Change Class 0;
+PB14-I2C2-SDA JP21     4        4          1
+         R21      1        1          1
+         U2       35       PB14       1
+
+Change Class 0;
+PC0-AOUT-DIVIDED R40      2        2          1
+         R41      2        2          1
+         U2       8        PC0        1
+
+Change Class 0;
+PC1-OPA  IC4      4        OUT        1
+         R27      1        1          1
+         U2       9        PC1        1
+
+Change Class 0;
+PC4      JP12     2        2          1
+         R13      1        1          1
+         U2       24       PC4        1
+
+Change Class 0;
+PC5      JP12     4        4          1
+         R10      1        1          1
+         U2       25       PC5        1
+
+Change Class 0;
+PC6-DUMPFET-GATE FET101   1        G          1
+         R103     1        1          1
+         U2       37       PC6        1
+
+Change Class 0;
+PC8-/DUMP IC2      8        I0         1
+         IC2      9        I1         1
+         U2       39       PC8        1
+
+Change Class 0;
+PC8-DUMP IC2      10       O          1
+         IC2      12       I1         1
+
+Change Class 0;
+PC10&/PC8-DUMP-FET-GATE FET5     1        G          1
+         IC2      13       O          1
+         R12      1        1          1
+
+Change Class 0;
+PC10-DUMP IC2      11       I0         1
+         R18      1        1          1
+         U2       51       PC10       1
+
+Change Class 0;
+PC11-/HEATER IC2      5        I0         1
+         IC2      6        I1         1
+         U2       52       PC11       1
+
+Change Class 0;
+PC12-HEATER IC2      2        I0         1
+         R104     1        1          1
+         U2       53       PC12       1
+
+Change Class 0;
+PC13-RTC-OUT FET1     1        G          1
+         R4       2        2          1
+         U2       2        PC13       1
+
+Change Class 0;
+PC14_OSC32IN|XTAL 32KHZ    2        2          1
+         C100     1        1          1
+         U2       3        PC14       1
+
+Change Class 0;
+PC15-32OSC-OUT 32KHZ    1        1          1
+         C101     1        1          1
+         U2       4        PC15       1
+
+Change Class 0;
+PD0_OSC_IN_XTAL C109     1        1          1
+         Q100     2        2          1
+         R112     1        1          1
+         U2       5        PD0/OSC<=  1
+
+Change Class 0;
+PD1_OSC_OUT C107     1        1          1
+         Q100     1        1          1
+         R112     2        2          1
+         U2       6        PD1/OSC=>  1
+
+Change Class 0;
+RF1      F$1      2        S          1
+         R$1      2        2          1
+
+Change Class 0;
+RF2      F$2      2        S          1
+         R$2      2        2          1
+
+Change Class 0;
+RF3      F$3      2        S          1
+         R$3      2        2          1
+
+Change Class 0;
+RF4      F$4      2        S          1
+         R$4      2        2          1
+
+Change Class 0;
+RF5      F$5      2        S          1
+         R$5      2        2          1
+
+Change Class 0;
+RF6      F$6      2        S          1
+         R$6      2        2          1
+
+Change Class 0;
+RF7      F$7      2        S          1
+         R$7      2        2          1
+
+Change Class 0;
+RF8      F$8      2        S          1
+         R$8      2        2          1
+
+Change Class 0;
+RF9      F$9      2        S          1
+         R$9      2        2          1
+
+Change Class 0;
+RF10     F$10     2        S          1
+         R$10     2        2          1
+
+Change Class 0;
+RF11     F$11     2        S          1
+         R$11     2        2          1
+
+Change Class 0;
+RF12     F$12     2        S          1
+         R$12     2        2          1
+
+Change Class 0;
+RF13     F$13     2        S          1
+         R$13     2        2          1
+
+Change Class 0;
+RF14     F$14     2        S          1
+         R$14     2        2          1
+
+Change Class 0;
+RF15     F$15     2        S          1
+         R$15     2        2          1
+
+Change Class 0;
+RF16     F$16     2        S          1
+         R$16     2        2          1
+
+Change Class 0;
+SCLK     U1       1        SCLK       1
+         U2       55       PB3        1
+
+Change Class 0;
+SELECT   U1       4        SAMPL      1
+         U2       59       PB7        1
+
+Change Class 0;
+THRM1    C128     1        1          1
+         JP2      2        2          1
+         R43      2        2          1
+         U1       9        T1         1
+
+Change Class 0;
+THRM2    C12      1        1          1
+         JP4      2        2          1
+         R45      2        2          1
+         U1       8        T2         1
+
+Change Class 0;
+THRM3    C11      1        1          1
+         JP5      2        2          1
+         R44      2        2          1
+         U1       7        T3         1
+
+Change Class 0;
+TIM1_BKIN2_COMP2 TP6      MP       MP         1
+         U2       44       PA11       1
+
+Change Class 0;
+V-ORED   C111     1        1          1
+         C119     1        1          1
+         C120     1        1          1
+         D1       C        C          1
+         D2       C        C          1
+         FET4     2        S          1
+         FET6     2        S          1
+         R14      2        2          1
+         R9       2        2          1
+         REG100   2        VI         1
+         REG100   4        VITAB      1
+         REG1A    2        VI         1
+         REG1A    4        VITAB      1
+
+Change Class 0;
+VA_LDOIN U1       12       VA         1
+         U1       13       LDOIN      1
+
+Change Class 0;
+VBAT     R23      2        2          1
+         R25      1        1          1
+         U2       1        VBAT       1
+
+Change Class 0;
+VBAT-REG-IN C2       1        1          1
+         R26      1        1          1
+         U$5      1        EN         1
+         U$5      5        VIN        1
+
+Change Class 0;
+VBAT-REG-OUT C8       1        1          1
+         R23      1        1          1
+         U$5      4        VOUT       1
+
+Change Class 0;
+VCC      5V1      MP       MP         1
+         BEAD     1        1          1
+         C102     1        1          1
+         C103     1        1          1
+         C104     1        1          1
+         C106     1        1          1
+         C117     1        1          1
+         C124     1        1          1
+         C7       1        1          1
+         CP103    1        1          1
+         IC2A     1        VCC1       1
+         IC2B     1        VCC1       1
+         JP13     1        1          1
+         LED2     A        A          1
+         LED3     A        A          1
+         OPT1     P$6      VCC        1
+         OPT101   P$6      VCC        1
+         R10      2        2          1
+         R104     2        2          1
+         R105     2        2          1
+         R109     2        2          1
+         R13      2        2          1
+         R17      2        2          1
+         R18      2        2          1
+         R25      2        2          1
+         R46      2        2          1
+         R8       2        2          1
+         REG1A    3        VO         1
+         U2       19       VDD_4      1
+         U2       32       VDD_1      1
+         U2       48       VDD_2      1
+         U2       64       VDD_3      1
+
+Change Class 0;
+VDDA1    BEAD     2        2          1
+         C105     1        1          1
+         U2       13       VDDA       1
+
+Change Class 0;
+VL       BEAD1    1        1          1
+         C10      1        1          1
+         U1       5        VL         1
+
+Change Class 0;
+VP       C9       2        2          1
+         RV17     2        2          1
+         U1       14       VP         1
+
+Change Class 0;
+XOR-BIGFET-GATE FET7     1        G          1
+         IC2      1        O          1
+         R20      2        2          1
+

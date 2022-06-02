@@ -1,0 +1,12 @@
+mv %N.GBL $1.GBL
+mv %N.GBO $1.GBO
+mv %N.GBP $1.GBP
+mv %N.GBS $1.GBS
+mv %N.GKO $1.GKO
+mv %N.gpi $1.gpi
+mv %N.GTL $1.GTL
+mv %N.GTO $1.GTO
+mv %N.GTP $1.GTP
+mv %N.GTS $1.GTS
+mv %N.XLN $1.XLN
+
