@@ -12,6 +12,7 @@
 #include <stdint.h>
 
 /* Type definitions for shorter and nicer code */
+/*
 typedef int8_t s8;
 typedef int16_t s16;
 typedef int32_t s32;
@@ -19,7 +20,7 @@ typedef uint8_t u8;
 typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint64_t u64;
-
+*/
 
 struct PKT_PTR
 {
@@ -30,15 +31,15 @@ struct PKT_PTR
 /* Different ways of dealing with an int */
 union UI_I_C
 {
-	u32			u32;
-	s32			s32;
-	unsigned long		ul;
+	uint32_t		u32;
+	int32_t			s32;
+	unsigned long	ul;
 	signed long		sl;
-	unsigned int		ui;
+	unsigned int	ui;
 	signed int		n;
-	unsigned short		us[2];
-	signed short		s[2];
-	unsigned char		uc[4];
+	unsigned short	us[2];
+	signed short	s[2];
+	unsigned char	uc[4];
 	signed char		c[4];
 };
 

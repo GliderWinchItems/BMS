@@ -23,9 +23,6 @@ union SPI24
 };
 
 /* *************************************************************************/
- void adcspi_readadc(void);
-/* @brief	: Read selected ADCs (non-MAX14921)
- * *************************************************************************/
 void adcspi_readbms(void);
 /* @brief	: Do a sequence for reading MA14921 plus direct ADC inputs
  * *************************************************************************/

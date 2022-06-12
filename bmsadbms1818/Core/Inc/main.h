@@ -60,8 +60,6 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define FET_CUR_RC_Pin GPIO_PIN_1
-#define FET_CUR_RC_GPIO_Port GPIOC
 #define FET_CUR_A2_Pin GPIO_PIN_3
 #define FET_CUR_A2_GPIO_Port GPIOC
 #define OPAMP_INP_Pin GPIO_PIN_0
@@ -109,6 +107,11 @@ void Error_Handler(void);
 /* USER CODE BEGIN Private defines */
 // USART/UART assignments
 #define HUARTMON  huart1 // uart  for PC monitoring
+
+#define DEFAULTTASKBIT00 (1 << 0)  // Task notification bit (from ADCtask.c)
+#define DEFAULTTASKBIT01 (1 << 1)  // Task notification bit (from BQtask.c)
+#define DEFAULTTASKBIT02 (1 << 2)  // Task notification bit (from Mailbox)
+
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

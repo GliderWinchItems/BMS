@@ -6,19 +6,17 @@
 *******************************************************************************/
 
 /*
-'MX ADC assignments 02/25/2022
+'MX ADC assignments 06/02/2022
 Port Descript Chan'l sample scan order
-PC1	FETCUR-rc	IN2	     47.5	1
-PC3	FETCUR-A2	IN4	      2.5	2
-PA0	OA INP	    IN5	     24.5	3
-PA3	OA OUT	    IN8	     24.5	4
-PA7	Hv-div1	    IN12	640.5	5
-PC4	Therm 1	    IN13	247.5	6
-PC5	Therm2	    IN14	247.5	7
-Vref		    IN0	    247.5	8
-Vtemp		    IN17	247.5	9
-PA4	dcdc_15v	IN9	    247.5	10
-PC0	BMS	        IN1 	 24.5	N/A
+PC3	FETCUR-A2	IN4	      2.5	1
+PA0	OA INP	    IN5	     24.5	2
+PA3	OA OUT	    IN8	     24.5	3
+PA7	Hv-div1	    IN12	640.5	4
+PC4	Therm 1	    IN13	247.5	5
+PC5	Therm2	    IN14	247.5	6
+Vref		    IN0	    247.5	7
+Vtemp		    IN17	247.5	8
+PA4	dcdc_15v	IN9	    247.5	9
 */
 #include "FreeRTOS.h"
 #include "cmsis_os.h"

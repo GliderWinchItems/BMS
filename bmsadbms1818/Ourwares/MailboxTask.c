@@ -3,11 +3,8 @@
 * Date First Issued  : 02/20/2019
 * Description        : Incoming CAN msgs to Mailbox
 *******************************************************************************/
-
-#include "stm32f4xx_hal.h"
-#include "stm32f4xx_hal_can.h"
-#include "CanTask.h"
 #include "MailboxTask.h"
+#include "CanTask.h"
 #include "morse.h"
 #include "DTW_counter.h"
 #include "payload_extract.h"
@@ -27,9 +24,10 @@ struct MAILBOXCANBUFNOTE* pcir[STM32MAXCANNUM] = {NULL};
 	struct MBXTOGATEBUF mbxgatebuf[STM32MAXCANNUM] = {0};
 #endif
 
-osThreadId MailboxTaskHandle; // This wonderful task handle
+TaskHandle_t MailboxTaskHandle; // This wonderful task handle
 
-void StartMailboxTask(void const * argument);
+void StartMailboxTask(void* argument);
+
 static struct MAILBOXCAN* loadmbx(struct MAILBOXCANNUM* pmbxnum, struct CANRCVBUFN* pncan);
 
 /* *************************************************************************
@@ -403,14 +401,11 @@ struct CANRCVBUFN* Mailboxgetbuf(int i)
  * @param	: taskpriority = Task priority (just as it says!)
  * @return	: QueueHandle_t = queue handle
  * *************************************************************************/
-osThreadId xMailboxTaskCreate(uint32_t taskpriority)
+ TaskHandle_t xMailboxTaskCreate(uint32_t taskpriority)
 {
- /* definition and creation of CanTask */
-  osThreadDef(MailboxTask, StartMailboxTask, osPriorityNormal, 0,(192-32));
-
-  MailboxTaskHandle = osThreadCreate(osThread(MailboxTask), NULL);
-
-	vTaskPrioritySet( MailboxTaskHandle, taskpriority );
+	BaseType_t ret = xTaskCreate(StartMailboxTask, "MailboxTask",\
+          (192), NULL, taskpriority, &MailboxTaskHandle);
+	if (ret != pdPASS) return NULL;
 
 #ifdef GATEWAYTASKINCLUDED
 	gatebufsetup(&mbxgatebuf[0]); // CAN1
@@ -425,7 +420,7 @@ osThreadId xMailboxTaskCreate(uint32_t taskpriority)
  * void StartMailboxTask(void const * argument);
  *	@brief	: Task startup
  * *************************************************************************/
-void StartMailboxTask(void const * argument)
+void StartMailboxTask(void* argument)
 {
 	struct MAILBOXCANNUM* pmbxnum;
 	struct CANRCVBUFN* pncan;

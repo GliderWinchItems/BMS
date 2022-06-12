@@ -1,0 +1,16 @@
+design_notes.txt
+
+06/04/2022
+
+1. Change current sense op amp from GPIO6 to GPIO2
+
+Helps reduce skew for current versus voltage measurements.
+See ADCVAX command.
+
+2. '1818 bias resistor 2K-20K.
+
+Use 10K?
+
+
+
+

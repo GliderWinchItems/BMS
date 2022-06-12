@@ -6,6 +6,7 @@
 *******************************************************************************/
 /* 
 03/03/2022 revised for bmsmax14921.c
+06/02/2022 revised for bmabms1818.c
 */
 
 #ifndef __ADCPARAMS
@@ -16,23 +17,49 @@
 #include "adc_idx_v_struct.h"
 #include "ADCTask.h"
 
+#define ADC1DMANUMSEQ        16 // Number of DMA scan sequences in 1/2 DMA buffer
+#define ADCEXTENDSUMCT       64 // Sum of 1/2 DMA sums for additional averaging
+#define ADC1IDX_ADCSCANSIZE   9 // Number ADC channels read (includes Vref an Vtemp)
 
-#define ADCSCANSUM 4         // Number of ADC/DMA scans summed between computations
-#define ADCSCALEFACTOR (ADCSCANSUM*16) // Number of scans summed *oversampling number
+/* Timing
+1	2.5	12.5	15						
+2	24.5	12.5	37						
+3	24.5	12.5	37						
+4	640.5	12.5	653						
+5	247.5	12.5	260						
+6	247.5	12.5	260						
+7	247.5	12.5	260						
+8	247.5	12.5	260						
+9	247.5	12.5	260						
 
-/* ADC reading sequence/array indices                                           */
+Cycles	MHz	    us	over   us	DMA sum	Total ms
+2042	80	25.525	16	408.4	16	    6.5344
+2042	80	25.525	16	408.4	16	    6.5344
+*/
+
+
+/* Processor ADC reading sequence/array indices */
 /* These indices -=>MUST<= match the hardware ADC scan sequence in STM32CubeMX. */
-#define ADC1IDX_INTERNALVREF  0	// IN0   247.5  1   Internal voltage reference
-#define ADC1IDX_INTERNALTEMP  1	// IN17  247.5  2   Internal temperature sensor
-#define ADC1IDX_PA4_DC_DC     2 // IN9   247.5  3   Isolated DC-DC 15v supply
-#define ADC1IDX_PA7_HV_DIV    3	// IN12  640.5  4   HV divider (FET side of diode)
-#define ADC1IDX_PC1_BAT_CUR   4	// IN2    47.5  5   Battery current sense op-amp
-#define ADC1IDX_PC4_THERMSP1  5	// IN13  247.5  6   Spare thermistor 1: 10K pullup
-#define ADC1IDX_PC5_THERMSP2  6	// IN14  247.5  7   Spare thermistor 2: 10K pullup
-#define ADC1IDX_PC3_OPA_OUT   7	// IN4     2.5  8   FET current sense 0.1 ohm:COMP2_INP
-#define ADC1IDX_PA0_OPA_INP	  8 // IN5    24.5  9   FET current sense RC 1.8K|0.1u
-#define ADC1IDX_PA3_FET_CUR1  9 // IN8    12.5  10  OPA_OUT (PA0 amplified) 
-#define ADC1IDX_PC0_BMS	     10 // IN1    24.5  11  Not included in adc dma scan
+#define ADC1IDX_PC3_OPA_OUT   0	// IN4     2.5   FET current sense 0.1 ohm:COMP2_INP
+#define ADC1IDX_PA0_OPA_INP	  1 // IN5    24.5   FET current sense RC 1.8K|0.1u
+#define ADC1IDX_PA3_FET_CUR1  2 // IN8    24.5   OPA_OUT (PA0 amplified) 
+#define ADC1IDX_PA7_HV_DIV    3	// IN12  640.5   HV divider (FET side of diode)
+#define ADC1IDX_PC4_THERMSP1  4	// IN13  247.5   Spare thermistor 1: 10K pullup
+#define ADC1IDX_PC5_THERMSP2  5	// IN14  247.5   Spare thermistor 2: 10K pullup
+#define ADC1IDX_INTERNALVREF  6	// IN0   247.5   Internal voltage reference
+#define ADC1IDX_INTERNALTEMP  7	// IN17  247.5   Internal temperature sensor
+#define ADC1IDX_PA4_DC_DC     8 // IN9   247.5   Isolated DC-DC 15v supply
+
+/* ADBMS1818 ADC reading sequence/array indices */
+#define BMSAUX_1_NC           0 // GPIO 1 No Connection
+#define BMSAUX_2_THERM1       1 // GPIO 2 Thermistor
+#define BMSAUX_3_THERM3       2 // GPIO 3 Thermistor
+#define BMSAUX_4_THERM2       3 // GPIO 4 Thermistor
+#define BMSAUX_5_US6          4 // GPIO 5 Spare: U$6
+#define BMSAUX_6_CUR_SENSE    5 // GPIO 6 Current sense op amp
+#define BMSAUX_7_HALL         6 // GPIO 7 Hall effect sensor signal
+#define BMSAUX_8_US9          7 // GPIO 8 Spare: U$9
+#define BMSAUX_9_US10         8 // GPIO 9 Spare: U$10
 
 /* This holds calibration values common to all ADC modules. 
      Some of these are not used. */
@@ -92,6 +119,14 @@ struct ADCFUNCTION
 	uint32_t ctr; // Running count of updates.
 	uint16_t dmabuf[ADCDIRECTMAX]; // Readings for one ADC scan w DMA
 	uint8_t sumctr; // DMA summation counter
+};
+
+struct ADCCHANNEL	
+{
+	struct FILTERIIRF1 iir_f1;	// iir_f1 (float) filter
+	float    fscale;  // Scale factor
+	float    offset;  // Offset
+	uint32_t sum;     // Fast Sum of ADC readings
 };
 
 /* *************************************************************************/

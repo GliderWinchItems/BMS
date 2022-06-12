@@ -80,7 +80,7 @@ struct CANTAKEPTR
 union CAN_X
 {
 	uint32_t	xw;	// RX (DTW)
-	u8	xb[4];	// TX 
+	uint8_t	xb[4];	// TX 
 };
 
 /* xb usage for TX */
@@ -120,7 +120,7 @@ volatile struct CAN_POOLBLOCK* volatile pxprv;	// pxprv->plinknext points to msg
 
 	struct CANWINCHPODCOMMONERRORS can_errors;	// A group of error counts
 	uint32_t	bogusct;	// Count of bogus CAN IDs rejected
-	s8 	ret;		   // Return code from routine call
+	int8_t 	ret;		   // Return code from routine call
 
 	uint8_t canidx;
 };
@@ -136,7 +136,7 @@ struct CAN_CTLBLOCK* can_iface_init(CAN_HandleTypeDef *phcan, uint8_t canidx, ui
  *		:  NULL = calloc failed
  *		:  Pointer->ret = pointer to CAN control block for this CAN unit
 *******************************************************************************/
-int can_driver_put(struct CAN_CTLBLOCK* pctl, struct CANRCVBUF *pcan, u8 maxretryct, u8 bits);
+int can_driver_put(struct CAN_CTLBLOCK* pctl, struct CANRCVBUF *pcan, uint8_t maxretryct, uint8_t bits);
 /* @brief	: Get a free slot and add CAN msg
  * @param	: pctl = pointer to control block for this CAN modules
  * @param	: pcan = pointer to msg: id, dlc, data (common_can.h)

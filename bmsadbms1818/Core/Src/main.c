@@ -28,8 +28,12 @@
 #include "DTW_counter.h"
 #include "fetonoff.h"
 
+#include "adcparams.h"
 #include "SerialTaskSend.h"
 #include "SerialTaskReceive.h"
+#include "CanTask.h"
+#include "can_iface.h"
+#include "canfilter_setup.h"
 #include "getserialbuf.h"
 #include "yprintf.h"
 #include "DTW_counter.h"
@@ -38,6 +42,11 @@
 #include "bqcellbal.h"
 #include "ChgrTask.h"
 #include "bq_func_init.h"
+#include "ADCTask.h"
+#include "MailboxTask.h"
+#include "CanCommTask.h"
+#include "FanTask.h"
+
 
 #include "FreeRTOS.h"
 #include "semphr.h"
@@ -45,6 +54,29 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+uint32_t timectr = 0;
+struct CAN_CTLBLOCK* pctl0; // Pointer to CAN1 control block
+//struct CAN_CTLBLOCK* pctl1; // Pointer to CAN2 control block
+
+uint32_t debugTX1b;
+uint32_t debugTX1b_prev;
+
+uint32_t debugTX1c;
+uint32_t debugTX1c_prev;
+
+uint32_t debug03;
+uint32_t debug03_prev;
+
+//extern osThreadId SerialTaskHandle;
+//extern osThreadId CanTxTaskHandle;
+//extern osThreadId CanRxTaskHandle;
+//extern osThreadId SerialTaskReceiveHandle;
+
+uint16_t m_trap = 450; // Trap codes for MX Init() and Error Handler
+
+uint8_t canflag;
+uint8_t canflag1;
+//uint8_t canflag2;
 
 /* USER CODE END PTD */
 
@@ -54,7 +86,18 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
+  /* 
+  Timer usage
+                         1    2   3   4   auto  auto
+  TIM1 charger control  PWM   x   x   x  comp1 comp2
+                        PA8               PA6   PA11 
+  TIM2 FAN PWM TACH     PWM   x  IC   x    
+                        PA5     PB10
+  TIM7  System          x     
 
+  TIM15 SPI/ADC/BMS     OC    x
+  
+  */
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -133,7 +176,6 @@ int main(void)
 {
   /* USER CODE BEGIN 1 */
   BaseType_t ret;    // Used for returns from function calls
-  //osMessageQId Qidret; // Function call return
   osThreadId Thrdret;  // Return from thread create
   /* USER CODE END 1 */
 
@@ -203,22 +245,32 @@ int main(void)
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
 
+  Thrdret = xADCTaskCreate(osPriorityNormal+2); // (arg) = priority
+  if (Thrdret == NULL) morse_trap(117);
+
   /* Create serial task (priority) */
   // Task handle "osThreadId SerialTaskHandle" is global
   Thrdret = xSerialTaskSendCreate(osPriorityNormal); // Create task and set Task priority
   if (Thrdret == NULL) morse_trap(112);
 
+    /* Add bcb circular buffer to SerialTaskSend for usart3 -- PC monitor */
+  #define NUMCIRBCB3  16 // Size of circular buffer of BCB for usart3
+  ret = xSerialTaskSendAdd(&HUARTMON, NUMCIRBCB3, 1); // dma
+  if (ret < 0) morse_trap(14); // Panic LED flashing
+
+  /* Setup TX linked list for CAN  */
+   // CAN1 (CAN_HandleTypeDef *phcan, uint8_t canidx, uint16_t numtx, uint16_t numrx);
+  pctl0 = can_iface_init(&hcan1, 0, 64, 32);       
+  if (pctl0 == NULL) morse_trap(118); // Panic LED flashing
+  if (pctl0->ret < 0) morse_trap(119);
+
   /* Create serial receiving task. */
   //ret = xSerialTaskReceiveCreate(osPriorityNormal);
   //if (ret != pdPASS) morse_trap(113);
 
-  /* BQ76952 I2C task. */
+  /* BQTask. */
   TaskHandle_t retT = xBQTaskCreate(osPriorityNormal);
   if (retT == NULL) morse_trap(114);
-
-   /* Charger task. */
-  retT = xChgrTaskCreate(osPriorityNormal);
-  if (retT == NULL) morse_trap(116);
 
   /* USER CODE END RTOS_THREADS */
 
@@ -226,6 +278,45 @@ int main(void)
   /* add events, ... */
   // Initialize struct for BQ. */
   bq_func_init(&bqfunction);
+
+  /* definition and creation of CanTxTask - CAN driver TX interface. */
+  QueueHandle_t QHret = xCanTxTaskCreate(osPriorityNormal, 48); // CanTask priority, Number of msgs in queue
+  if (QHret == NULL) morse_trap(120); // Panic LED flashing
+
+  /* definition and creation of CanRxTask - CAN driver RX interface. */
+  /* The MailboxTask takes care of the CANRx                         */
+//  Qidret = xCanRxTaskCreate(1, 32); // CanTask priority, Number of msgs in queue
+//  if (Qidret < 0) morse_trap(6); // Panic LED flashing
+
+  /* Create MailboxTask */
+  xMailboxTaskCreate(osPriorityNormal); // (arg) = priority
+
+  /* Create Mailbox control block w 'take' pointer for each CAN module. */
+  struct MAILBOXCANNUM* pmbxret;
+  // (CAN1 control block pointer, size of circular buffer)
+  pmbxret = MailboxTask_add_CANlist(pctl0, 32);
+  if (pmbxret == NULL) morse_trap(215);
+
+  /* Setup CAN hardware filters to default to accept all ids. */
+  HAL_StatusTypeDef Cret;
+  Cret = canfilter_setup_first(0, &hcan1, 15); // CAN1
+  if (Cret == HAL_ERROR) morse_trap(122);
+
+  /* CAN communication */
+  retT = xCanCommCreate(osPriorityNormal+1);
+  if (retT == NULL) morse_trap(121);
+
+    /* Select interrupts for CAN1 */
+  HAL_CAN_ActivateNotification(&hcan1, \
+    CAN_IT_TX_MAILBOX_EMPTY     |  \
+    CAN_IT_RX_FIFO0_MSG_PENDING |  \
+    CAN_IT_RX_FIFO1_MSG_PENDING    );
+
+  /* Fan control task. */
+  retT = xFanTaskCreate(osPriorityNormal);
+  if (retT == NULL) morse_trap(124);
+
+
   /* USER CODE END RTOS_EVENTS */
 
   /* Start scheduler */
@@ -330,14 +421,18 @@ static void MX_ADC1_Init(void)
   hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
   hadc1.Init.DMAContinuousRequests = ENABLE;
   hadc1.Init.Overrun = ADC_OVR_DATA_PRESERVED;
-  hadc1.Init.OversamplingMode = DISABLE;
+  hadc1.Init.OversamplingMode = ENABLE;
+  hadc1.Init.Oversampling.Ratio = ADC_OVERSAMPLING_RATIO_16;
+  hadc1.Init.Oversampling.RightBitShift = ADC_RIGHTBITSHIFT_NONE;
+  hadc1.Init.Oversampling.TriggeredMode = ADC_TRIGGEREDMODE_SINGLE_TRIGGER;
+  hadc1.Init.Oversampling.OversamplingStopReset = ADC_REGOVERSAMPLING_CONTINUED_MODE;
   if (HAL_ADC_Init(&hadc1) != HAL_OK)
   {
     Error_Handler();
   }
   /** Configure Regular Channel
   */
-  sConfig.Channel = ADC_CHANNEL_2;
+  sConfig.Channel = ADC_CHANNEL_4;
   sConfig.Rank = ADC_REGULAR_RANK_1;
   sConfig.SamplingTime = ADC_SAMPLETIME_2CYCLES_5;
   sConfig.SingleDiff = ADC_SINGLE_ENDED;
@@ -349,16 +444,9 @@ static void MX_ADC1_Init(void)
   }
   /** Configure Regular Channel
   */
-  sConfig.Channel = ADC_CHANNEL_4;
-  sConfig.Rank = ADC_REGULAR_RANK_2;
-  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /** Configure Regular Channel
-  */
   sConfig.Channel = ADC_CHANNEL_5;
-  sConfig.Rank = ADC_REGULAR_RANK_3;
+  sConfig.Rank = ADC_REGULAR_RANK_2;
+  sConfig.SamplingTime = ADC_SAMPLETIME_24CYCLES_5;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -366,7 +454,7 @@ static void MX_ADC1_Init(void)
   /** Configure Regular Channel
   */
   sConfig.Channel = ADC_CHANNEL_8;
-  sConfig.Rank = ADC_REGULAR_RANK_4;
+  sConfig.Rank = ADC_REGULAR_RANK_3;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -374,7 +462,8 @@ static void MX_ADC1_Init(void)
   /** Configure Regular Channel
   */
   sConfig.Channel = ADC_CHANNEL_12;
-  sConfig.Rank = ADC_REGULAR_RANK_5;
+  sConfig.Rank = ADC_REGULAR_RANK_4;
+  sConfig.SamplingTime = ADC_SAMPLETIME_640CYCLES_5;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -382,7 +471,8 @@ static void MX_ADC1_Init(void)
   /** Configure Regular Channel
   */
   sConfig.Channel = ADC_CHANNEL_13;
-  sConfig.Rank = ADC_REGULAR_RANK_6;
+  sConfig.Rank = ADC_REGULAR_RANK_5;
+  sConfig.SamplingTime = ADC_SAMPLETIME_247CYCLES_5;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -390,6 +480,14 @@ static void MX_ADC1_Init(void)
   /** Configure Regular Channel
   */
   sConfig.Channel = ADC_CHANNEL_14;
+  sConfig.Rank = ADC_REGULAR_RANK_6;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Configure Regular Channel
+  */
+  sConfig.Channel = ADC_CHANNEL_VREFINT;
   sConfig.Rank = ADC_REGULAR_RANK_7;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
@@ -405,6 +503,7 @@ static void MX_ADC1_Init(void)
   }
   /** Configure Regular Channel
   */
+  sConfig.Channel = ADC_CHANNEL_9;
   sConfig.Rank = ADC_REGULAR_RANK_9;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
@@ -1076,17 +1175,26 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_1|GPIO_PIN_2|DUMP2_Pin|DUMP_NOT_Pin
+                          |DUMP_Pin|HEATER_NOT_Pin|HEATER_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, LED_RED_Pin|LED_GRN_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, PADxx_Pin|PAD7_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, DUMP2_Pin|DUMP_NOT_Pin|DUMP_Pin|HEATER_NOT_Pin
-                          |HEATER_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(BQ_LD_GPIO_Port, BQ_LD_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pins : PC1 PC2 DUMP_NOT_Pin DUMP_Pin
+                           HEATER_NOT_Pin HEATER_Pin */
+  GPIO_InitStruct.Pin = GPIO_PIN_1|GPIO_PIN_2|DUMP_NOT_Pin|DUMP_Pin
+                          |HEATER_NOT_Pin|HEATER_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pins : LED_RED_Pin LED_GRN_Pin PADxx_Pin PAD7_Pin */
   GPIO_InitStruct.Pin = LED_RED_Pin|LED_GRN_Pin|PADxx_Pin|PAD7_Pin;
@@ -1101,13 +1209,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(DUMP2_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : DUMP_NOT_Pin DUMP_Pin HEATER_NOT_Pin HEATER_Pin */
-  GPIO_InitStruct.Pin = DUMP_NOT_Pin|DUMP_Pin|HEATER_NOT_Pin|HEATER_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pin : BQ_LD_Pin */
   GPIO_InitStruct.Pin = BQ_LD_Pin;
@@ -1138,201 +1239,248 @@ static void MX_GPIO_Init(void)
 void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
-
-//#define TESTSHUTDOWN_VIA_COMMAND // Test processor commanded BQ shutdown
-//#define DUMPandHEATER_TEST
-  #define BQMonitor
-
+  int32_t i;
   uint32_t mctr = 0;
-  uint8_t lctr = 0;
-  int i;
-  int16_t* pv;
+  uint32_t noteval = 0; // TaskNotifyWait notification word
 
-extern uint8_t bqflag;
+/* These #defines select uart output for monitoring. */
 
-extern int16_t cellv[2][BQVSIZE];
-extern uint8_t cvidx;
-extern uint32_t cvflag;
-
-  struct SERIALSENDTASKBCB* pbuf1 = getserialbuf(&HUARTMON,256);
+  struct SERIALSENDTASKBCB* pbuf1 = getserialbuf(&HUARTMON,128);
   if (pbuf1 == NULL) morse_trap(115);
+  struct SERIALSENDTASKBCB* pbuf2 = getserialbuf(&HUARTMON,128);
+  if (pbuf2 == NULL) morse_trap(125);
 
   yprintf(&pbuf1,"\n\n\rPROGRAM STARTS");
 
-#ifdef TESTSHUTDOWN_VIA_COMMAND
-  uint32_t ticksys = xTaskGetTickCount();
-  uint32_t tickstate = ticksys + 20000;
-  uint8_t shutstate = 0;
-  yprintf(&pbuf1,"\n\r\tProcessor commanded shut-down cycling");
-#endif  
+  TickType_t tickcnt = xTaskGetTickCount();
+
+#define INCTICKS (1000*10)
+TickType_t ticks1 = xTaskGetTickCount()+INCTICKS;
+#define HMAX 40 // Number of histogram bins
+int8_t hidx = 0;
+uint16_t histo[HMAX];
+for ( i = 0; i < HMAX; i++)
+{
+  histo[i] = 0;
+}
+
+uint32_t nctr = 0;
+uint32_t avectr = 0;
+float fmax[16];
+float fmin[16];
+float fmaxx[16];
+float fminx[16];
+float fave[16];
+float favelong = 0;
+uint8_t favesw = 1;
+float avelongctr = 0;
+for (i = 0; i < 16; i++)
+{
+  fmax[i] = 0;
+  fave[i] = 0;
+  fmin[i] = 10;
+  fmaxx[i] = 0;
+  fminx[i] = 10;
+}
 
   /* Infinite loop */
   for(;;)
   {
-extern uint8_t flagmain;
 
-    while (flagmain == 0) osDelay(2);
-    flagmain = 0;
-    
-    yprintf(&pbuf1,"\n\r%d CHGR", mctr++);
+    xTaskNotifyWait(0,0xffffffff, &noteval,10000);
 
-#ifdef BQMonitor
-//extern uint8_t dbA[16];
-//yprintf(&pbuf1,"\n\rdbA");
+#if 0
+for (i = 0; i < 1; i++)
+{
+  fave[i] += fbms[i];
+}
 
-    /* Verbose listing of BQ memory blocks. */
-//    bqview_blk_0x9231 (&pbuf1);  yprintf(&pbuf1,"\n\r");
-//    bqview_blk_0x92fa (&pbuf1);  yprintf(&pbuf1,"\n\r");
-    bqview_blk_0x62 (&pbuf1);
-//    bqview_cuv_cov_snap_0x0080_0x0081 (&pbuf1);
-    bqview_cb_status2_0x0086_0x0087 (&pbuf1); // Cell balancing time 
+avelongctr += 1;
+if (favesw != 0)
+{
+  favesw = 0;
+  favelong = fbms[0]*1000;
+}
+else
+{
+  favelong = favelong + (fbms[0]*1000 - favelong)/avelongctr;
+}
 
-    /* Consolidation of cell-by-cell lines. */
-    bqview_blk_0x0071_u32 (&pbuf1); // ADC counts: voltage w current
-    bqview_blk_0x14_u16   (&pbuf1); // BQ reported cell voltages
-    bqview_blk_0x0083 (&pbuf1);
-    bqview_balance1 (&pbuf1);
-    bqview_balance_misc (&pbuf1);
-    bqview_our_params (&pbuf1); // Some params from BQTask.h
-    bqview_our_params_sortV (&pbuf1); // Sorted voltage array
+#define AVEDIV 1
+avectr += 1;
+if (avectr < AVEDIV) continue;
+avectr = 0;
 
-extern uint16_t alarm_status[3]; // 0x62 TRM:105
-extern uint16_t alarm_status_ctr;
-extern uint16_t alarm_status_ctr1;
-    yprintf(&pbuf1,"\n\r alarm_status_ctr: %d alarm_status: %04X %04X %04X ctr1: %d",
-      alarm_status_ctr,alarm_status[0],alarm_status[1],alarm_status[2],alarm_status_ctr1);
+for (i = 0; i < 1; i++)
+{
+  fave[i] = fave[i]/AVEDIV;
+  if (fave[i] > fmax[i]) fmax[i] = fave[i];
+  if (fave[i] < fmin[i]) fmin[i] = fave[i];
+  hidx = ((fave[i]*1000.0 - favelong) +0.5f) + HMAX/2;
+  if ( hidx >= HMAX) hidx = HMAX-1;
+  if ( hidx < 0) hidx = 0;
+  histo[hidx] += 1;
+}
 
+nctr += 1;
 
-//    bqview_blk_0x0075_s16 (&pbuf1); // DASTATUS85: min max cell volt
-    bqview_blk_0x9335_14  (&pbuf1);
-
-    /* Block includes REG12 */
-extern uint8_t blk_0x9231_12[12];
-    yprintf(&pbuf1,"\n\rblk_0x9231_12:");
-    for (i = 0; i < 12; i++) yprintf(&pbuf1," %02X",blk_0x9231_12[i]);
-
-extern uint8_t blk_0x92fa_11[11];
-    yprintf(&pbuf1,"\n\rblk_0x92fa_11:");
-    for (i = 0; i < 11; i++) yprintf(&pbuf1," %04X %02X:",(0x92FA + i),blk_0x92fa_11[i]);
-
-extern uint16_t device_number_u16;
-extern uint16_t fw_version_u16[3];
-extern uint16_t hw_version_u16;
-    yprintf(&pbuf1,"\n\rdevice_number:  0x%04X",device_number_u16);
-    yprintf(&pbuf1,"\tfw_version: 0x%04X 0x%04X 0x%04X",fw_version_u16[0],fw_version_u16[1],fw_version_u16[2]);
-    yprintf(&pbuf1,"\thw_version: 0x%04X",hw_version_u16);
-
-extern uint16_t battery_status;
-extern uint16_t reg0_config_u16;
-extern uint16_t ddsgp_config_u16;    
-    yprintf(&pbuf1,"\n\rbattery_status: 0x%04X", battery_status);
-
-//   osDelay(500);
-  //  HAL_GPIO_WritePin(GPIOB,GPIO_PIN_1,GPIO_PIN_RESET); // RED LED
-//   osDelay(500);
-//    HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_RESET); // GRN LED
-
-#ifdef DUMPandHEATER_TEST
-//AL_GPIO_WritePin(DUMP_NOT_GPIO_Port,DUMP_NOT_Pin, GPIO_PIN_SET);    
-//HAL_GPIO_WritePin(HEATER_NOT_GPIO_Port, HEATER_NOT_Pin, GPIO_PIN_SET);
-    fetonoff(FET_DUMP,  FET_SETON);
-    fetonoff(FET_DUMP2, FET_SETON);
-   fetonoff(FET_HEATER,FET_SETON);
-#endif
- //   osDelay(500);
-//    HAL_GPIO_WritePin(GPIOB,GPIO_PIN_1,GPIO_PIN_SET); // RED LED
-    osDelay(2000);
-//   HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_SET); // GRN LED
-#ifdef DUMPandHEATER_TEST
-//   HAL_GPIO_WritePin(DUMP_NOT_GPIO_Port,DUMP_NOT_Pin, GPIO_PIN_RESET);
-//  HAL_GPIO_WritePin(HEATER_NOT_GPIO_Port, HEATER_NOT_Pin, GPIO_PIN_RESET);
-    fetonoff(FET_DUMP,  FET_SETOFF);
-    fetonoff(FET_DUMP2, FET_SETOFF);
-    fetonoff(FET_HEATER,FET_SETOFF);
-#endif
-
-
-#ifdef TESTSHUTDOWN_VIA_COMMAND
-extern uint8_t bq_initflag; // 1 = signal BQ to initialize
-
-  /* Shutdown testing. */
-    ticksys = xTaskGetTickCount();
-    switch (shutstate)
+ //   yprintf(&pbuf2,"\n\r%4d %4d", mctr++,nctr);
+    for (i = 0; i < 1; i++)
     {
-      case 0: // Normal operation
-        if ((int32_t)(ticksys - tickstate) < 0) break;
-        HAL_GPIO_WritePin(GPIOB,GPIO_PIN_5,GPIO_PIN_SET); // Begin RST_SHUT
-        yprintf(&pbuf1,"\n\r\tRST_SHUT: set");
-        shutstate = 1;
-        tickstate = tickstate + 5000; // 3 sec
-        HAL_GPIO_WritePin(GPIOB,GPIO_PIN_1,GPIO_PIN_RESET); // RED LED ON
 
-      case 1: // Shutdown
-        if ((int32_t)(ticksys - tickstate) < 0) break;
-        HAL_GPIO_WritePin(GPIOB,GPIO_PIN_5,GPIO_PIN_RESET); // End RST_SHUT
-        yprintf(&pbuf1,"\n\r\tRST_SHUT: reset");
-        shutstate = 2;
-        tickstate = tickstate + 2000; // 2 sec
+      if (fmax[i] > fmaxx[i]) fmaxx[i] = fmax[i];
+      if (fmin[i] < fminx[i]) fminx[i] = fmin[i];
 
-      case 2:  // Wake-up
-        if ((int32_t)(ticksys - tickstate) < 0) break;
-        HAL_GPIO_WritePin(GPIOB,GPIO_PIN_1,GPIO_PIN_SET); // RED LED OFF
-        HAL_GPIO_WritePin(GPIOD,GPIO_PIN_2,GPIO_PIN_SET);   // LD
-        yprintf(&pbuf1,"\n\r\tLD: set");
-        osDelay(330);
-        HAL_GPIO_WritePin(GPIOD,GPIO_PIN_2,GPIO_PIN_RESET); // LD
-        osDelay(3);
-        bq_initflag = 1;
-        yprintf(&pbuf1,"\n\r\tLD: reset");
-        shutstate = 0;
-        tickstate = tickstate + 15000; // 105sec
+ //     yprintf(&pbuf1," %7.1f %7.1f %7.1f %7.1f %7.4f",(fmax[i]-fmin[i])*1000,fmaxx[i]*1000,fminx[i]*1000,(fmaxx[i]-fminx[i])*1000,fave[i]);
+      fave[i] = 0;
     }
-#endif
 
-
-    if (bqflag == 0)
+//yprintf(&pbuf2,"\n\r%7.4f %7.4f %7.4f",fave[0],fmax[0],fmin[0]);
+//if ( (int)(DTWTIME-dtw1) > INCDTW)
+if ( (int)(xTaskGetTickCount() - ticks1) > 0)  
+{
+ //   yprintf(&pbuf2,"\n\r%4d %4d", mctr++,nctr);
+    for (i = 0; i < 1; i++)
     {
-      if (cvflag == 0)
-      { // Here new Cell voltage readings
-        cvflag = 0; // Reset 
-        yprintf(&pbuf1,"\n\r\t%5d No cell readings: bqflag = %d",mctr++,bqflag);
-        continue;
-      }
+//      yprintf(&pbuf1," %7.1f",(fmax[i]-fmin[i])*1000);
+      fave[i] = 0;
+      fmax[i] = -1; fmin[i] = 10;  
+//      yprintf(&pbuf1," %7.4f",fbms[i]);
+    }
+    yprintf(&pbuf1,"\n\rX %4d %9.2f =============================",nctr,favelong);
 
+    uint16_t idxlo = 0;
+    for (i = 0; i < HMAX; i++)
+    {
+      if (histo[i] != 0)
+      {
+        if (i > 0)
+          idxlo = i;
+        else
+          idxlo = 0;
+        break;
+      }
+    }
+    uint16_t idxhi = HMAX-1;
+    for (i = HMAX-1; i > 0; i--)
+    {
+      if (histo[i] != 0)
+      {
+        if (i > 0)
+          idxhi = i;
+        else
+          idxhi = HMAX-1;
+        break;
+      }
+    }
+    uint32_t hsum = 0;
+    for (i = idxlo; i < idxhi+1; i++)
+    {
+      if (histo[i] == 0)
+        yprintf(&pbuf2,"\n\r.");
+      else
+      {
+        yprintf(&pbuf2,"\n\r%2d %4d",i,histo[i]);
+        hsum += histo[i];
+        histo[i] = 0;
+      }
+    }
+    yprintf(&pbuf1,"\n\n\r");
+
+  nctr = 0;
+//  dtw1 += INCDTW;
+  ticks1 += INCTICKS;
+}    
+continue;
+#endif
+    /* One second loop. */
+    vTaskDelayUntil( &tickcnt, 1000);
+    tickcnt = xTaskGetTickCount();
+
+    /* Display ADC/DMA readings. */
+    struct ADCFUNCTION* padc = &adc1;
+
+    yprintf(&pbuf1,"\n\n\rA %4i",mctr++);
+    for (i = 0; i < ADCDIRECTMAX; i++)
+    {
+      yprintf(&pbuf1,"%8i",padc->abs[i].sumsave);
+    }
+    yprintf(&pbuf1,"\n\rB     ");
+    for (i = 0; i < ADCDIRECTMAX; i++)
+    {
+      yprintf(&pbuf1,"%8.3f",padc->abs[i].f);
+    }
+    yprintf(&pbuf1," degC%8.3f", adc1.common.degC);
+    yprintf(&pbuf1,"\n\rC     ");
+    for (i = 0; i < ADCDIRECTMAX; i++)
+    {
+      yprintf(&pbuf1,"%8.3f",padc->abs[i].filt);
+    }
+    extern uint32_t dbt3;
+    extern uint32_t dbt5;
+    yprintf(&pbuf1," %d %d",dbt3/16, dbt5/16);
+
+    /* BMS readout */
+    if (readbmsflag != 0)
+    {
+      readbmsflag = 0;
       /* Header: device readings and cell numbers */
-      lctr += 1;
-      if (lctr > 1)
+      yprintf(&pbuf1,"\n\n\rH ");
+      for (i = 1; i < 17; i++)
       {
-        lctr = 0;
-
-        yprintf(&pbuf1,"\treg0_config: %02X\tddsgp_config_u16: %02X",reg0_config_u16,ddsgp_config_u16);
-        yprintf(&pbuf1,"\n\n\r%d",mctr++);
-        for (i = 1; i < 17; i++)
-          yprintf(&pbuf1,"%7d",i); // Cell number column heading
-          yprintf(&pbuf1," TOPSTACK PACKPIN    LD  CC2"); //Additional 
+        yprintf(&pbuf1,"%8d",i); // Cell number column heading
       }
+        yprintf(&pbuf1,"      T1      T2      T3     TOS\n\rV "); //Additional 
 
-      /* Cell voltages. */
-      pv = &cellv[cvidx][0];
-      yprintf(&pbuf1,"\n\r   ");
-      for (i = 0; i < BQVSIZE; i++)
+     /* BMS readout (cells, thermistors, top-of-stack) */
+      for (i = 0; i < ADCBMSMAX; i++)
       {
-        yprintf(&pbuf1,"%7d",*pv++);
+        yprintf(&pbuf1," %7.4f",fbms[i]);
       }
+      /* List iir filtered raw ADC readigns. */      
+      yprintf(&pbuf1,"\n\rF ");
+      for (i = 0; i < ADCBMSMAX; i++)
+      {
+        yprintf(&pbuf2," %7.4f",bqfunction.cal_filt[i]);
+      }
+extern uint8_t  dbdischargebit; // Discharge bit (0-15)
+yprintf(&pbuf1,"\n\rDISCH: %2d %04X",dbdischargebit+1, pssb->cellbits);
+//extern uint32_t dbadcn1;
+//yprintf(&pbuf1,"\n\rADC: %d",dbadcn1);
 
-      /* Sum cell voltages to check Topstack and packpin */
-      int32_t csum = 0;
-      pv = &cellv[cvidx][0];
-      for (i = 0; i < 16; i++) csum += *pv++;
-      yprintf (&pbuf1,"%7d", csum);
+#if 1 
+     /* List raw ADC counts for calibration purposes. */
+      yprintf(&pbuf2,"\n\rRW");
+      extern uint8_t dbupdnx;
+      for (i = 0; i < 16; i++)
+      {
+        if (dbupdnx == 0)
+          yprintf(&pbuf2," %7i",adcspiall.raw[15-i]);
+        else
+          yprintf(&pbuf2," %7i",adcspiall.raw[i]);
+      }
+      for (i = 16; i < ADCBMSMAX; i++)
+      {
+        yprintf(&pbuf2," %7i",adcspiall.raw[i]);
+      }
+#endif
+      /* List iir filtered raw ADC readigns. */      
+      yprintf(&pbuf1,"\n\rIIR ");
+      for (i = 0; i < ADCBMSMAX; i++)
+      {
+        yprintf(&pbuf2," %7.1f",bqfunction.raw_filt[i]);
+      }
+      yprintf(&pbuf1,"\n\rBAK %02X %02X %02X",adcspiall.spirx24.uc[0],adcspiall.spirx24.uc[1],adcspiall.spirx24.uc[2]);
+    }
 
- //     cvidx ^= 1; // Alternate buffers for readin/readout
-    }
-    else
-    { // Here, not getting valid I2C transfers from BQ
-      yprintf(&pbuf1,"\n\r%5d: bqflag: %d",mctr++, bqflag); 
-    }
-#endif //BQMonitor
+    /* Other misc. */
+    extern uint32_t dbadcspit3;
+    extern uint32_t dbbms3;
+    yprintf(&pbuf1,"\n\rU %8d ",dbadcspit3);
+    extern uint32_t dbbmst[21];
+    for (i = 0; i < 20; i++)
+      yprintf(&pbuf1,"%7d ",dbbmst[i]);
+ // yprintf(&pbuf1,"\n\rT %d\n\r",dbbms3);
   }
   /* USER CODE END 5 */
 }

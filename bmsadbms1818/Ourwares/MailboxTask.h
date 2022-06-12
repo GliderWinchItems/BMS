@@ -7,7 +7,8 @@
 #ifndef __MAILBOXTASK
 #define __MAILBOXTASK
 
-#include "stm32l4xx_hal_def.h"
+#include "stm32l4xx_hal.h"
+#include "stm32l4xx_hal_can.h"
 #include "FreeRTOS.h"
 #include "task.h"
 #include "cmsis_os.h"
@@ -121,12 +122,12 @@ struct MAILBOXCAN* MailboxTask_add(struct CAN_CTLBLOCK* pctl,\
  * @param	: paytype = payload type code (see 'PAYLOAD_TYPE_INSERT.sql' in 'GliderWinchCommons/embed/svn_common/db')
  * @return	: Pointer to mailbox; NULL = failed
  * *************************************************************************/
-osThreadId xMailboxTaskCreate(uint32_t taskpriority);
+TaskHandle_t xMailboxTaskCreate(uint32_t taskpriority);
 /* @brief	: Create task; task handle created is global for all to enjoy!
  * @param	: taskpriority = Task priority (just as it says!)
  * @return	: QueueHandle_t = queue handle
  * *************************************************************************/
-void StartMailboxTask(void const * argument);
+void StartMailboxTask(void* argument);
 /*	@brief	: Task startup
  * *************************************************************************/
 struct CANNOTIFYLIST* MailboxTask_disable_notifications(struct MAILBOXCAN* pmbx);
@@ -155,7 +156,7 @@ struct CANRCVBUFN* Mailboxgetbuf(int i);
  * @return	: Pointer to CAN msg circular buffer; NULL = failed
  * *************************************************************************/
 
-extern osThreadId MailboxTaskHandle;
+extern TaskHandle_t MailboxTaskHandle;
 extern struct MAILBOXCANNUM mbxcannum[STM32MAXCANNUM];
 
 #endif

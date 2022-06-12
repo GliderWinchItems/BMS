@@ -42,5 +42,7 @@ QueueHandle_t xCanRxTaskCreate(uint32_t taskpriority, int32_t queuesize);
 extern QueueHandle_t CanTxQHandle;
 extern QueueHandle_t CanRxQHandle;
 
+extern uint8_t CANTaskreadyflag;
+
 #endif
 

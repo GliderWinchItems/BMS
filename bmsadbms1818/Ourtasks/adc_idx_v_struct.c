@@ -121,96 +121,130 @@ p->cabsbms[15].coef[0] = -2.3186650E-03f;
 p->cabsbms[15].coef[1] = 8.0538161E-05f;
 p->cabsbms[15].coef[2] = -8.1326765E-12f;
 
-/* Top-of-stack */
+/* Cell #17 */
 p->cabsbms[19].coef[0] = 8.8203303E-02f;
 p->cabsbms[19].coef[1] = 1.2626728E-03f;
 p->cabsbms[19].coef[2] = 7.9562712E-12f;
 
-
-/* Thermistors */
-#define GENERICTHERM_SCALE   -3.559596E-03f
-#define GENERICTHERM_OFFSET	  1.874780E+02f 
-
-/* Thermistor # 1 */
+/* Cell #18 */
 p->cabsbms[16].coef[0] = 2.0190213E+02f;
 p->cabsbms[16].coef[1] = -4.8305505E-03f;
 p->cabsbms[16].coef[2] = 2.4866130E-08f;
 
-/* Thermistor # 2 */
-p->cabsbms[17].coef[0] = 2.0162182E+02f;
-p->cabsbms[17].coef[1] = -4.7452832E-03f;
-p->cabsbms[17].coef[2] = 2.3172558E-08f;
+/* ADBMS1818 ADC reading sequence/array indices */
+#define BMSAUX_1_NC           0 // GPIO 1 No Connection
+#define BMSAUX_2_THERM1       1 // GPIO 2 Thermistor 1
+#define BMSAUX_3_THERM3       2 // GPIO 3 Thermistor 3
+#define BMSAUX_4_THERM2       3 // GPIO 4 Thermistor 2
+#define BMSAUX_5_US6          4 // GPIO 5 Spare: U$6
+#define BMSAUX_6_CUR_SENSE    5 // GPIO 6 Current sense op amp
+#define BMSAUX_7_HALL         6 // GPIO 7 Hall effect sensor signal
+#define BMSAUX_8_US9          7 // GPIO 8 Spare: U$9
+#define BMSAUX_9_US10         8 // GPIO 9 Spare: U$10
 
-/* Thermistor # 3 */
-p->cabsbms[18].coef[0] = 2.0023062E+02f;
-p->cabsbms[18].coef[1] = -4.6834758E-03f;
-p->cabsbms[18].coef[2] = 2.2552685E-08f;
+/* Auxilarly GPIO 1 No Connection */
+p->cabsaux[BMSAUX_1_NC].coef[0] = 2.0162182E+02f;
+p->cabsaux[BMSAUX_1_NC].coef[1] = -4.7452832E-03f;
+p->cabsaux[BMSAUX_1_NC].coef[2] = 2.3172558E-08f;
+
+/* Auxilarly GPIO 2 Thermistor 1 */
+p->cabsaux[BMSAUX_2_THERM1].coef[0] = 2.0162182E+02f;
+p->cabsaux[BMSAUX_2_THERM1].coef[1] = -4.7452832E-03f;
+p->cabsaux[BMSAUX_2_THERM1].coef[2] = 2.3172558E-08f;
+
+/* Auxilarly GPIO 3 Thermistor 3 */
+p->cabsaux[BMSAUX_3_THERM3].coef[0] = 2.0162182E+02f;
+p->cabsaux[BMSAUX_3_THERM3].coef[1] = -4.7452832E-03f;
+p->cabsaux[BMSAUX_3_THERM3].coef[2] = 2.3172558E-08f;
+
+/* Auxilarly GPIO 4 Thermistor 2 */
+p->cabsaux[BMSAUX_4_THERM2].coef[0] = 2.0162182E+02f;
+p->cabsaux[BMSAUX_4_THERM2].coef[1] = -4.7452832E-03f;
+p->cabsaux[BMSAUX_4_THERM2].coef[2] = 2.3172558E-08f;
+
+/* Auxilarly GPIO 5 Spare: U$6 */
+p->cabsaux[BMSAUX_5_US6].coef[0] = 2.0162182E+02f;
+p->cabsaux[BMSAUX_5_US6].coef[1] = -4.7452832E-03f;
+p->cabsaux[BMSAUX_5_US6].coef[2] = 2.3172558E-08f;
+
+/* Auxilarly GPIO 6 Current sense op amp */
+p->cabsaux[BMSAUX_6_CUR_SENSE].coef[0] = 2.0162182E+02f;
+p->cabsaux[BMSAUX_6_CUR_SENSE].coef[1] = -4.7452832E-03f;
+p->cabsaux[BMSAUX_6_CUR_SENSE].coef[2] = 2.3172558E-08f;
+
+/* Auxilarly GPIO 7 U$12 w divider */
+p->cabsaux[BMSAUX_7_HALL].coef[0] = 2.0162182E+02f;
+p->cabsaux[BMSAUX_7_HALL].coef[1] = -4.7452832E-03f;
+p->cabsaux[BMSAUX_7_HALL].coef[2] = 2.3172558E-08f;
+
+/* Auxilarly GPIO 8 Spare: U$9 */
+p->cabsaux[BMSAUX_8_US9].coef[0] = 2.0162182E+02f;
+p->cabsaux[BMSAUX_8_US9].coef[1] = -4.7452832E-03f;
+p->cabsaux[BMSAUX_8_US9].coef[2] = 2.3172558E-08f;
+
+/* Auxilarly GPIO 9 Spare: U$10 */
+p->cabsaux[BMSAUX_9_US10].coef[0] = 2.0162182E+02f;
+p->cabsaux[BMSAUX_9_US10].coef[1] = -4.7452832E-03f;
+p->cabsaux[BMSAUX_9_US10].coef[2] = 2.3172558E-08f;
 
 
 /* ADC channels (except for ADC_IN1 used with BMS).*/
 #define CELLTC 0.70f // Default filter time constant
 #define SKIPCT 3    // Ignore initial readings to filter
 #define DEFAULTSCALE 1.2591575E-05f // Base on nominal values
-// ADC1IDX_INTERNALVREF  0	// IN0	247.5	1	
-	p->cabsadc[0].iir_f1.coef     = 0.99f; // Filter time constant
-	p->cabsadc[0].iir_f1.skipctr  = SKIPCT;  // Initial skip
-	p->cabsadc[0].scale     = 1.2591575E-05f; // Apply calibration below 
-	p->cabsadc[0].ioffset    = 0;  // Offset before scale
 
-// ADC1IDX_INTERNALTEMP  1	// IN17	247.5	2
-	p->cabsadc[1].iir_f1.coef     = 0.99f; // Filter time constant
-	p->cabsadc[1].iir_f1.skipctr  = SKIPCT;  // Initial skip
-	p->cabsadc[1].scale     = (1.0f/(4.0f*16.0f)); // Apply calibration below 
-	p->cabsadc[1].ioffset    = 0;  // Offset before scale
+// ADC1IDX_PC3_OPA_OUT   0	// IN4	  2.5	8
+	p->cabsadc[ADC1IDX_PC3_OPA_OUT].iir_f1.coef     = CELLTC; // Filter time constant
+	p->cabsadc[ADC1IDX_PC3_OPA_OUT].iir_f1.skipctr  = SKIPCT;  // Initial skip
+	p->cabsadc[ADC1IDX_PC3_OPA_OUT].scale     = (1.0f/(8*16)); // 
+	p->cabsadc[ADC1IDX_PC3_OPA_OUT].ioffset    = 0;  // Offset before scale
 
-// ADC1IDX_PA4_DC_DC     2 // IN9	247.5   3	6.8K|33K divider
-	p->cabsadc[2].iir_f1.coef     = CELLTC; // Filter time constant
-	p->cabsadc[2].iir_f1.skipctr  = SKIPCT;  // Initial skip
-	p->cabsadc[2].scale     = 7.3697748E-05f;
-; // Apply calibration below 
-	p->cabsadc[2].ioffset    = 0;  // Offset before scale
+// ADC1IDX_PA0_OPA_INP	  1 // IN5	 24.5	9
+	p->cabsadc[ADC1IDX_PA0_OPA_INP].iir_f1.coef     = CELLTC; // Filter time constant
+	p->cabsadc[ADC1IDX_PA0_OPA_INP].iir_f1.skipctr  = SKIPCT;  // Initial skip
+	p->cabsadc[ADC1IDX_PA0_OPA_INP].scale     = 3.8156288E-03f; // 
+	p->cabsadc[ADC1IDX_PA0_OPA_INP].ioffset    = 0;  // Offset before scale
 
+// ADC1IDX_PA3_FET_CUR1  2 // IN8    12.5  10  OPA_OUT (PA0 amplified) 
+	p->cabsadc[ADC1IDX_PA3_FET_CUR1].iir_f1.coef     = CELLTC; // Filter time constant
+	p->cabsadc[ADC1IDX_PA3_FET_CUR1].iir_f1.skipctr  = SKIPCT;  // Initial skip
+	p->cabsadc[ADC1IDX_PA3_FET_CUR1].scale     = 3.8156288E-03f; // 
+	p->cabsadc[ADC1IDX_PA3_FET_CUR1].ioffset    = 0;  // Offset before scale
 // ADC1IDX_PA7_HV_DIV    3	// IN12	640.5	4
-	p->cabsadc[3].iir_f1.coef     = CELLTC; // Filter time constant
-	p->cabsadc[3].iir_f1.skipctr  = SKIPCT;  // Initial skip
-	p->cabsadc[3].scale     = 2.7205433E-04f; // Apply calibration below 
-	p->cabsadc[3].ioffset    = 0;  // Offset before scale
+	p->cabsadc[ADC1IDX_PA7_HV_DIV].iir_f1.coef     = CELLTC; // Filter time constant
+	p->cabsadc[ADC1IDX_PA7_HV_DIV].iir_f1.skipctr  = SKIPCT;  // Initial skip
+	p->cabsadc[ADC1IDX_PA7_HV_DIV].scale     = 2.7205433E-04f; // Apply calibration below 
+	p->cabsadc[ADC1IDX_PA7_HV_DIV].ioffset    = 0;  // Offset before scale
 
-// ADC1IDX_PC1_FET_CUR   4	// IN2	 47.5	5
-	p->cabsadc[4].iir_f1.coef     = CELLTC; // Filter time constant
-	p->cabsadc[4].iir_f1.skipctr  = SKIPCT;  // Initial skip
-	p->cabsadc[4].scale     = DEFAULTSCALE; // Apply calibration below 
-	p->cabsadc[4].ioffset    = 0;  // Offset before scale
+// ADC1IDX_PC4_THERMSP1  4	// IN13	247.5	6
+	p->cabsadc[ADC1IDX_PC4_THERMSP1].iir_f1.coef     = CELLTC; // Filter time constant
+	p->cabsadc[ADC1IDX_PC4_THERMSP1].iir_f1.skipctr  = SKIPCT;  // Initial skip
+	p->cabsadc[ADC1IDX_PC4_THERMSP1].scale     = DEFAULTSCALE; // Apply calibration below 
+	p->cabsadc[ADC1IDX_PC4_THERMSP1].ioffset    = 0;  // Offset before scale
 
-// ADC1IDX_PC4_THERMSP1  5	// IN13	247.5	6
-	p->cabsadc[5].iir_f1.coef     = CELLTC; // Filter time constant
-	p->cabsadc[5].iir_f1.skipctr  = SKIPCT;  // Initial skip
-	p->cabsadc[5].scale     = DEFAULTSCALE; // Apply calibration below 
-	p->cabsadc[5].ioffset    = 0;  // Offset before scale
+// ADC1IDX_PC5_THERMSP2  5	// IN14	247.5	7
+	p->cabsadc[ADC1IDX_PC5_THERMSP2].iir_f1.coef     = CELLTC; // Filter time constant
+	p->cabsadc[ADC1IDX_PC5_THERMSP2].iir_f1.skipctr  = SKIPCT;  // Initial skip
+	p->cabsadc[ADC1IDX_PC5_THERMSP2].scale     = DEFAULTSCALE; // Apply calibration below 
+	p->cabsadc[ADC1IDX_PC5_THERMSP2].ioffset    = 0;  // Offset before scale
 
-// ADC1IDX_PC5_THERMSP2  6	// IN14	247.5	7
-	p->cabsadc[6].iir_f1.coef     = CELLTC; // Filter time constant
-	p->cabsadc[6].iir_f1.skipctr  = SKIPCT;  // Initial skip
-	p->cabsadc[6].scale     = DEFAULTSCALE; // Apply calibration below 
-	p->cabsadc[6].ioffset    = 0;  // Offset before scale
+// ADC1IDX_INTERNALVREF  6	// IN0	247.5	1	
+	p->cabsadc[ADC1IDX_INTERNALVREF].iir_f1.coef     = 0.99f; // Filter time constant
+	p->cabsadc[ADC1IDX_INTERNALVREF].iir_f1.skipctr  = SKIPCT;  // Initial skip
+	p->cabsadc[ADC1IDX_INTERNALVREF].scale     = 1.2591575E-05f; // Apply calibration below 
+	p->cabsadc[ADC1IDX_INTERNALVREF].ioffset    = 0;  // Offset before scale
 
-// ADC1IDX_PC3_OPA_OUT   7	// IN4	  2.5	8
-	p->cabsadc[7].iir_f1.coef     = CELLTC; // Filter time constant
-	p->cabsadc[7].iir_f1.skipctr  = SKIPCT;  // Initial skip
-	p->cabsadc[7].scale     = (1.0f/(8*16)); // 
-	p->cabsadc[7].ioffset    = 0;  // Offset before scale
+// ADC1IDX_INTERNALTEMP  7	// IN17	247.5	2
+	p->cabsadc[ADC1IDX_INTERNALTEMP].iir_f1.coef     = 0.99f; // Filter time constant
+	p->cabsadc[ADC1IDX_INTERNALTEMP].iir_f1.skipctr  = SKIPCT;  // Initial skip
+	p->cabsadc[ADC1IDX_INTERNALTEMP].scale     = (1.0f/(4.0f*16.0f)); // Apply calibration below 
+	p->cabsadc[ADC1IDX_INTERNALTEMP].ioffset    = 0;  // Offset before scale
 
-// ADC1IDX_PA0_OPA_INP	  8 // IN5	 24.5	9
-	p->cabsadc[8].iir_f1.coef     = CELLTC; // Filter time constant
-	p->cabsadc[8].iir_f1.skipctr  = SKIPCT;  // Initial skip
-	p->cabsadc[8].scale     = 3.8156288E-03f; // 
-	p->cabsadc[8].ioffset    = 0;  // Offset before scale
-
-// ADC1IDX_PA3_FET_CUR1  9 // IN8    12.5  10  OPA_OUT (PA0 amplified) 
-	p->cabsadc[9].iir_f1.coef     = CELLTC; // Filter time constant
-	p->cabsadc[9].iir_f1.skipctr  = SKIPCT;  // Initial skip
-	p->cabsadc[9].scale     = 3.8156288E-03f; // 
-	p->cabsadc[9].ioffset    = 0;  // Offset before scale
+// ADC1IDX_PA4_DC_DC     8 // IN9	247.5   3	6.8K|33K divider
+	p->cabsadc[ADC1IDX_PA4_DC_DC].iir_f1.coef     = CELLTC; // Filter time constant
+	p->cabsadc[ADC1IDX_PA4_DC_DC].iir_f1.skipctr  = SKIPCT;  // Initial skip
+	p->cabsadc[ADC1IDX_PA4_DC_DC].scale     = 7.3697748E-05f;
+	p->cabsadc[ADC1IDX_PA4_DC_DC].ioffset    = 0;  // Offset before scale
 
 	/* Initialize iir filter. */
 	for (int i = 0; i < ADCDIRECTMAX; i++)

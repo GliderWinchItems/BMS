@@ -13,8 +13,9 @@
 #include "cmsis_os.h"
 #include "stm32l4xx_hal.h"
 #include "adcparams.h"
+#include "main.h"
 
-#define ADCSEQNUM 1  // Number of ADC scans in 1/2 of the DMA buffer
+#define ADCSEQNUM 16  // Number of ADC scans in 1/2 of the DMA buffer
 #define ADCSUMCT 16 // Number of ADC scans in sum
 
 /* *************************************************************************/
@@ -28,9 +29,9 @@ osThreadId xADCTaskCreate(uint32_t taskpriority);
 extern TaskHandle_t ADCTaskHandle;
 
 // Summation of ADC scan 
-extern uint32_t adcsumdb[2][ADC1IDX_ADCSCANSIZE + 2]; 
+extern uint32_t adcsumdb[2][ADC1IDX_ADCSCANSIZE]; 
 // Filtered
-extern float adcsumfilt[2][ADC1IDX_ADCSCANSIZE + 2];
+extern float adcsumfilt[2][ADC1IDX_ADCSCANSIZE];
 
 extern uint8_t  adcsumidx; // Index for currently being summed
 
