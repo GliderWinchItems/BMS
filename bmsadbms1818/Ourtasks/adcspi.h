@@ -1,8 +1,8 @@
 /******************************************************************************
 * File Name          : adcspi.h
-* Board              : bms14921: STM32L431
-* Date First Issued  : 02/19/2022
-* Description        : ADC w SPI management with MAX1421 board
+* Board              : bmsbms1818: STM32L431
+* Date First Issued  : 06/17/2022
+* Description        : SPI management with ADBMS1818 board
 *******************************************************************************/
 /* 
 
@@ -15,12 +15,7 @@
 #include "cmsis_os.h"
 #include "stm32l4xx_hal.h"
 
-union SPI24
-{
-	uint8_t  uc[4];
-	uint16_t us[2];
-	uint32_t ui;
-};
+
 
 /* *************************************************************************/
 void adcspi_readbms(void);

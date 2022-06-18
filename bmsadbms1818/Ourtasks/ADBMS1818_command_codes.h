@@ -57,6 +57,12 @@
 #define RDCOMM   0x722  // Read COMM Register Group
 #define STCOMM   0x723  // Start I2C/SPI Communication
 #define MUTE     0x028  // Mute Discharge
-#define UNMUTE   0x028  // Unmute Discharge
+#define UNMUTE   0x029  // Unmute Discharge
+
+
+/*
+Code for LTC1813
+https://github.com/HungFrancis/-BMS_DC2350A_2020FSAE/blob/master/libraries/LTC681x/LTC681x.cpp
+*/
 
 #endif

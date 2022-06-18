@@ -33,6 +33,9 @@ uint8_t  adcsumidx = 0;
 // IIR filtering of adcsumdb[][]
 float adcsumfilt[2][ADC1IDX_ADCSCANSIZE];
 float* padcfilt = &adcsumfilt[0][0];
+
+struct ADCSPIALL adcspiall;
+
 static uint8_t decimatectr = 0; 
 
 TaskHandle_t ADCTaskHandle;

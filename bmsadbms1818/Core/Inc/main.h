@@ -94,6 +94,8 @@ void Error_Handler(void);
 #define DUMP2_GPIO_Port GPIOC
 #define DUMP_NOT_Pin GPIO_PIN_8
 #define DUMP_NOT_GPIO_Port GPIOC
+#define CSB_Pin GPIO_PIN_15
+#define CSB_GPIO_Port GPIOA
 #define DUMP_Pin GPIO_PIN_10
 #define DUMP_GPIO_Port GPIOC
 #define HEATER_NOT_Pin GPIO_PIN_11
