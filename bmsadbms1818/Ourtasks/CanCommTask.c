@@ -3,14 +3,16 @@
 * Date First Issued  : 11/06/2021
 * Description        : Can communications
 *******************************************************************************/
-
 #include "FreeRTOS.h"
 #include "task.h"
 #include "cmsis_os.h"
 #include "malloc.h"
+#include "semphr.h"
 
 #include "main.h"
 #include "morse.h"
+#include "bmsspi.h"
+#include "bmsdriver.h"
 #include "CanCommTask.h"
 #include "MailboxTask.h"
 #include "CanTask.h"
@@ -36,7 +38,7 @@ uint8_t rdyflag_cancomm = 0; // Initialization complete and ready = 1
 
 TaskHandle_t CanCommHandle = NULL;
 
-static struct ADCREADREQ adcreadreq; // Request BMS readout
+static struct BMSSPIALL bmsspiall; // Request BMS readout
 
 uint8_t dbupdnx;
 
@@ -107,7 +109,6 @@ void CanComm_init(struct BQFUNCTION* p )
 
 	return;
 }
-
 /* *************************************************************************
  * void StartCanComm(void const * argument);
  *	@brief	: Task startup
@@ -118,7 +119,7 @@ void StartCanComm(void* argument)
 
 	BaseType_t qret;
 	uint32_t noteval2;
-	struct ADCREADREQ* padcreadreq = &adcreadreq;
+	struct BMSSPIALL* pbmsspiall readreq = &bmsreadreq;
 
 	/* We use the parameters from BQ for this task. */
 	struct BQFUNCTION* p = &bqfunction;
@@ -127,25 +128,17 @@ void StartCanComm(void* argument)
 	uint32_t doneflagctr;
 
 	/* A notification copies the internal notification word to this. */
-	uint32_t noteval = 0;    // Receives notification word upon an API notify
+	uint32_t noteval = 0; 
 	uint32_t timeoutwait;
 	uint8_t intadj = 0;
 	uint8_t code;
 
-//	while (CANTaskreadyflag == 0) osDelay(1); // Debug
-
 	/* Pre-load BMS readout request queue block. */	
-//	adcreadreq.taskhandle = CanCommHandle; // Requesting task's handle
-//	adcreadreq.tasknote   = CANCOMMBIT03;  // ADCTask completed BMS read 
-	adcreadreq.taskdata   = &fbms[0];  // Requesting task's pointer to buffer to receive data
-	adcreadreq.taskdatai16= &uibms[0]; // Requesting task's pointer to int16_t buffer to receive data
-	adcreadreq.cellbits   = 0x0000;    // Depends on command: FET to set; Open cell wires
-	adcreadreq.updn       = 0; // BMS readout direction 0 = high->low cell numbers; 1 = low->high
-	adcreadreq.reqcode    = REQ_READBMS;  // Read MAX1921 cells, thermistor, Top-of-stack
-	adcreadreq.encycle    = 1;     // Cycle EN: 0 = after read; 1 = before read w osDelay; 2 = neither
-	adcreadreq.readbmsfets= 0;        // Clear discharge fets before readbms.	
-	adcreadreq.doneflag   = 0; // 1 = ADCTask completed BMS read 
-dbupdnx = adcreadreq.updn;
+	bmsspiall.bmsreadreq.taskdata   = &fbms[0];  // Requesting task's pointer to float buffer to receive data
+	bmsspiall.bmsreadreq.taskdatai16= &uibms[0]; // Requesting task's pointer to int16_t buffer to receive data
+	bmsspiall.bmsreadreq.cellbits   = 0x0000;    // Depends on command: FET to set; Open cell wires
+	bmsspiall.bmsreadreq.readbmsfets= 0;        // Clear discharge fets before readbms.	
+	bmsspiall.bmsreadreq.doneflag   = 0; // 1 = ADCTask completed BMS read 
 
 	/* CAN communications parameter init. */
 	CanComm_init(p);
@@ -171,28 +164,11 @@ osDelay(20); // Wait for ADCTask to get going.
 		{
 			timeoutwait = 83;
 		}
-//timeoutwait = 40;
-xTaskNotifyWait(0,0xffffffff, &noteval,2);
-//		xTaskNotifyWait(0,0xffffffff, &noteval,timeoutwait);
-
-		/* Read BMS cells. */
-//		adcreadreq.doneflag   = 0;
-		doneflagctr = 0;
-
-		qret = xQueueSendToBack(ADCTaskReadReqQHandle, &padcreadreq, 5000);
-if (qret != pdPASS) morse_trap(720); // JIC debug
-
-		/* Wait for ADCTask to complete request. */
-#define DONEFLAGCT 200
-		while ((adcreadreq.doneflag == 0) && (doneflagctr++ < DONEFLAGCT)) 
-			osDelay(1);
-		if (doneflagctr >= DONEFLAGCT) morse_trap(731);
+//xTaskNotifyWait(0,0xffffffff, &noteval,2);
+		xTaskNotifyWait(0,0xffffffff, &noteval,timeoutwait);
 
 		/* Filter readings for calibration purposes. */
 		cancomm_items_filter(pssb->taskdatai16); // Filter 	
-
-continue;
-
 
 /* ******* CAN msg request for sending CELL VOLTAGES. */
 			// Code for which modules should respond bits [7:6]
@@ -209,13 +185,7 @@ morse_trap(6666);
 				((code == (2 << 6)) && ((pcan->cd.uc[0] & 0x30) == p->ident_string)) ||
 				((code == (1 << 6)) && ((pcan->cd.uc[0] & 0x3F) == p->ident_onlyus)) )
 			{ // Here, respond to request, otherwise, ignore.
-				qret = xQueueSendToBack(ADCTaskReadReqQHandle, &padcreadreq, 5000);
-				if (qret != pdPASS) morse_trap(726); // JIC debug
-
-				/* Wait for ADCTask to signal request complete. */
-				xTaskNotifyWait(0,0xffffffff, &noteval2, 5000);
-				if (noteval2 != CANCOMMBIT03) morse_trap(727); // JIC debug
-
+				bmsdriver(REQ_READBMS); // Read cells + GPIO 1 & 2
 				cancomm_items_uni_bms(&can_hb, &fbms[0]);
 			}
 		}
@@ -252,7 +222,7 @@ bqfunction.CanComm_hb_ctr = 0;
 			dbdischargectr += 1; // Time delay counter
 			if (dbdischargectr >= 32)
 			{ // Set FETs off
-				adcreadreq.cellbits = 0;
+				bmsspiall.bmsreadreq.cellbits = 0;
 			}
 			if (dbdischargectr >= 64)
 			{ // Step to next FET
@@ -266,6 +236,9 @@ bqfunction.CanComm_hb_ctr = 0;
 			if (bqfunction.CanComm_hb_ctr >= bqfunction.lc.CanComm_hb)
 			{
 				bqfunction.CanComm_hb_ctr = 0;
+
+				/* Get readings. */
+				bmsdriver(&bmsspiall);
 
 				/* Use dummy CAN msg, then it looks the same as a request CAN msg. */
 				can_hb.cd.uc[0] = CMD_CMD_TYPE2;  // Misc subcommands code

@@ -106,6 +106,7 @@ void cancomm_items_uni_bms(struct CANRCVBUF* pcan, float* pf)
 	switch(pcan->cd.uc[0])
 	{
 	case CMD_CMD_TYPE1: // Send Cell readings
+		bmsdriver(REQ_READBMS); // Read cells + GPIO 1 & 2
 		cancomm_items_sendcell(pcan, pf);
 		break;
 
@@ -244,6 +245,7 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pcan)
 		break;
 
  	case MISCQ_CELLV_CAL:   // 2 cell voltage: calibrated
+		bmsdriver(REQ_READBMS); // Read cells + GPIO 1 & 2
  		send_bms_array(pcan, &bqfunction.cal_filt[0], p->lc.ncell);
  		break;
 
@@ -252,6 +254,7 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pcan)
  		break;
 
  	case MISCQ_TEMP_CAL:    // 4 temperature sensor: calibrated
+		bmsdriver(REQ_TEMPERATURE); // Read cells + GPIO 1 & 2
  		send_bms_array(pcan, &bqfunction.cal_filt[16], 3);
  		break;
 

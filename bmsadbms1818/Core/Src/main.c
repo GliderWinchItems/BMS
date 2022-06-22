@@ -47,7 +47,6 @@
 #include "CanCommTask.h"
 #include "FanTask.h"
 
-
 #include "FreeRTOS.h"
 #include "semphr.h"
 /* USER CODE END Includes */
@@ -1061,6 +1060,8 @@ static void MX_TIM15_Init(void)
 
   TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+  TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig = {0};
 
   /* USER CODE BEGIN TIM15_Init 1 */
 
@@ -1081,9 +1082,35 @@ static void MX_TIM15_Init(void)
   {
     Error_Handler();
   }
+  if (HAL_TIM_OC_Init(&htim15) != HAL_OK)
+  {
+    Error_Handler();
+  }
   sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
   if (HAL_TIMEx_MasterConfigSynchronization(&htim15, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_TIMING;
+  sConfigOC.Pulse = 0;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
+  sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
+  if (HAL_TIM_OC_ConfigChannel(&htim15, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sBreakDeadTimeConfig.OffStateRunMode = TIM_OSSR_DISABLE;
+  sBreakDeadTimeConfig.OffStateIDLEMode = TIM_OSSI_DISABLE;
+  sBreakDeadTimeConfig.LockLevel = TIM_LOCKLEVEL_OFF;
+  sBreakDeadTimeConfig.DeadTime = 0;
+  sBreakDeadTimeConfig.BreakState = TIM_BREAK_DISABLE;
+  sBreakDeadTimeConfig.BreakPolarity = TIM_BREAKPOLARITY_HIGH;
+  sBreakDeadTimeConfig.AutomaticOutput = TIM_AUTOMATICOUTPUT_DISABLE;
+  if (HAL_TIMEx_ConfigBreakDeadTime(&htim15, &sBreakDeadTimeConfig) != HAL_OK)
   {
     Error_Handler();
   }
@@ -1463,13 +1490,13 @@ yprintf(&pbuf1,"\n\rDISCH: %2d %04X",dbdischargebit+1, pssb->cellbits);
       for (i = 0; i < 16; i++)
       {
         if (dbupdnx == 0)
-          yprintf(&pbuf2," %7i",adcspiall.raw[15-i]);
+          yprintf(&pbuf2," %7i",bmsspiall.raw[15-i]);
         else
-          yprintf(&pbuf2," %7i",adcspiall.raw[i]);
+          yprintf(&pbuf2," %7i",bmsspiall.raw[i]);
       }
       for (i = 16; i < ADCBMSMAX; i++)
       {
-        yprintf(&pbuf2," %7i",adcspiall.raw[i]);
+        yprintf(&pbuf2," %7i",bmsspiall.raw[i]);
       }
 #endif
       /* List iir filtered raw ADC readigns. */      
@@ -1478,7 +1505,7 @@ yprintf(&pbuf1,"\n\rDISCH: %2d %04X",dbdischargebit+1, pssb->cellbits);
       {
         yprintf(&pbuf2," %7.1f",bqfunction.raw_filt[i]);
       }
-      yprintf(&pbuf1,"\n\rBAK %02X %02X %02X",adcspiall.spirx24.uc[0],adcspiall.spirx24.uc[1],adcspiall.spirx24.uc[2]);
+      yprintf(&pbuf1,"\n\rBAK %02X %02X %02X",bmsspiall.spirx24.uc[0],bmsspiall.spirx24.uc[1],bmsspiall.spirx24.uc[2]);
     }
 
     /* Other misc. */

@@ -63,18 +63,28 @@ static const uint16_t cmdconfig[READOUTSIZE_STAT] = {
 	RDCFGA,/*  0x010  // Read Configuration Register Group A */
 	RDCFGB,/*  0x012  // Read Configuration Register Group B */
 };
-static const uint16_t cmdcmd[4] = {
+#define READOUTSIZE_SCTRL	 1
+static const uint16_t cmdsreg[READOUTSIZE_SCTRL] = {
+	RDSCTRL  0x016 /* // Read S Control Register Group */
+};
+static const uint16_t cmdcmd[5] = {
 	ADCVAX, /* Start Combined Cell Voltage and GPIO1 GPIO2 Conversion */
 	ADAX,   /* Start GPIOs ADC Conversion */
 	ADSTAT, /* Start Status Group ADC Conversion */
-	NULL,   /* Skip sending a "start" command. */
+	NULL,   /* Skip sending a "start" command: Read Configuation */
+	NULL,   /* Skip sending a "start" command: Read S Register */
+};
+static const uint16_t cmdw[3] = {
+	WRCFGA,  /*  0x001  // Write Configuration Register Group A */
+	WRCFGB,  /*  0x024  // Write Configuration Register Group B */
+	WRSCTRL, /*  0X014  // Write S Control Register Group */
 };
 
 uint8_t readbmsflag; // Let main know a BMS reading was made
 
 /* *************************************************************************
  * void adcspi_preinit(void);
- * @brief	: Save some things used later.
+ * @brief	: Initialization
  * *************************************************************************/
  void adcspi_preinit(void)
 {
@@ -120,7 +130,7 @@ uint8_t readbmsflag; // Let main know a BMS reading was made
  * static uint16_t readreg(uint16_t* p, uint16_t* pcmdr, uint8_t n);
  * @brief	: Read register, convert endianness
  * @param   : p = pointer to output array (little endian)
- * @param   : pcmdr = pointer to read command
+ * @param   : pcmdr = pointer to read command (NULL = skip conversionc command)
  * @param   ; n = number of register reads
  * @return  : 0 = no PEC15 error
  * *************************************************************************/
@@ -155,15 +165,53 @@ static unint16_t readreg(uint16_t* pcmdcmd, uint16_t* p, uint16_t* pcmdr, uint8_
 	return 0;
 }
 /* *************************************************************************
- * void adcspi_readstuff(uint8_t readstuff);
- * @brief	: Do conversion, then read registers with results
- * @brief   : readstuff = code for selection
+ * static void writereg(uint16_t* pcmdw, uint16_t* p);
+ * @brief	: Write register with convert endianness
+ * @param   : p = pointer to input array (little endian)
+ * @param   : pcmdw = pointer to write command
  * *************************************************************************/
-void adcspi_readstuff(uint8_t readstuff)
+static void writereg(uint16_t* pcmdw, uint16_t* p)
 {
-	uint16_t cmd1;
 
-	switch (readstuff)
+	adcspi_rw_cmd(pcmdw, p, 1); 
+
+	// Wait for conversions to complete
+	xTaskNotifyWait(0,0xffffffff, &noteval1, 3000);
+	if (noteval1 == 0) morse_trap(251);
+
+	return 0;
+}
+/* *************************************************************************
+ * void adcspi_writereg(uint8_t code);
+ * @brief   : Write register group(s)
+ * @param   : code = code for selection of register group
+ * *************************************************************************/
+void adcspi_writereg(uint8_t code)
+{
+	switch(code)
+	{
+	case WRITECONFIG: // Write configuration register groups A & B
+		writereg(&cmdw[0], &adcspiall.configreg[0]);
+		writereg(&cmdw[1], &adcspiall.configreg[1]);
+		break;
+
+	case WRITESREG: // Write S register groups
+		writereg(&cmdw[2], &adcspiall.sreg[0]);
+		break; 
+
+	default:
+		morse_trap(252);
+	}
+	return;
+}
+/* *************************************************************************
+ * void adcspi_readstuff(uint8_t code);
+ * @brief	: Do conversion, then read registers with results
+ * @brief   : code = code for selection of register group
+ * *************************************************************************/
+void adcspi_readstuff(uint8_t code)
+{
+	switch (code)
 	{
 	case READCELLSGPIO12: // Read cell voltages + GPIO1 & GPIO2
 		readreg(&cmdcmd[READCELLSGPIO12], adcspiall.cellreg, cmdv, 6);
@@ -180,6 +228,9 @@ void adcspi_readstuff(uint8_t readstuff)
 
 	case READCONFIG: // Read configuration
 		readreg(NULL, adcspiall.configreg,cmdconfig,READOUTSIZE_CONFIG);
+
+	case READSREG: // Read S register
+		readreg(NULL, adcspiall.sreg,cmdsreg,READOUTSIZE_SCTRL);
 		break;		
 
 	default: 
@@ -189,11 +240,8 @@ void adcspi_readstuff(uint8_t readstuff)
 	/* Signal 'main.c' that there is a bms reading. */
 	readbmsflag = 1;
 	// Upon this return ADCTask will notify requester.
-
-	//adcspi_setfets();
 	return;
 }
-
 /* *************************************************************************
  * void adcspi_rw_cmd(uint16_t* pcmd, uint16_t* pdata, unit8_t rw);
  * @brief	: Send command  and write data (little endian)
@@ -233,7 +281,6 @@ void adcspi_rw_cmd(uint16_t* pcmd, uint16_t* pdata, unit8_t rw)
 	case 1: // Send command and write 6 data+2 pec
 if (pdata == NULL)	 morse_trap(259);
 		dmact = 12;
-		CRC->CR = 0x9; // 16b poly, + reset CRC
 		//* Set data as big endian 1/2 words, plus pec big endian
 		p->spitx12.u32[1] = (uint32_t)__REV   (*(uint32_t*)(pdata+2)); // Load 4 bytes
 		*(__IO uint32_t*)CRC_BASE = (uint32_t)__REV (p->spitx12.u32[1]);
@@ -304,7 +351,11 @@ void adcspi_tim15_IRQHandler(void)
 	case TIMSTATE_3: // EXTI wait for rising EXTI timed out
 		CSB_GPIO_Port->BSRR = (CSB_Pin); // Set: CSB pin set high
 
-	  morse_trap(258); // EXTI interrupt wait timed out
+morse_trap(258); // EXTI interrupt wait timed out
+
+		p->tim15ctr -= 1;
+		if (p->tim15ctr > 0) break;
+		p->err |= 1; 
 
 		p->timstate = TIMSTATE_IDLE; // Set to idle, jic
 		// Notify ADCTask.c
@@ -336,8 +387,8 @@ void adcspi_spidmarx_IRQHandler(DMA_HandleTypeDef* phdma_spi1_rx)
 		EXTI->PR1  |= (1<<4); // Reset Pending JIC
 
 		/* Timeout: JIC, and debugging, and whatever... */
-		adcspiall.timstate = TIMSTATE_3;
-		TIM15->CCR1 = TIM15->CNT + (16*4000);  // 4 ms is enough
+		adcspiall.timstate = TIMSTATE_3; // Count TIM15 turnovers
+		adcspiall.tim15ctr = 2; // ~8 ms
 
 		// Expect next interrupt is SPI SDI pin going high
 		return;
@@ -360,6 +411,7 @@ void adcspi_spidmatx_IRQHandler(DMA_HandleTypeDef* phdma_spi1_tx)
 	return;
 }
 /* #######################################################################
+ * void EXTI4_IRQHandler(void);
  * PB4 SPI MISO pin-1818 SDO pin: interrupt upon rising edge
    ####################################################################### */	
 void EXTI4_IRQHandler(void)

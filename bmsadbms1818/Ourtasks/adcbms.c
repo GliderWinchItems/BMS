@@ -51,8 +51,6 @@ static uint32_t adc_sqr1;
 static uint32_t adc_cfgr; 
 static uint32_t adc_cfgr2;
 
-
-
 /* *************************************************************************
  * void adcbms_config_bms(void);
  * @brief	: Set up for MAX14921 BMS cell readout
@@ -60,8 +58,6 @@ static uint32_t adc_cfgr2;
  void adcspi_config(void)
  {
 	struct ADCSPIALL* p = &adcspiall; // Convenience pointer
-
-
 	
 	return;
  }

@@ -147,5 +147,4 @@ void adcparams_calibadc(void)
 		pabs += 1; 
 		pcabsadc += 1;
 	}
-	return;
-}
+}	

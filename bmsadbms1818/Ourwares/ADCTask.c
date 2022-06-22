@@ -1,7 +1,7 @@
 /******************************************************************************
 * File Name          : ADCTask.c
-* Board              : BMScable: STM32L431
-* Date First Issued  : 02/01/2019
+* Board              : bmsadbms1818: STM32L431
+* Date First Issued  : 06/19/2022
 * Description        : Processing ADC readings after ADC/DMA issues interrupt
 *******************************************************************************/
 /* 10/23/2020: Revised for Levelwind */
@@ -34,8 +34,6 @@ uint8_t  adcsumidx = 0;
 float adcsumfilt[2][ADC1IDX_ADCSCANSIZE];
 float* padcfilt = &adcsumfilt[0][0];
 
-struct ADCSPIALL adcspiall;
-
 static uint8_t decimatectr = 0; 
 
 TaskHandle_t ADCTaskHandle;
@@ -63,9 +61,19 @@ void StartADCTask(void *argument)
 	/* A notification copies the internal notification word to this. */
 	uint32_t noteval = 0;    // Receives notification word upon an API notify
 
+	/* Initialize SPI-DMA CRC ... */
+	adcspi_preinit();
+
+	/* Initialize params for ADC. */
+	adcparams_init();	
+
 	/* Get buffers, "our" control block, and start ADC/DMA running. */
 	struct ADCDMATSKBLK* pblk = adctask_init(&hadc1,TSK02BIT02,TSK02BIT03,&noteval);
 	if (pblk == NULL) {morse_trap(15);}
+
+	/* ADC calibration sequence before enabling ADC. */
+	ret = HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
+	if (ret == HAL_ERROR)  morse_trap(330);
 
 
   	/* Infinite loop */
