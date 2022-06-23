@@ -7,7 +7,7 @@
 #include "task.h"
 #include "cmsis_os.h"
 #include "malloc.h"
-#include "semphr.h"
+//#include "semphr.h"
 
 #include "main.h"
 #include "morse.h"
@@ -19,6 +19,7 @@
 #include "can_iface.h"
 #include "canfilter_setup.h"
 #include "BQTask.h"
+#include "bq_items.h"
 #include "cancomm_items.h"
 #include "../../../../GliderWinchCommons/embed/svn_common/trunk/db/gen_db.h"
 
@@ -26,6 +27,8 @@ extern struct CAN_CTLBLOCK* pctl0; // Pointer to CAN1 control block
 extern CAN_HandleTypeDef hcan1;
 
 static void canfilt(uint16_t mm, struct MAILBOXCAN* p);
+
+TaskHandle_t CanCommHandle = NULL;
 
 #define CANCOMMBIT00 (1 << 0) // Send cell voltage  command
 #define CANCOMMBIT01 (1 << 1) // Send misc reading command
@@ -36,19 +39,9 @@ struct CANRCVBUF  can_hb; // Dummy heart-beat request CAN msg
 uint8_t hbseq; // heartbeat CAN msg sequence number
 uint8_t rdyflag_cancomm = 0; // Initialization complete and ready = 1
 
-TaskHandle_t CanCommHandle = NULL;
-
-static struct BMSSPIALL bmsspiall; // Request BMS readout
-
-uint8_t dbupdnx;
-
 /* Walking discharge FETs for testing. */
 uint16_t dbdischargectr; // hb counter for timing
 uint8_t  dbdischargebit; // Discharge bit (0-15)
-
-/* Arrays loaded by readbms. */
-float fbms[ADCBMSMAX]; // (16+3+1) = 20; Number of MAX14921 (cells+thermistors+tos)   
-uint16_t uibms[ADCBMSMAX];
 
 /* *************************************************************************
  * void CanComm_init(struct BQFUNCTION* p );
@@ -132,13 +125,6 @@ void StartCanComm(void* argument)
 	uint32_t timeoutwait;
 	uint8_t intadj = 0;
 	uint8_t code;
-
-	/* Pre-load BMS readout request queue block. */	
-	bmsspiall.bmsreadreq.taskdata   = &fbms[0];  // Requesting task's pointer to float buffer to receive data
-	bmsspiall.bmsreadreq.taskdatai16= &uibms[0]; // Requesting task's pointer to int16_t buffer to receive data
-	bmsspiall.bmsreadreq.cellbits   = 0x0000;    // Depends on command: FET to set; Open cell wires
-	bmsspiall.bmsreadreq.readbmsfets= 0;        // Clear discharge fets before readbms.	
-	bmsspiall.bmsreadreq.doneflag   = 0; // 1 = ADCTask completed BMS read 
 
 	/* CAN communications parameter init. */
 	CanComm_init(p);

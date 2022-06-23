@@ -16,13 +16,14 @@
 #include "BQTask.h"
 
 /* *************************************************************************/
- void bq_items_seq(int16_t* p);
+ void bq_items_seq(void);
 /* @brief	: Go thought a sequence of steps to determine balancing
- * @param   : p = pointer to 16 cell voltage array
  * *************************************************************************/
  void bq_items_qsortV(struct BQCELLV* p);
 /* @brief	: Sort array by voltage
  * @param   : p = pointer to 16 cell struct array
  * *************************************************************************/
+
+ extern struct BQFUNCTION bqfunction;
 
 #endif

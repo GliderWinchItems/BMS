@@ -201,17 +201,7 @@ if (qret != pdPASS) morse_trap(722); // JIC debug
 	// Set trickle charger rate
 	TIM1->CCR1 = flag_trickle;
 
-	/* Queue request for ADCTask.c to set discharge FETS. */
-	cellbal_init(); // Update read request control block.
-	qret = xQueueSendToBack(ADCTaskReadReqQHandle, &arrbal, 3500);
-if (qret != pdPASS) morse_trap(724); // JIC debug
 
-	/* This waits for completion of request, but may not be necessary
-	   for just setting the discharge FET bits. */
-	doneflagctr = 0;
-	while ((arrbal.doneflag == 0) && (doneflagctr++ < DONEFLAGCT)) 
-		osDelay(1);
-	if (doneflagctr >= DONEFLAGCT) morse_trap(732);
 
 	return;
 }

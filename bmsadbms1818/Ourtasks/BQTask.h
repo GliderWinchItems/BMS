@@ -106,16 +106,17 @@ struct BQFUNCTION
 	struct BQCELLV cellv_bal[NCELLMAX]; // Working array for cell balancing
 	uint16_t cellv_latest[NCELLMAX]; // Cell voltage readings x10 (millivolts)
 	uint32_t cellvopenbits;// Bits for unexpected open cells (1 = open wire suspected) 
-	int32_t  cellv_total;  // Some of cell voltages
-	int16_t  cellv_high;   // Highest cellv millivolts
-	int16_t  cellv_low;    // Lowest  cellv millivolts
+	int32_t  cellv_total;  // Some of cell voltages (0.1 millivolts)
+	int16_t  cellv_high;   // Highest cellv 0.1 millivolts
+	int16_t  cellv_low;    // Lowest  cellv 0.1 millivolts
 	uint8_t  cellx_high;   // Highest cellv index (0-15)
 	uint8_t  cellx_low;    // Lowest  cellv index (0-15)
 
 	// Cell balancing
-	uint8_t hyster_sw;    // Hysteresis switch: 1 = peak was reached	
-	uint32_t trip_max;    // Bits for cells that reached cellv_max (target)
+	float targetv;        // Balance voltage target
 	float hysterv_lo;     // Hysteresis bottom voltage.
+	uint32_t trip_max;    // Bits for cells that reached cellv_max (target)
+	uint8_t hyster_sw;    // Hysteresis switch: 1 = peak was reached
 
 	/* Filter raw readings for calibration purposes. */
 	struct FILTERIIRF1 filtiirf1_raw[ADCBMSMAX]; // Filter parameters

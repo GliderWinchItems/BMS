@@ -40,12 +40,12 @@
 #include "BQTask.h"
 #include "bqview.h"
 #include "bqcellbal.h"
-#include "ChgrTask.h"
 #include "bq_func_init.h"
+#include "bq_items.h"
 #include "ADCTask.h"
 #include "MailboxTask.h"
 #include "CanCommTask.h"
-#include "FanTask.h"
+#include "fanop.h"
 
 #include "FreeRTOS.h"
 #include "semphr.h"
@@ -311,10 +311,11 @@ int main(void)
     CAN_IT_RX_FIFO0_MSG_PENDING |  \
     CAN_IT_RX_FIFO1_MSG_PENDING    );
 
-  /* Fan control task. */
-  retT = xFanTaskCreate(osPriorityNormal);
-  if (retT == NULL) morse_trap(124);
-
+  /* Init some things called by 'defaultTask' */
+  bq_func_init();
+  bq_init();
+  chgr_items_init();
+  fanop_init();
 
   /* USER CODE END RTOS_EVENTS */
 
@@ -1287,236 +1288,34 @@ void StartDefaultTask(void *argument)
 
   yprintf(&pbuf1,"\n\n\rPROGRAM STARTS");
 
+  #define FORDELAY 50 // Delay of 'for' loop in ms
   TickType_t tickcnt = xTaskGetTickCount();
+  const TickType_t xPeriod = pdMS_TO_TICKS(FORDELAY);  
 
-#define INCTICKS (1000*10)
-TickType_t ticks1 = xTaskGetTickCount()+INCTICKS;
-#define HMAX 40 // Number of histogram bins
-int8_t hidx = 0;
-uint16_t histo[HMAX];
-for ( i = 0; i < HMAX; i++)
-{
-  histo[i] = 0;
-}
+  uint16_t tickcnt_monitor = 0;
 
-uint32_t nctr = 0;
-uint32_t avectr = 0;
-float fmax[16];
-float fmin[16];
-float fmaxx[16];
-float fminx[16];
-float fave[16];
-float favelong = 0;
-uint8_t favesw = 1;
-float avelongctr = 0;
-for (i = 0; i < 16; i++)
-{
-  fmax[i] = 0;
-  fave[i] = 0;
-  fmin[i] = 10;
-  fmaxx[i] = 0;
-  fminx[i] = 10;
-}
+  bq_items_init();
 
   /* Infinite loop */
   for(;;)
   {
+    /* Loop polls various operations. */
+    vTaskDelayUntil( &tickcnt, xPeriod );
 
-    xTaskNotifyWait(0,0xffffffff, &noteval,10000);
+    /* Update FAN control. (4/sec) */
+    fanop();
 
-#if 0
-for (i = 0; i < 1; i++)
-{
-  fave[i] += fbms[i];
-}
+    /* Cell balance & control. */
+    bq_items();
 
-avelongctr += 1;
-if (favesw != 0)
-{
-  favesw = 0;
-  favelong = fbms[0]*1000;
-}
-else
-{
-  favelong = favelong + (fbms[0]*1000 - favelong)/avelongctr;
-}
-
-#define AVEDIV 1
-avectr += 1;
-if (avectr < AVEDIV) continue;
-avectr = 0;
-
-for (i = 0; i < 1; i++)
-{
-  fave[i] = fave[i]/AVEDIV;
-  if (fave[i] > fmax[i]) fmax[i] = fave[i];
-  if (fave[i] < fmin[i]) fmin[i] = fave[i];
-  hidx = ((fave[i]*1000.0 - favelong) +0.5f) + HMAX/2;
-  if ( hidx >= HMAX) hidx = HMAX-1;
-  if ( hidx < 0) hidx = 0;
-  histo[hidx] += 1;
-}
-
-nctr += 1;
-
- //   yprintf(&pbuf2,"\n\r%4d %4d", mctr++,nctr);
-    for (i = 0; i < 1; i++)
+    /* Pace monitoring output to 1 per sec. */
+    tickcnt_monitor += 1;
+    if (tickcnt_monitor > (1000/(pdMS_TO_TICKS(FORDELAY))))
     {
-
-      if (fmax[i] > fmaxx[i]) fmaxx[i] = fmax[i];
-      if (fmin[i] < fminx[i]) fminx[i] = fmin[i];
-
- //     yprintf(&pbuf1," %7.1f %7.1f %7.1f %7.1f %7.4f",(fmax[i]-fmin[i])*1000,fmaxx[i]*1000,fminx[i]*1000,(fmaxx[i]-fminx[i])*1000,fave[i]);
-      fave[i] = 0;
+      tickcnt_monitor = 0;
     }
 
-//yprintf(&pbuf2,"\n\r%7.4f %7.4f %7.4f",fave[0],fmax[0],fmin[0]);
-//if ( (int)(DTWTIME-dtw1) > INCDTW)
-if ( (int)(xTaskGetTickCount() - ticks1) > 0)  
-{
- //   yprintf(&pbuf2,"\n\r%4d %4d", mctr++,nctr);
-    for (i = 0; i < 1; i++)
-    {
-//      yprintf(&pbuf1," %7.1f",(fmax[i]-fmin[i])*1000);
-      fave[i] = 0;
-      fmax[i] = -1; fmin[i] = 10;  
-//      yprintf(&pbuf1," %7.4f",fbms[i]);
-    }
-    yprintf(&pbuf1,"\n\rX %4d %9.2f =============================",nctr,favelong);
-
-    uint16_t idxlo = 0;
-    for (i = 0; i < HMAX; i++)
-    {
-      if (histo[i] != 0)
-      {
-        if (i > 0)
-          idxlo = i;
-        else
-          idxlo = 0;
-        break;
-      }
-    }
-    uint16_t idxhi = HMAX-1;
-    for (i = HMAX-1; i > 0; i--)
-    {
-      if (histo[i] != 0)
-      {
-        if (i > 0)
-          idxhi = i;
-        else
-          idxhi = HMAX-1;
-        break;
-      }
-    }
-    uint32_t hsum = 0;
-    for (i = idxlo; i < idxhi+1; i++)
-    {
-      if (histo[i] == 0)
-        yprintf(&pbuf2,"\n\r.");
-      else
-      {
-        yprintf(&pbuf2,"\n\r%2d %4d",i,histo[i]);
-        hsum += histo[i];
-        histo[i] = 0;
-      }
-    }
-    yprintf(&pbuf1,"\n\n\r");
-
-  nctr = 0;
-//  dtw1 += INCDTW;
-  ticks1 += INCTICKS;
-}    
-continue;
-#endif
-    /* One second loop. */
-    vTaskDelayUntil( &tickcnt, 1000);
-    tickcnt = xTaskGetTickCount();
-
-    /* Display ADC/DMA readings. */
-    struct ADCFUNCTION* padc = &adc1;
-
-    yprintf(&pbuf1,"\n\n\rA %4i",mctr++);
-    for (i = 0; i < ADCDIRECTMAX; i++)
-    {
-      yprintf(&pbuf1,"%8i",padc->abs[i].sumsave);
-    }
-    yprintf(&pbuf1,"\n\rB     ");
-    for (i = 0; i < ADCDIRECTMAX; i++)
-    {
-      yprintf(&pbuf1,"%8.3f",padc->abs[i].f);
-    }
-    yprintf(&pbuf1," degC%8.3f", adc1.common.degC);
-    yprintf(&pbuf1,"\n\rC     ");
-    for (i = 0; i < ADCDIRECTMAX; i++)
-    {
-      yprintf(&pbuf1,"%8.3f",padc->abs[i].filt);
-    }
-    extern uint32_t dbt3;
-    extern uint32_t dbt5;
-    yprintf(&pbuf1," %d %d",dbt3/16, dbt5/16);
-
-    /* BMS readout */
-    if (readbmsflag != 0)
-    {
-      readbmsflag = 0;
-      /* Header: device readings and cell numbers */
-      yprintf(&pbuf1,"\n\n\rH ");
-      for (i = 1; i < 17; i++)
-      {
-        yprintf(&pbuf1,"%8d",i); // Cell number column heading
-      }
-        yprintf(&pbuf1,"      T1      T2      T3     TOS\n\rV "); //Additional 
-
-     /* BMS readout (cells, thermistors, top-of-stack) */
-      for (i = 0; i < ADCBMSMAX; i++)
-      {
-        yprintf(&pbuf1," %7.4f",fbms[i]);
-      }
-      /* List iir filtered raw ADC readigns. */      
-      yprintf(&pbuf1,"\n\rF ");
-      for (i = 0; i < ADCBMSMAX; i++)
-      {
-        yprintf(&pbuf2," %7.4f",bqfunction.cal_filt[i]);
-      }
-extern uint8_t  dbdischargebit; // Discharge bit (0-15)
-yprintf(&pbuf1,"\n\rDISCH: %2d %04X",dbdischargebit+1, pssb->cellbits);
-//extern uint32_t dbadcn1;
-//yprintf(&pbuf1,"\n\rADC: %d",dbadcn1);
-
-#if 1 
-     /* List raw ADC counts for calibration purposes. */
-      yprintf(&pbuf2,"\n\rRW");
-      extern uint8_t dbupdnx;
-      for (i = 0; i < 16; i++)
-      {
-        if (dbupdnx == 0)
-          yprintf(&pbuf2," %7i",bmsspiall.raw[15-i]);
-        else
-          yprintf(&pbuf2," %7i",bmsspiall.raw[i]);
-      }
-      for (i = 16; i < ADCBMSMAX; i++)
-      {
-        yprintf(&pbuf2," %7i",bmsspiall.raw[i]);
-      }
-#endif
-      /* List iir filtered raw ADC readigns. */      
-      yprintf(&pbuf1,"\n\rIIR ");
-      for (i = 0; i < ADCBMSMAX; i++)
-      {
-        yprintf(&pbuf2," %7.1f",bqfunction.raw_filt[i]);
-      }
-      yprintf(&pbuf1,"\n\rBAK %02X %02X %02X",bmsspiall.spirx24.uc[0],bmsspiall.spirx24.uc[1],bmsspiall.spirx24.uc[2]);
-    }
-
-    /* Other misc. */
-    extern uint32_t dbadcspit3;
-    extern uint32_t dbbms3;
-    yprintf(&pbuf1,"\n\rU %8d ",dbadcspit3);
-    extern uint32_t dbbmst[21];
-    for (i = 0; i < 20; i++)
-      yprintf(&pbuf1,"%7d ",dbbmst[i]);
- // yprintf(&pbuf1,"\n\rT %d\n\r",dbbms3);
-  }
+  } 
   /* USER CODE END 5 */
 }
 

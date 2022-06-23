@@ -109,9 +109,9 @@ C_SOURCES += Ourtasks/adc_idx_v_struct.c
 C_SOURCES += Ourtasks/iir_f1.c
 C_SOURCES += Ourtasks/iir_filter_lx.c
 C_SOURCES += Ourtasks/fetonoff.c
-C_SOURCES += Ourtasks/BQTask.c
+#C_SOURCES += Ourtasks/BQTask.c
 C_SOURCES += Ourtasks/bqview.c
-C_SOURCES += Ourtasks/bqcellbal.c
+C_SOURCES += Ourtasks/cellbal.c
 C_SOURCES += Ourtasks/bq_idx_v_struct.c
 C_SOURCES += Ourtasks/bq_func_init.c
 C_SOURCES += Ourtasks/LedTask.c
@@ -119,9 +119,9 @@ C_SOURCES += Ourtasks/bq_items.c
 C_SOURCES += Ourtasks/chgr_items.c
 C_SOURCES += Ourtasks/CanCommTask.c
 C_SOURCES += Ourtasks/cancomm_items.c
-C_SOURCES += Ourtasks/FanTask.c
+C_SOURCES += Ourtasks/fanop.c
 C_SOURCES += Ourtasks/bmsspi.c
-C_SOURCES += Ourtasks/BMSTask.c
+#C_SOURCES += Ourtasks/BMSTask.c
 C_SOURCES += Ourtasks/cellbal.c
 
 # /* USER CODE END */ 

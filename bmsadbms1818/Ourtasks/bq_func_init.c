@@ -10,12 +10,12 @@
 #include "../../../../GliderWinchCommons/embed/svn_common/trunk/db/gen_db.h"
 
 /* *************************************************************************
- * void bq_func_init(struct BQFUNCTION* p);
+ * void bq_func_init(void);
  * @brief	: Init struct with working parameters
- * @param   : p = pointer to struct will all parameters for BQ function
  * *************************************************************************/
-void bq_func_init(struct BQFUNCTION* p)
+void bq_func_init(void)
 {
+	struct BQFUNCTION* p = &bqfunction;
 	int i;
 
 	/* Get a copy of fixed parameters. */
@@ -71,6 +71,7 @@ void bq_func_init(struct BQFUNCTION* p)
 	}
 
 	/* Build a word with bits showing installed cell positions. */
+	p->cellspresent = 0;
 	for ( i = 0; i < NCELLMAX; i++)
 	{ // Skip predetermined empty box positions
 		if (p->lc.cellpos[i] != CELLNONE)

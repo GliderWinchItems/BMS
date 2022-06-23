@@ -3,13 +3,16 @@
 * Date First Issued  : 10/02/2021
 * Description        : routines associated with charging task
 *******************************************************************************/
-
+/* 
+06/22/2022 Update for ADBMS1818 
+*/
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
 #include "cmsis_os.h"
 #include "malloc.h"
 
+#include "DTW_counter.h"
 #include "main.h"
 #include "morse.h"
 #include "LedTask.h"
@@ -23,18 +26,46 @@
 	void bq_items_qsortV(struct BQCELLV* p);
 #endif
 
-/* *************************************************************************
- * void bq_items_seq(int16_t* p);
- * @brief	: Go thought a sequence of steps to determine balancing
- * @param   : p = pointer to NCELL cell voltage array
- * *************************************************************************/
+struct BQFUNCTION bqfunction;	
 struct BQCELLV dbsort[NCELLMAX];
 
-void bq_items_seq(int16_t* p)
+static uint32_t dtw_next;
+
+#define DTW10MS (16000*10) // 10 ms system ctr
+/* *************************************************************************
+ * void bq_items_init(void);
+ * @brief	: Cell balance 
+ * *************************************************************************/
+void bq_items_init(void)
+{
+	dtw_next = DTWTIME + DTW10MS;
+	return;
+}
+/* *************************************************************************
+ * void bq_items(void);
+ * @brief	: Cell balance 
+ * *************************************************************************/
+void bq_items(void)
+{
+	/* Every 10 ms do something. */
+	if ((int32_t)(DTWTIME - dtw_next) < 0) return;
+
+	bmsdriver(REQ_READBMS); // Read cells + GPIO 1 & 2
+	bq_items_selectfet();
+
+	return;
+}
+
+/* *************************************************************************
+ * void bq_items_selectfet(void);
+ * @brief	: Go thought a sequence of steps to determine balancing
+ * *************************************************************************/
+void bq_items_selectfet(void)
 {
 	struct BQFUNCTION* pbq = &bqfunction; // Convenience pointer
 	struct BQCELLV* psort  = &pbq->cellv_bal[0]; // Working array for cell balancing
-	int16_t tmp; // Cell voltages above 'tmp' are candidates for discharging
+	float* p = &bmsuser.cellv[0]; // Calibrated cell voltage
+	int16_t tmpv; // Cell voltages above 'tmp' are candidates for discharging
 	int16_t i,j; // variable name selected in memory of FORTRAN
 
 	/* This saves recomputing these in the loop. */
@@ -49,14 +80,10 @@ void bq_items_seq(int16_t* p)
 	/* Check each cell reading. */
 	for (i = 0; i < pbq->lc.ncell; i++)
 	{
-		if (*p == 0)
-		{ // Here, no cell readings likely
-			pbq->battery_status |= BSTATUS_NOREADING;
-		}
-		else
-		{
-			if ((*p < 0) || (*p > 5000))
-			{ // Here, zero or negative likely open wires
+		if ((bpq->cellspresent & (1<<i)) != 0)
+		{ // Here, cell position is installed
+			if  ((*p <= 0) ||(*p > 4500.0f))
+			{ // Here, zero or negative likely unexpected open wire
 				pbq->battery_status |= BSTATUS_OPENWIRE;
 			}
 			else
@@ -71,15 +98,15 @@ void bq_items_seq(int16_t* p)
 					pbq->cellv_low = *p; // Save voltage
 					pbq->cellx_low = i;  // Save cell index
 				} 
+				pbq->cellv_total += *p; // Sum cell readings
+				psort->v = *p; psort->idx = i; // Copy to struct for sorting
+				psort += 1;
 			}
 		}
-
-		pbq->cellv_total += *p; // Sum cell readings
-		psort->v = *p; psort->idx = i; // Copy to struct for sorting
-		psort += 1;
 		p += 1; // Next cell
 	}
-//debuggin: visually check duration between calls	
+
+// Debugging: visual check duration between calls	
 morse_string("E",GPIO_PIN_1);
 
 	/* Unusual situation check. */
@@ -142,40 +169,18 @@ morse_string("E",GPIO_PIN_1);
 // debugging: copy array for monitoring in 'main'
 for (i= 0;i<pbq->lc.ncell;i++) dbsort[i] = pbq->cellv_bal[i];	
 
-	// Sending 16b (for BQ76952) set active cells. 
-	pbq->cellbal = 0; // Begin with no cells set
-
 	/* Start with highest voltage cell and decrement index. */ 
 	i = ncellm1; // Sorted array index for highest cell voltage
 
 	/* Select cells for discharging. */
-	        /* Is number selected at max? */
-	while ( ((pbq->active_ct < pbq->balnumwrk) && 
-		    /* End of array? */
-		    (i >= 0)) && 
-		    /* Is this cell voltage a discharge candidate? */
-		    ((psort+i)->v > tmp) )
-	{ 
-		j = (psort+i)->idx; // Cell number index
-
-		/* Check if adjacent cell already selected. */
-	        /* Top case: adjacent cell is below. */
-		if (( (j == ncellm1) && 
-			  (((pbq->cellbal & (1 << ncellm2)) == 0))) ||
-			/* Bottom case: adjacent cell is above. */
-			( (j == 0) && 
-			  ((pbq->cellbal & (1 << 1)) == 0))   ||
-		    /* Middle cases: adjacent cell both above and below. */
-			( (j > 0) && 
-			  (j < ncellm1) && 
-			  ((pbq->cellbal & (1 << (j+1))) == 0)  &&
-			  ((pbq->cellbal & (1 << (j-1))) == 0) ) )	
-		{ // Here, adjcent cell(s) have not be selected.
-			pbq->cellbal |= (1 << j); // Set bit for discharge FET
+	pbq->cellbal = 0; // Begin with no cells set
+	for (i = 0; i < pbq->lc.ncell; i++)
+	{
+		if ((bpq->cellspresent & (1<<i)) != 0)
+		{ // Here, cell position is installed	
+			pbq->cellbal |= (1 << i); // Set bit for discharge FET
 			pbq->active_ct += 1; // Count number of cells selected
 		}
-
-		i -= 1;
 	}
 	return;
 }
