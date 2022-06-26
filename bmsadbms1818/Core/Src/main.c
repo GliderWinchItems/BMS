@@ -268,8 +268,8 @@ int main(void)
   //if (ret != pdPASS) morse_trap(113);
 
   /* BQTask. */
-  TaskHandle_t retT = xBQTaskCreate(osPriorityNormal);
-  if (retT == NULL) morse_trap(114);
+//  TaskHandle_t retT = xBQTaskCreate(osPriorityNormal);
+//  if (retT == NULL) morse_trap(114);
 
   /* USER CODE END RTOS_THREADS */
 
@@ -1289,12 +1289,11 @@ void StartDefaultTask(void *argument)
   yprintf(&pbuf1,"\n\n\rPROGRAM STARTS");
 
   #define FORDELAY 50 // Delay of 'for' loop in ms
-  TickType_t tickcnt = xTaskGetTickCount();
   const TickType_t xPeriod = pdMS_TO_TICKS(FORDELAY);  
-
+  TickType_t tickcnt = xTaskGetTickCount();
   uint16_t tickcnt_monitor = 0;
 
-  bq_items_init();
+  bq_items_init(); // Updates tickcnt
 
   /* Infinite loop */
   for(;;)
@@ -1306,15 +1305,22 @@ void StartDefaultTask(void *argument)
     fanop();
 
     /* Cell balance & control. */
-    bq_items();
-
-    /* Pace monitoring output to 1 per sec. */
-    tickcnt_monitor += 1;
-    if (tickcnt_monitor > (1000/(pdMS_TO_TICKS(FORDELAY))))
+    uint8_t ret8 = bq_items();
+    if (ret8 == 0)
     {
-      tickcnt_monitor = 0;
-    }
+      /* Pace monitoring output to 1 per sec. */
+      tickcnt_monitor += 1;
+      if (tickcnt_monitor > (1000/(pdMS_TO_TICKS(FORDELAY))))
+      {
+        tickcnt_monitor = 0;
 
+        /* '1818 Cell register */
+        yprintf(&pbuf1,"\n\rV  ");
+        for (i = 0; i < 18; i++)
+          yprintf(&pbuf2," %7d",bmsspiall.cellreg[i]);
+
+      }
+    }
   } 
   /* USER CODE END 5 */
 }
@@ -1348,6 +1354,7 @@ void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
+  morse_trap(2222);
   __disable_irq();
   while (1)
   {
@@ -1368,6 +1375,7 @@ void assert_failed(uint8_t *file, uint32_t line)
   /* USER CODE BEGIN 6 */
   /* User can add his own implementation to report the file name and line number,
      ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+  morse_trap(3333);
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */

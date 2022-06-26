@@ -109,14 +109,15 @@ struct BQFUNCTION
 	int32_t  cellv_total;  // Some of cell voltages (0.1 millivolts)
 	int16_t  cellv_high;   // Highest cellv 0.1 millivolts
 	int16_t  cellv_low;    // Lowest  cellv 0.1 millivolts
-	uint8_t  cellx_high;   // Highest cellv index (0-15)
-	uint8_t  cellx_low;    // Lowest  cellv index (0-15)
+	uint8_t  cellx_high;   // Highest cellv index (0-17)
+	uint8_t  cellx_low;    // Lowest  cellv index (0-17)
 
-	// Cell balancing
-	float targetv;        // Balance voltage target
-	float hysterv_lo;     // Hysteresis bottom voltage.
-	uint32_t trip_max;    // Bits for cells that reached cellv_max (target)
-	uint8_t hyster_sw;    // Hysteresis switch: 1 = peak was reached
+	// Cell balancing & relaxation hysteresis
+	uint32_t targetv;       // Balance voltage target
+	float hysterv_lo;       // Hysteresis bottom voltage.
+	uint32_t hysterbits_hi; // Bits for cells that reached cellv_max (target)
+	uint32_t hysterbits_lo; // Bits for cells that fell below hysterv_lo
+	uint8_t hyster_sw;      // Hysteresis switch: 1 = peak was reached
 
 	/* Filter raw readings for calibration purposes. */
 	struct FILTERIIRF1 filtiirf1_raw[ADCBMSMAX]; // Filter parameters

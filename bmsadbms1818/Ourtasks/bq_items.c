@@ -18,6 +18,7 @@
 #include "LedTask.h"
 #include "bq_items.h"
 #include "BQTask.h"
+#include "fetonoff.h"
 
 #define USESORTCODE
 #ifdef  USESORTCODE
@@ -27,33 +28,41 @@
 #endif
 
 struct BQFUNCTION bqfunction;	
+
+/* Sorted by cell voltage for display? */
+#ifdef  USESORTCODE
 struct BQCELLV dbsort[NCELLMAX];
+#endif
 
-static uint32_t dtw_next;
+#define TICKS_INC 250 // Duration between balance updates (ms)
+static uint32_t ticks_next;
 
-#define DTW10MS (16000*10) // 10 ms system ctr
 /* *************************************************************************
  * void bq_items_init(void);
  * @brief	: Cell balance 
  * *************************************************************************/
 void bq_items_init(void)
 {
-	dtw_next = DTWTIME + DTW10MS;
+	ticks_next = TICKS_INC + xTaskGetTickCount();
 	return;
 }
 /* *************************************************************************
- * void bq_items(void);
+ * uint8_t bq_items(void);
  * @brief	: Cell balance 
+ * @return  : 0 = did nothing; 1 = Did read and balance seq
  * *************************************************************************/
-void bq_items(void)
+uint8_t bq_items(void)
 {
 	/* Every 10 ms do something. */
-	if ((int32_t)(DTWTIME - dtw_next) < 0) return;
+	if ((int32_t)(xTaskGetTickCount() - ticks_next) < 0) return 0;
 
 	bmsdriver(REQ_READBMS); // Read cells + GPIO 1 & 2
-	bq_items_selectfet();
+	bq_items_selectfet();   // Update discharge FETs
 
-	return;
+	// Update other FETs
+
+	ticks_next += TICKS_INC;
+	return 1;
 }
 
 /* *************************************************************************
@@ -66,7 +75,7 @@ void bq_items_selectfet(void)
 	struct BQCELLV* psort  = &pbq->cellv_bal[0]; // Working array for cell balancing
 	float* p = &bmsuser.cellv[0]; // Calibrated cell voltage
 	int16_t tmpv; // Cell voltages above 'tmp' are candidates for discharging
-	int16_t i,j; // variable name selected in memory of FORTRAN
+	int16_t i; // variable name selected in memory of FORTRAN
 
 	/* This saves recomputing these in the loop. */
 	uint8_t ncellm1 = pbq->lc.ncell - 1; // e.g. equals 15 for 16 cell module
@@ -75,15 +84,18 @@ void bq_items_selectfet(void)
 	pbq->battery_status = 0; // Reset status
 	pbq->cellv_total    = 0; // Cell summation
 	pbq->cellv_high     = 0; // Highest cell voltage
-	pbq->cellv_low      = 32767; // Lowest cell voltage
+	pbq->cellv_low      = 0; // Lowest cell voltage
+
+	/* Set discharge FET bits. */
+	pbq->cellbal = 0; // Begin with no cell fets set
 
 	/* Check each cell reading. */
 	for (i = 0; i < pbq->lc.ncell; i++)
 	{
 		if ((bpq->cellspresent & (1<<i)) != 0)
 		{ // Here, cell position is installed
-			if  ((*p <= 0) ||(*p > 4500.0f))
-			{ // Here, zero or negative likely unexpected open wire
+			if  ((*p <= pbq->lc.cellopen_lo) ||(*p > pbq->lc.cellopen_hi))
+			{ // Here, likely unexpected open wire
 				pbq->battery_status |= BSTATUS_OPENWIRE;
 			}
 			else
@@ -98,6 +110,19 @@ void bq_items_selectfet(void)
 					pbq->cellv_low = *p; // Save voltage
 					pbq->cellx_low = i;  // Save cell index
 				} 
+				if (*p > pbq->targetv)
+				{ // Note: targetv may change (hysteresis & storage mode)
+					pbq->cellbal       |=  (1 << i); // Set bit for discharge FET
+					pbq->hysterbits_hi |=  (1 << i); // Hysteresis high set
+					pbq->hysterbits_lo &= ~(1 << i); // Hysteresis low clear
+					pbq->active_ct += 1; // Count number of cells selected
+				}
+				if (*p < pbq->hysterv_lo)
+				{ // 
+					pbq->hysterbits_lo |=  (1 << i); // Hysteresis low set
+					pbq->hysterbits_hi &= ~(1 << i); // Hysteresis high clear
+				}
+
 				pbq->cellv_total += *p; // Sum cell readings
 				psort->v = *p; psort->idx = i; // Copy to struct for sorting
 				psort += 1;
@@ -105,9 +130,6 @@ void bq_items_selectfet(void)
 		}
 		p += 1; // Next cell
 	}
-
-// Debugging: visual check duration between calls	
-morse_string("E",GPIO_PIN_1);
 
 	/* Unusual situation check. */
 	if (((pbq->battery_status & BSTATUS_NOREADING) != 0) ||
@@ -131,6 +153,7 @@ morse_string("E",GPIO_PIN_1);
 		// One or more are too low. Are any still too high?
 		if (pbq->cellv_high > pbq->lc.cellv_max)
 		{ // EGADS YES! We cannot charge, but can selectively discharge
+		  // until high cells low enough to turn on charging.	
 			pbq->fet_status &= ~(FET_CHGR|FET_DUMP2); // Disable charging
 		}
 	}
@@ -152,42 +175,79 @@ morse_string("E",GPIO_PIN_1);
 		pbq->fet_status |= FET_CHGR;
 	}
 
+	/* Healthy Hysteresis Handling. */
+	// Cell balancing
+/*	
+	uint32_t targetv;     // Balance voltage target
+	float hysterv_lo;     // Hysteresis bottom voltage.
+	uint32_t trip_max;    // Bits for cells that reached cellv_max (target)
+	uint8_t hyster_sw;    // Hysteresis switch: 1 = peak was reached	 */
+	if (hyster_sw == 0)
+	{ // Charging/balancing towards targetv
+		if (pbq->hysterbits == bpq->cellspresent)
+		{ // Here, all cells have gone of target voltages
+			hyster_sw =	1; // Start "relaxation"
+			pbq->targetv = pbq->hysterv_lo; // New targetv
+		}
+	}
+	else
+	{ // Relaxation hysteresis is in effect
+		if (pbq->hysterbits_lo != 0)
+		{ // One or more cells hit the low end of hysteresis
+			pbq->targetv = p->lc.cellv_max; // targetv 
+			hyster_sw =	0;
+		}
+	}
+
+
 	/* Here, balancing is permitted. Make cell selections.
 	Goal: Build a 32b word with bits set for setting cell 
 	discharge FETs. BQ97952 uses 16b, ADBMS1818 uses 18b. */
 
-	// A cell voltages above 'tmp' are candidates for discharging.
-	tmp = pbq->cellv_low + pbq->lc.cellbal_del;
+	// A cell voltages above 'tmpv' are candidates for discharging.
+	tmpv = pbq->cellv_low + pbq->lc.cellbal_del;
 
 	// Limit the number of cells discharging at any given cycle
 	pbq->active_ct = 0;    // Count number of cell bits set
 
+
+#ifdef  USESORTCODE
 	/* Sort on Cell voltages. (qsort does ascending) */
 	psort  = &pbq->cellv_bal[0];
 	qsort(psort, pbq->lc.ncell, sizeof(struct BQCELLV), compare_v);
 
 // debugging: copy array for monitoring in 'main'
 for (i= 0;i<pbq->lc.ncell;i++) dbsort[i] = pbq->cellv_bal[i];	
-
-	/* Start with highest voltage cell and decrement index. */ 
-	i = ncellm1; // Sorted array index for highest cell voltage
+#endif
 
 	/* Select cells for discharging. */
 	pbq->cellbal = 0; // Begin with no cells set
-	for (i = 0; i < pbq->lc.ncell; i++)
+	if (pbq->hyster_sw == 0)
 	{
-		if ((bpq->cellspresent & (1<<i)) != 0)
-		{ // Here, cell position is installed	
-			pbq->cellbal |= (1 << i); // Set bit for discharge FET
-			pbq->active_ct += 1; // Count number of cells selected
+		for (i = 0; i < pbq->lc.ncell; i++)
+		{
+			if ((bpq->cellspresent & (1<<i)) != 0)
+			{ // Here, cell position is installed
+				if (cellv_bal[i] > pbq->targetv)
+				{
+					pbq->cellbal |= (1 << i); // Set bit for discharge FET
+					pbq->active_ct += 1; // Count number of cells selected
+				}
+			}
 		}
 	}
+
+	/* Set discharge FETs */
+	bmsspi_setfets(pbq->cellbal);
+
+	/* Activate the settings from the foregoing logic. */
+	fetonoff_status_set(pbq->fet_status);
+
 	return;
 }
-/* ************************************************************************************************************ 
+/* ************************************************************************* 
  * Comparison function for qsort
- * ************************************************************************************************************ */
-#define USESORTCODE
+ * *************************************************************************/
 #ifdef  USESORTCODE
 static int compare_v(const void *a, const void *b)
 {

@@ -53,8 +53,8 @@ struct BQLC
 
    uint32_t modulev_max; // Battery module max limit
    uint32_t modulev_min; // Battery module min limit
-   uint16_t cellopenlo;  // Below this cell volatge wire is assumed open (mv)
-   uint16_t cellopenhi;  // Above this cell volatge wire is assumed open (mv)
+   uint16_t cellopen_lo; // Below this cell volatge wire is assumed open (mv)
+   uint16_t cellopen_hi; // Above this cell volatge wire is assumed open (mv)
    int16_t cellv_max;    // Max limit for charging any cell
    int16_t cellv_min;    // Min limit for any discharging
    int16_t cellv_vlc;    // Below this Very Low Charge (_vlc)required

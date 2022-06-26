@@ -119,7 +119,18 @@ uint8_t readbmsflag; // Let main know a BMS reading was made
  * *************************************************************************/
 void bmsspi_readbms(void)
 {
+	// Turn heater, dump, dump2, trickle chgr off
+	fetonoff_status_set(0);
+	bafunction.fet_status
+
+	// Read cells and GPIO1, GPIO2
 	bmsspi_readstuff(READCELLSGPIO12);
+
+	// TODO: calibration
+
+	// Restore status of FETs
+	bmsspi_readstuff(bqfunction.fet_status);
+
 	return;
 }
 /* *************************************************************************
@@ -129,13 +140,16 @@ void bmsspi_readbms(void)
 void bmsspi_gpio(void)
 {
 	bmsspi_readstuff(READGPIO);
+
+	// TODO: calibration
 	return;
 }
 /* *************************************************************************
- * void bmsspi_setfets(void);
+ * void bmsspi_setfets(uint32_t fetbits);
  * @brief	: Load discharge fet settings into '1818 & set discharge timer
+ * @param   : fetbits = discharge FET bits
  * *************************************************************************/
-void bmsspi_setfets(void)
+void bmsspi_setfets(uint32_t fetbits)
 {
 	/* Get current register settings. */
 	bmsspi_readstuff(READCONFIG); // Read Configuration Groups A & B
@@ -143,12 +157,12 @@ void bmsspi_setfets(void)
 	/* Update selected Group A & B settings with FET settings. */
 	// DCC12-DCC1 CFGA5 CFGAR4 | Discharge timer: DCTO
 	bmsspiall.configreg[2] &= ~0xFFFF; // Clear bits to be set
-	bmsspiall.configreg[2] |= ((bmsspiall.setfets & 0x0FFF) |
+	bmsspiall.configreg[2] |= ((fetbits & 0x0FFF) |
 		(0x02 << 24)); // DCTO[0-3] code = 1 minute
 
 	// DCC18-DCC12 CFGBR1 CFGBR0 | Dischg timer enable: DTMEN = 1
 	bmsspiall.configreg[3] &= ~0x0BF0; // Clear bits to be set
-	bmsspiall.configreg[3] |= (((bmsspiall.setfets >> 4) & 0x03F0) |
+	bmsspiall.configreg[3] |= (((fetbits >> 4) & 0x03F0) |
 		(1 << 27)); // DTMEN bit
 
 	/* Write-back configuration Groups A & B. */

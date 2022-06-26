@@ -22,8 +22,9 @@
  void bmsspi_gpio(void);
 /* @brief	: Read BMS 9 GPIOs & calibrate temperature sensors
  * *************************************************************************/
- void bmsspi_setfets(void);
+void bmsspi_setfets(uint32_t fetbits);
 /* @brief	: Load discharge fet settings into '1818 & set discharge timer
+ * @param   : fetbits = discharge FET bits
  * *************************************************************************/
  
 /* *************************************************************************/

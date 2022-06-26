@@ -15,8 +15,18 @@
 #include "ChgrTask.h"
 #include "BQTask.h"
 
+/* Sort Cell voltages */
+#define USESORTCODE
+
 /* *************************************************************************/
- void bq_items_seq(void);
+ void bq_items_init(void);
+/* @brief	: Cell balance 
+ * *************************************************************************/
+uint8_t bq_items(void);
+/* @brief	: Cell balance 
+ * @return  : 0 = did nothing; 1 = Did read and balance seq
+ * *************************************************************************/
+void bq_items_seq(void);
 /* @brief	: Go thought a sequence of steps to determine balancing
  * *************************************************************************/
  void bq_items_qsortV(struct BQCELLV* p);

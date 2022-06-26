@@ -49,12 +49,12 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->cellv_max   = 3500; // Max limit (mv) for charging any cell
    p->cellv_min   = 2600; // Min limit (mv) for any discharging
    p->cellv_vlc   = 2550; // Below this (mv) Very Low Charge (vlc)required
-   p->cellopenhi  = 4300; // Above this voltage cell wire is assumed open (mv)
-   p->cellopenlo  =  333; // Below this voltage cell wire is assumed open (mv)
+   p->cellopen_hi = 4300; // Above this voltage cell wire is assumed open (mv)
+   p->cellopen_lo =  333; // Below this voltage cell wire is assumed open (mv)
    p->modulev_max = (16*3600); // Battery module max limit (mv)
    p->modulev_min = (16*2600); // Battery module min limit (mv)
 
-   p->balnummax    =  7;  // Max number of cells to discharge at one time
+   p->balnummax    = 18;  // Max number of cells to discharge at one time
    p->cellv_hyster = 75;  // Voltage below cellv_max to start recharging (mv)
 
    p->cellbal_del  = 2; // Legacy
