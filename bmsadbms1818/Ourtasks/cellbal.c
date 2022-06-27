@@ -1,7 +1,7 @@
 /******************************************************************************
 * File Name          : cellbal.c
-* Date First Issued  : 03/20/2022
-* Description        : MAX14921: cell balancing
+* Date First Issued  : 006/26/2022
+* Description        : ADBMS1818: cell balancing
 *******************************************************************************/
 
 #include "cellbal.h"
@@ -32,23 +32,7 @@ struct ADCREADREQ arrbal;
 float fcell[ADCBMSMAX]; // (16+3+1) = 20; Number of MAX14921 (cells+thermistors+tos)   
 float fcellsum;	
 
-/* *************************************************************************
- * void cellbal_init(void);
- * @brief	: Go thought a sequence of steps to determine balancing
- * @brief   : parq = pointer to INITIALIZED bms read request struct
- * *************************************************************************/
-	void cellbal_init(void)
-	{
-	/* Pre-load BMS readout request queue block. */	
-	arrbal.taskdata   = &fcell[0];   // Requesting task's pointer to buffer to receive data
-	arrbal.cellbits   = 0;           // Bits to set FETs
-	arrbal.updn       = 0;           // BMS readout direction high->low cell numbers
-	arrbal.reqcode    = REQ_SETFETS; // Set discharge fets.
-	arrbal.encycle    = 1;     // Cycle EN: 0 = after read; 1 = before read w osDelay
-	arrbal.readbmsfets= 0;           // Clear discharge fets before readbms.
-	arrbal.doneflag   = 0; // 1 = ADCTask completed BMS read 
-	return;	
-}
+
 /* *************************************************************************
  * void cellbal_do(struct ADCREADREQ* parq);
  * @brief	: Check cell voltages and set 
@@ -56,9 +40,8 @@ float fcellsum;
  *          : -  I/O pin for DUMP2 FET (External charger) ON/OFF
  *          : -  Discharge FETs
  *          : -  Trickle charger OFF, low rate, hight rate setting
- * @brief   : parq = pointer to INITIALIZED bms read request struct
  * *************************************************************************/
-void cellbal_do(struct ADCREADREQ* parg)
+void cellbal_do(void)
 {
 	struct BQFUNCTION* pbq = &bqfunction;
 	struct BQLC* plc = &pbq->lc;
@@ -72,29 +55,6 @@ void cellbal_do(struct ADCREADREQ* parg)
 	uint8_t  ctr1; // Count of cells at or above maximum (target)
 	uint8_t  ctr2; // Count of cells at or below minimum
 
-	/* Disable things that affect cell readings. */
-	// PC6  = 0: DUMP2 (external charger control on/off fet)
-	// PC8  = 1: DUMP (resistor load) 
-	// PC10 = 0: DUMP (resistor load)
-	// PC11 = 1: HEATER
-	// PC12 = 0: HEATER
-	GPIOC->BSRR =  ( (1<<( 6+16)) | 
-		             (1<<( 8+ 0)) |
-	                 (1<<(10+16)) |
-	                 (1<<(11+ 0)) |
-		             (1<<(12+16)) );
-	// Trickle charger off
-	TIM1->CCR1 = 0;	// Trickle FET is off
-
-	/* Queue a read BMS request to ADCTask.c */
-	qret = xQueueSendToBack(ADCTaskReadReqQHandle, parg, 3500);
-if (qret != pdPASS) morse_trap(722); // JIC debug
-
-#define DONEFLAGCT 200
-		doneflagctr = 0;
-		while ((arrbal.doneflag == 0) && (doneflagctr++ < DONEFLAGCT)) 
-			osDelay(1);
-		if (doneflagctr >= DONEFLAGCT) morse_trap(733);
 
 	/* Categorize for setting discharging and charging.
 	   and set discharge FET bits. */

@@ -14,6 +14,8 @@
 #include "adcparams.h"
 #include "main.h"
 #include "bmsspi.h"
+#include "bq_idx_v_struct.h"
+#include "semphr.h"
 
 /* SPI 12 bytes: CMD[2]+PEC[2]+DATA[6]+PEC[2] */
 union SPI12
@@ -40,38 +42,19 @@ struct BMSSPIALL
 	uint16_t statreg[1*3]; // Status readings
 	uint16_t configreg[2*3]; // Configuration register
 	uint16_t sreg[1*3];  // S register
-	
 	uint8_t  reqcode;
 	uint8_t  bmssetfets; // Discharge FET bits to be set 
 };
 
-struct BMSUSER
-{
-	float cellv[NCELLMAX]; // Cell voltage (calibrated volts) 
-	float current;   // Op-amp sensing: amps current
-	float temperature[3]; // Thermistors: Deg C temperature
-	uint32_t dchgfetbits; // 1 = FET is on
-	uint32_t cellopenbits;// 1 = cell is unexpectedly open 
-	uint8_t err;
-};
-
 /* *************************************************************************/
-osThreadId xBMSTaskCreate(uint32_t taskpriority);
-/* @brief	: Create task; task handle created is global for all to enjoy!
- * @param	: taskpriority = Task priority (just as it says!)
- * @return	: BMSTaskHandle
+void bmsdriver(uint8_t reqcode);
+/*	@brief	: Perform a bms function, e.g. read cells
+ *  @param  : code = code(!) for function
  * *************************************************************************/
-
-extern TaskHandle_t BMSTaskHandle;// replace: extern osThreadId BMSTaskHandle;
-
-extern osMessageQId BMSTaskReadReqQHandle;
 
 extern SemaphoreHandle_t semphrbms;
 
 extern struct BMSSPIALL bmsspiall;
 extern struct BMSUSER bmsuser;
-{
-	
-};
 
 #endif

@@ -40,7 +40,7 @@ void adcspi_readstuff(uint8_t code);
 /* @brief	: Do conversion, then read registers with results
  * @brief   : code = code for selection of register group
  * *************************************************************************/
-void adcspi_rw_cmd(uint16_t* pcmd, uint16_t* pdata, unit8_t rw);
+void adcspi_rw_cmd(uint16_t* pcmd, uint16_t* pdata, uint8_t rw);
 /* @brief	: Send command  and write data (little endian)
  * @param   : pcmd = pointer to 2 byte command (little endian)
  * @brief   : pdata = pointer to six bytes to be written (little endian),

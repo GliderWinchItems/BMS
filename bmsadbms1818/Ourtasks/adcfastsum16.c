@@ -4,6 +4,7 @@
 * Description        : Fast sum: ADC DMA buffering--16 sequences, 'N' channels
 *******************************************************************************/
 #include "adcfastsum16.h"
+#define ADC1IDX_ADCSCANSIZE ADCDIRECTMAX
 /* *************************************************************************
  * void adcfastsum16(struct ADCCHANNEL* pchan, uint16_t* pdma);
  *	@brief	: Inline fast summation: ASSUMES 16 ADC =>sequences<=: channels = ADC1IDX_ADCSCANSIZE

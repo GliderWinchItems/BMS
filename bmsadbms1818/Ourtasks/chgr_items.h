@@ -15,9 +15,8 @@
 #include "BQTask.h"
 
 /* *************************************************************************/
- void chgr_items_init(struct BQFUNCTION* p);
+ void chgr_items_init(void);
 /*	@brief	: Initializations for charger
- *  @param	: p = pointer to function working array
  * *************************************************************************/
 
 #endif

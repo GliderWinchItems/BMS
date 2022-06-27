@@ -112,6 +112,177 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
 
 #endif
 
+   /* Cell # 1 */
+   p->bmscal[ 0].coef[0] = 0;
+   p->bmscal[ 0].coef[1] = 1;
+   p->bmscal[ 0].coef[2] = 0;
+
+   /* Cell # 2 */
+   p->bmscal[ 1].coef[0] = 0;
+   p->bmscal[ 1].coef[1] = 1;
+   p->bmscal[ 1].coef[2] = 0;
+
+   /* Cell # 3 */
+   p->bmscal[ 2].coef[0] = 0;
+   p->bmscal[ 2].coef[1] = 1;
+   p->bmscal[ 2].coef[2] = 0;
+
+   /* Cell # 4 */
+   p->bmscal[ 3].coef[0] = 0;
+   p->bmscal[ 3].coef[1] = 1;
+   p->bmscal[ 3].coef[2] = 0;
+
+   /* Cell # 5 */
+   p->bmscal[ 4].coef[0] = 0;
+   p->bmscal[ 4].coef[1] = 1;
+   p->bmscal[ 4].coef[2] = 0;
+
+   /* Cell # 6 */
+   p->bmscal[ 5].coef[0] = 0;
+   p->bmscal[ 5].coef[1] = 1;
+   p->bmscal[ 5].coef[2] = 0;
+
+   /* Cell # 7 */
+   p->bmscal[ 6].coef[0] = 0;
+   p->bmscal[ 6].coef[1] = 1;
+   p->bmscal[ 6].coef[2] = 0;
+
+   /* Cell # 8 */
+   p->bmscal[ 7].coef[0] = 0;
+   p->bmscal[ 7].coef[1] = 1;
+   p->bmscal[ 7].coef[2] = 0;
+
+   /* Cell # 9 */
+   p->bmscal[ 8].coef[0] = 0;
+   p->bmscal[ 8].coef[1] = 1;
+   p->bmscal[ 8].coef[2] = 0;
+
+   /* Cell #10 */
+   p->bmscal[ 9].coef[0] = 0;
+   p->bmscal[ 9].coef[1] = 1;
+   p->bmscal[ 9].coef[2] = 0;
+
+   /* Cell #11 */
+   p->bmscal[10].coef[0] = 0;
+   p->bmscal[10].coef[1] = 1;
+   p->bmscal[10].coef[2] = 0;
+
+   /* Cell #12 */
+   p->bmscal[11].coef[0] = 0;
+   p->bmscal[11].coef[1] = 1;
+   p->bmscal[11].coef[2] = 0;
+
+   /* Cell #13 */
+   p->bmscal[12].coef[0] = 0;
+   p->bmscal[12].coef[1] = 1;
+   p->bmscal[12].coef[2] = 0;
+
+   /* Cell #14 */
+   p->bmscal[13].coef[0] = 0;
+   p->bmscal[13].coef[1] = 1;
+   p->bmscal[13].coef[2] = 0;
+
+   /* Cell #15 */
+   p->bmscal[14].coef[0] = 0;
+   p->bmscal[14].coef[1] = 1;
+   p->bmscal[14].coef[2] = 0;
+
+   /* Cell #16 */
+   p->bmscal[15].coef[0] = 0;
+   p->bmscal[15].coef[1] = 1;
+   p->bmscal[15].coef[2] = 0;
+
+   /* Cell #17 */
+   p->bmscal[16].coef[0] = 0;
+   p->bmscal[16].coef[1] = 1;
+   p->bmscal[16].coef[2] = 0;
+
+   /* Cell #18 */
+   p->bmscal[17].coef[0] = 0;
+   p->bmscal[17].coef[1] = 1;
+   p->bmscal[17].coef[2] = 0;
+
+   /* Initialize iir filter. */
+   #define CELLTC 0.70f // Default filter time constant
+   for (int i = 0; i < NCELLMAX; i++)
+   {
+      p->bmscal[i].iir_f1.coef = CELLTC; // Initialize all to the same
+   }
+   /* === Insert non-default filter coefficients here. === */
+   for (int i = 0; i < NCELLMAX; i++)
+   {
+      p->bmscal[i].iir_f1.onemcoef = 1 - p->bmscal[i].iir_f1.coef;
+   }
+
+
+   /* ADBMS1818 ADC reading sequence/array indices */
+   #define BMSAUX_1_NC           0 // GPIO 1 No Connection
+   #define BMSAUX_2_THERM1       1 // GPIO 2 Thermistor 1
+   #define BMSAUX_3_THERM3       2 // GPIO 3 Thermistor 3
+   #define BMSAUX_4_THERM2       3 // GPIO 4 Thermistor 2
+   #define BMSAUX_5_US6          4 // GPIO 5 Spare: U$6
+   #define BMSAUX_6_CUR_SENSE    5 // GPIO 6 Current sense op amp
+   #define BMSAUX_7_HALL         6 // GPIO 7 Hall effect sensor signal
+   #define BMSAUX_8_US9          7 // GPIO 8 Spare: U$9
+   #define BMSAUX_9_US10         8 // GPIO 9 Spare: U$10
+
+   /* Auxilarly GPIO 1 No Connection */
+   p->bmsaux[BMSAUX_1_NC].coef[0] = 0;
+   p->bmsaux[BMSAUX_1_NC].coef[1] = 1;
+   p->bmsaux[BMSAUX_1_NC].coef[2] = 0;
+
+   /* Auxilarly GPIO 2 Thermistor 1 */
+   p->bmsaux[BMSAUX_2_THERM1].coef[0] = 0;
+   p->bmsaux[BMSAUX_2_THERM1].coef[1] = 1;
+   p->bmsaux[BMSAUX_2_THERM1].coef[2] = 0;
+
+   /* Auxilarly GPIO 3 Thermistor 3 */
+   p->bmsaux[BMSAUX_3_THERM3].coef[0] = 0;
+   p->bmsaux[BMSAUX_3_THERM3].coef[1] = 1;
+   p->bmsaux[BMSAUX_3_THERM3].coef[2] = 0;
+
+   /* Auxilarly GPIO 4 Thermistor 2 */
+   p->bmsaux[BMSAUX_4_THERM2].coef[0] = 0;
+   p->bmsaux[BMSAUX_4_THERM2].coef[1] = 1;
+   p->bmsaux[BMSAUX_4_THERM2].coef[2] = 0;
+
+   /* Auxilarly GPIO 5 Spare: U$6 */
+   p->bmsaux[BMSAUX_5_US6].coef[0] = 0;
+   p->bmsaux[BMSAUX_5_US6].coef[1] = 1;
+   p->bmsaux[BMSAUX_5_US6].coef[2] = 0;
+
+   /* Auxilarly GPIO 6 Current sense op amp */
+   p->bmsaux[BMSAUX_6_CUR_SENSE].coef[0] = 0;
+   p->bmsaux[BMSAUX_6_CUR_SENSE].coef[1] = 1;
+   p->bmsaux[BMSAUX_6_CUR_SENSE].coef[2] = 0;
+
+   /* Auxilarly GPIO 7 U$12 w divider */
+   p->bmsaux[BMSAUX_7_HALL].coef[0] = 0;
+   p->bmsaux[BMSAUX_7_HALL].coef[1] = 1;
+   p->bmsaux[BMSAUX_7_HALL].coef[2] = 0;
+
+   /* Auxilarly GPIO 8 Spare: U$9 */
+   p->bmsaux[BMSAUX_8_US9].coef[0] = 0;
+   p->bmsaux[BMSAUX_8_US9].coef[1] = 1;
+   p->bmsaux[BMSAUX_8_US9].coef[2] = 0;
+
+   /* Auxilarly GPIO 9 Spare: U$10 */
+   p->bmsaux[BMSAUX_9_US10].coef[0] = 0;
+   p->bmsaux[BMSAUX_9_US10].coef[1] = 1;
+   p->bmsaux[BMSAUX_9_US10].coef[2] = 0;
+
+     /* Initialize iir filter. */
+   #define AUXTC 0.70f // Default filter time constant
+   for (int i = 0; i < NAUXMAX; i++)
+   {
+      p->bmscal[i].iir_f1.coef = AUXTC; // Initialize all to the same
+   }
+   /* === Insert non-default filter coefficients here. === */
+   for (int i = 0; i < NAUXMAX; i++)
+   {
+      p->bmscal[i].iir_f1.onemcoef = 1 - p->bmscal[i].iir_f1.coef;
+   }
+
 // List of CAN ID's for setting up hw filter for incoming msgs
    //                      CANID_HEX      CANID_NAME             CAN_MSG_FMT     DESCRIPTION
    	// We receive: EMC

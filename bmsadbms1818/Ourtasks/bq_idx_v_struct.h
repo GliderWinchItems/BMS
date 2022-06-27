@@ -7,11 +7,14 @@
 
 #include <stdint.h>
 #include "common_can.h"
+//#include "iir_filter_lx.h"
+#include "iir_f1.h"
 
 #ifndef __BQ_IDX_V_STRUCT
 #define __BQ_IDX_V_STRUCT
 
 #define NCELLMAX 18  // Largest array size allowed
+#define NAUXMAX 9    // Number of Auxiliary arrauy size
 #define CELLNONE 0xFF // Code for no cell in cell box position
 
 /* 16b codes for impossible voltage readings. */
@@ -22,12 +25,23 @@
 #define RAWTC 0.975f  // Filter time constant
 #define RAWSKIPCT 2  // Ignore initial readings to filter
 
+struct BMSCAL
+{
+   struct FILTERIIRF1 iir_f1; // Filter: Time constant, integer scaling
+   float coef[3]; // coefficients for: x^0 x^1 x^2
+   float  f;
+//   float scale;
+ //  float offset;
+   //int32_t  ioffset; // Offset before float conversion
+};
 
 
 /* Parameters levelwind instance (LC = Local Copy) */
 struct BQLC
  {
 /* NOTE: all suffix _t parameters are times in milliseconds */
+   struct BMSCAL bmscal[NCELLMAX];
+   struct BMSCAL bmsaux[NAUXMAX];
 
 	uint32_t size;
 	uint32_t crc;   // TBD

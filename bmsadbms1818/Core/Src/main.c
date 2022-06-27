@@ -45,7 +45,10 @@
 #include "ADCTask.h"
 #include "MailboxTask.h"
 #include "CanCommTask.h"
+#include "bmsdriver.h"
 #include "fanop.h"
+#include "chgr_items.h"
+#include "adcspi.h"
 
 #include "FreeRTOS.h"
 #include "semphr.h"
@@ -276,7 +279,7 @@ int main(void)
   /* USER CODE BEGIN RTOS_EVENTS */
   /* add events, ... */
   // Initialize struct for BQ. */
-  bq_func_init(&bqfunction);
+  bq_func_init();
 
   /* definition and creation of CanTxTask - CAN driver TX interface. */
   QueueHandle_t QHret = xCanTxTaskCreate(osPriorityNormal, 48); // CanTask priority, Number of msgs in queue
@@ -302,7 +305,7 @@ int main(void)
   if (Cret == HAL_ERROR) morse_trap(122);
 
   /* CAN communication */
-  retT = xCanCommCreate(osPriorityNormal+1);
+  TaskHandle_t retT = xCanCommCreate(osPriorityNormal+1);
   if (retT == NULL) morse_trap(121);
 
     /* Select interrupts for CAN1 */
@@ -313,9 +316,10 @@ int main(void)
 
   /* Init some things called by 'defaultTask' */
   bq_func_init();
-  bq_init();
+  bq_items_init();
   chgr_items_init();
   fanop_init();
+  adcspi_preinit();
 
   /* USER CODE END RTOS_EVENTS */
 

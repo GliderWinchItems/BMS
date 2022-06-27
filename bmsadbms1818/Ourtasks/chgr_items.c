@@ -26,22 +26,19 @@ extern COMP_HandleTypeDef hcomp1;
 extern COMP_HandleTypeDef hcomp2;
 
 /* *************************************************************************
- * void chgr_items_init(struct BQFUNCTION* p);
+ * void chgr_items_init(void);
  *	@brief	: Initializations for charger
- *  @param	: p = pointer to function working array
  * *************************************************************************/
-void chgr_items_init(struct BQFUNCTION* p)
+void chgr_items_init(void)
 {
-//while(1==1) osDelay(100);
-
 	HAL_StatusTypeDef ret;
 
 	/* DAC setup. */
  	// Set HV level to cut off TIM1
-	ret = HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, p->lc.dac1_hv_setting);
+	ret = HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, bqfunction.lc.dac1_hv_setting);
 	if (ret != HAL_OK) morse_trap(701);
 	// Set Current sense level to cut off TIM1
-	ret = HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_2, DAC_ALIGN_12B_R, p->lc.dac2_ix_setting); 
+	ret = HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_2, DAC_ALIGN_12B_R, bqfunction.lc.dac2_ix_setting); 
 	if (ret != HAL_OK) morse_trap(702);
 
 	HAL_DAC_Start(&hdac1,DAC_CHANNEL_1);
@@ -68,16 +65,5 @@ void chgr_items_init(struct BQFUNCTION* p)
 
 //	TIM1->CCR1 = 0; // Initialize to OFF
 TIM1->CCR1 = bqfunction.tim1_ccr1;
-	return;
-}
-
-/* *************************************************************************
- * void chgr_items_control(uint16_t x);
- *	@brief	: Charger control
- *  @param	: x = ????
- * *************************************************************************/
-void chgr_items_control(uint16_t x)
-{
-	TIM1->CCR1 = bqfunction.tim1_ccr1; // Set charge rate
 	return;
 }

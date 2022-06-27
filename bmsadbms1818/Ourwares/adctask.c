@@ -48,14 +48,14 @@ struct ADCDMATSKBLK* adctask_init(ADC_HandleTypeDef* phadc,\
 	struct ADCDMATSKBLK* pblk = &adc1dmatskblk[0]; // ADC1 only for now
 
 	/* 'adcparams.h' MUST match what STM32CubeMX set up. */
-	if (ADC1IDX_ADCSCANSIZE != (phadc->Init.NbrOfConversion))
+	if (ADCDIRECTMAX != (phadc->Init.NbrOfConversion))
 		 morse_trap(61);//return NULL;
 
 	/* ADC DMA summation length must match 1/2 DMA buffer sizing. */
 //$	if (ADCFASTSUM16SIZE != ADC1DMANUMSEQ) morse_trap(62);
 
 	/* length = total number of uint16_t in dma buffer */
-	uint32_t length = ADC1DMANUMSEQ * 2 * ADC1IDX_ADCSCANSIZE;
+	uint32_t length = ADCSEQNUM * 2 * ADCDIRECTMAX;
 
 
 	/* Calibration sequence before enabling ADC. */
@@ -93,7 +93,7 @@ struct ADCDMATSKBLK
 	pblk->notebit2 = notebit2;
 	pblk->pnoteval = pnoteval;
 	pblk->pdma1    = pdma;
-	pblk->pdma2    = pdma + (ADC1DMANUMSEQ * phadc->Init.NbrOfConversion);
+	pblk->pdma2    = pdma + (ADCSEQNUM * phadc->Init.NbrOfConversion);
 	pblk->adctaskHandle = ADCTaskHandle;
 
 /**

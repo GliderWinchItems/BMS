@@ -26,7 +26,7 @@ extern SPI_HandleTypeDef hspi1;
 extern DMA_HandleTypeDef hdma_spi1_rx;
 extern DMA_HandleTypeDef hdma_spi1_tx;
 
-void adcspi_rw_cmd(uint16_t* pcmd, uint16_t* pdata, unit8_t rw);
+void adcspi_rw_cmd(uint16_t* pcmd, uint16_t* pdata, uint8_t rw);
 
 #define CSBDELAYFALL (5*16) // CSB falling delay: 5 us with 16 MHz sysclock
 #define CSBDELAYRISE (3*16) // CSB rising delay: 3 us with 16 MHz sysclock
@@ -243,7 +243,7 @@ void adcspi_readstuff(uint8_t code)
 	return;
 }
 /* *************************************************************************
- * void adcspi_rw_cmd(uint16_t* pcmd, uint16_t* pdata, unit8_t rw);
+ * void adcspi_rw_cmd(uint16_t* pcmd, uint16_t* pdata, uint8_t rw);
  * @brief	: Send command  and write data (little endian)
  * @param   : pcmd = pointer to 2 byte command (little endian)
  * @brief   : pdata = pointer to six bytes to be written (little endian),
@@ -254,7 +254,7 @@ void adcspi_readstuff(uint8_t code)
  *          : 2 = Send command+pec, read 6 bytes data+pec into spirx12.uc[4]-[11]
  *          : 3 = Send 2 byte command  + pec. Switch '1818 SDO to interrupt conversion completion
  * *************************************************************************/
-void adcspi_rw_cmd(uint16_t* pcmd, uint16_t* pdata, unit8_t rw)
+void adcspi_rw_cmd(uint16_t* pcmd, uint16_t* pdata, uint8_t rw)
 {
 	struct ADCSPIALL* p = &adcspiall; // Convenience pointer
 	uint32_t dmact; // Number of bytes for DMA

@@ -34,7 +34,7 @@ static int16_t  tim15ctr;   // TIM15CH1:OC turnover counter
 
 
 void bmsspi_readstuff(uint8_t code);
-void bmsspi_rw_cmd(uint16_t* pcmd, uint16_t* pdata, unit8_t rw);
+void bmsspi_rw_cmd(uint16_t* pcmd, uint16_t* pdata, uint8_t rw);
 
 enum TIMSTATE
 {
@@ -129,7 +129,7 @@ void bmsspi_readbms(void)
 	// TODO: calibration
 
 	// Restore status of FETs
-	bmsspi_readstuff(bqfunction.fet_status);
+	bmsspi_setfets(bqfunction.fet_status);
 
 	return;
 }
@@ -329,7 +329,7 @@ void bmsspi_readstuff(uint8_t code)
 	return;
 }
 /* *************************************************************************
- * void bmsspi_rw_cmd(uint16_t* pcmd, uint16_t* pdata, unit8_t rw);
+ * void bmsspi_rw_cmd(uint16_t* pcmd, uint16_t* pdata, uint8_t rw);
  * @brief	: Send command  and write data (little endian)
  * @param   : pcmd = pointer to 2 byte command (little endian)
  * @brief   : pdata = pointer to six bytes to be written (little endian),
@@ -340,7 +340,7 @@ void bmsspi_readstuff(uint8_t code)
  *          : 2 = Send command+pec, read 6 bytes data+pec into spirx12.uc[4]-[11]
  *          : 3 = Send 2 byte command  + pec. Switch '1818 SDO to interrupt conversion completion
  * *************************************************************************/
-void bmsspi_rw_cmd(uint16_t* pcmd, uint16_t* pdata, unit8_t rw)
+void bmsspi_rw_cmd(uint16_t* pcmd, uint16_t* pdata, uint8_t rw)
 {
 	struct BMSSPIALL* p = pbmsspiall; // Convenience pointer
 	uint32_t dmact; // Number of bytes for DMA

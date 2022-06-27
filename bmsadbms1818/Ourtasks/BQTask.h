@@ -106,11 +106,17 @@ struct BQFUNCTION
 	struct BQCELLV cellv_bal[NCELLMAX]; // Working array for cell balancing
 	uint16_t cellv_latest[NCELLMAX]; // Cell voltage readings x10 (millivolts)
 	uint32_t cellvopenbits;// Bits for unexpected open cells (1 = open wire suspected) 
-	int32_t  cellv_total;  // Some of cell voltages (0.1 millivolts)
+	int32_t  cellv_total;  // Sum of cell voltages (0.1 millivolts)
 	int16_t  cellv_high;   // Highest cellv 0.1 millivolts
 	int16_t  cellv_low;    // Lowest  cellv 0.1 millivolts
 	uint8_t  cellx_high;   // Highest cellv index (0-17)
 	uint8_t  cellx_low;    // Lowest  cellv index (0-17)
+
+	float cellv[NCELLMAX]; // Cell voltage (calibrated volts) 
+	float current;   // Op-amp sensing: amps current
+	float temperature[3]; // Thermistors: Deg C temperature
+
+	uint32_t dchgfetbits; // 1 = discharge FET is on
 
 	// Cell balancing & relaxation hysteresis
 	uint32_t targetv;       // Balance voltage target
@@ -129,6 +135,8 @@ struct BQFUNCTION
 	uint8_t active_ct;      // Count of bits set in cellbal
 	uint8_t battery_status; // Cell status code bits 
 	uint8_t fet_status;     // This controls on/off of FETs
+
+	uint8_t err;
 
 	/* balnumwrk might be adjusted based on chip temperature. */
 	uint8_t balnumwrk; // Max number of active cell bits (Working)

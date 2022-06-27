@@ -4,9 +4,6 @@
 * Date First Issued  : 06/17/2022
 * Description        : SPI management with ADBMS1818 board
 *******************************************************************************/
-/* 
-
-*/
 #ifndef __BMSSPI
 #define __BMSSPI
 
@@ -31,18 +28,6 @@ void bmsspi_setfets(uint32_t fetbits);
  void bmsspi_preinit(void);
 /* @brief	: Initialization
  * *************************************************************************/
-static uint16_t readreg(uint16_t* p, uint16_t* pcmdr, uint8_t n);
-/* @brief	: Read register, convert endianness
- * @param   : p = pointer to output array (little endian)
- * @param   : pcmdr = pointer to read command (NULL = skip conversionc command)
- * @param   ; n = number of register reads
- * @return  : 0 = no PEC15 error
- * *************************************************************************/
-static void writereg(uint16_t* pcmdw, uint16_t* p);
-/* @brief	: Write register with convert endianness
- * @param   : p = pointer to input array (little endian)
- * @param   : pcmdw = pointer to write command
- * *************************************************************************/
 void bmsspi_writereg(uint8_t code);
 /* @brief   : Write register group(s)
  * @param   : code = code for selection of register group
@@ -51,7 +36,7 @@ void bmsspi_readstuff(uint8_t code);
 /* @brief	: Do conversion, then read registers with results
  * @brief   : code = code for selection of register group
  * *************************************************************************/
-void bmsspi_rw_cmd(uint16_t* pcmd, uint16_t* pdata, unit8_t rw);
+void bmsspi_rw_cmd(uint16_t* pcmd, uint16_t* pdata, uint8_t rw);
 /* @brief	: Send command  and write data (little endian)
  * @param   : pcmd = pointer to 2 byte command (little endian)
  * @brief   : pdata = pointer to six bytes to be written (little endian),
@@ -80,6 +65,6 @@ void EXTI4_IRQHandler(void);
 /* PB4 SPI MISO pin-1818 SDO pin: interrupt upon rising edge
    ####################################################################### */	
 
-extern uint8_t readbmsflag; // Let main know a BMS reading was made
+//extern uint8_t readbmsflag; // Let main know a BMS reading was made
 
 #endif

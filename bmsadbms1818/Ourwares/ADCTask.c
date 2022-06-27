@@ -26,12 +26,12 @@ extern ADC_HandleTypeDef hadc1;
 /* Summation of one ADC scan (with oversampling) */
 // One array being filled while other being processed
 // Size is DMA (regular conversions) + plus (injected Vrefint, Vtemp)
-uint32_t adcsumdb[2][ADC1IDX_ADCSCANSIZE]; 
+uint32_t adcsumdb[2][ADCDIRECTMAX]; 
 static uint32_t* padcsum = &adcsumdb[0][0];
 uint8_t  adcsumidx = 0;
 
 // IIR filtering of adcsumdb[][]
-float adcsumfilt[2][ADC1IDX_ADCSCANSIZE];
+float adcsumfilt[2][ADCDIRECTMAX];
 float* padcfilt = &adcsumfilt[0][0];
 
 static uint8_t decimatectr = 0; 
@@ -61,20 +61,12 @@ void StartADCTask(void *argument)
 	/* A notification copies the internal notification word to this. */
 	uint32_t noteval = 0;    // Receives notification word upon an API notify
 
-	/* Initialize SPI-DMA CRC ... */
-	adcspi_preinit();
+	/* Get buffers, "our" control block, and start ADC/DMA running. */
+	struct ADCDMATSKBLK* pblk = adctask_init(&hadc1,TSK02BIT02,TSK02BIT03,&noteval);
+	if (pblk == NULL) {morse_trap(15);}	
 
 	/* Initialize params for ADC. */
 	adcparams_init();	
-
-	/* Get buffers, "our" control block, and start ADC/DMA running. */
-	struct ADCDMATSKBLK* pblk = adctask_init(&hadc1,TSK02BIT02,TSK02BIT03,&noteval);
-	if (pblk == NULL) {morse_trap(15);}
-
-	/* ADC calibration sequence before enabling ADC. */
-	ret = HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
-	if (ret == HAL_ERROR)  morse_trap(330);
-
 
   	/* Infinite loop */
   	for(;;)
@@ -103,7 +95,7 @@ dwt2 = dwt1;
 		// Calibrate and Pass sum through IIR filter
 		padcfilt = &adcsumfilt[adcsumidx][0];
 		pz = &adc1.chan[0];
-		for (int i = 0; i < ADC1IDX_ADCSCANSIZE; i++)
+		for (int i = 0; i < ADCDIRECTMAX; i++)
 		{ // Calibrate and filter sums
 			ftmp = adc1.chan[i].sum; //*(padcsum + i); // Convert to floats
 			// y = a + b * x;
@@ -115,15 +107,10 @@ dwt2 = dwt1;
 		}
 		adcsumidx ^= 1; // Switch to alternate summation array
 
-		/* Notify that new readings are ready. */
-		// Throttle 'main' notifications
+		// Counter for 'main' throttling ADC output
 		decimatectr += 1;
-		if (decimatectr >= 12) 
-		{
-			decimatectr = 0;
-			xTaskNotify(defaultTaskHandle, DEFAULTTASKBIT00, eSetBits);
-		}
   	}
+  	return;
 }
 /* *************************************************************************
  * osThreadId xADCTaskCreate(uint32_t taskpriority);

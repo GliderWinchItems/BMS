@@ -25,7 +25,6 @@ extern osThreadId_t defaultTaskHandle;
 TaskHandle_t bmsTaskHandle;
 
 struct BMSSPIALL bmsspiall;
-struct BMSUSER bmsuser;
 
 uint32_t bmsdbctr;
 
@@ -45,9 +44,9 @@ void bmsdriver_init(void)
 	return;
 }
 /* *************************************************************************
- *  void bmsdriver(struct BMSSPIALL* p);
+ *  void bmsdriver(uint8_t reqcode);
  *	@brief	: Perform a bms function, e.g. read cells
- *  @param  : p = pointer to struct with good stuff
+ *  @param  : code = code(!) for function
  * *************************************************************************/
 void bmsdriver(uint8_t reqcode)
 {

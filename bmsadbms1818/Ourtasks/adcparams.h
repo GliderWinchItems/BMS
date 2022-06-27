@@ -17,9 +17,9 @@
 #include "adc_idx_v_struct.h"
 #include "ADCTask.h"
 
-#define ADC1DMANUMSEQ        16 // Number of DMA scan sequences in 1/2 DMA buffer
-#define ADCEXTENDSUMCT       64 // Sum of 1/2 DMA sums for additional averaging
-#define ADC1IDX_ADCSCANSIZE   9 // Number ADC channels read (includes Vref an Vtemp)
+
+
+
 
 /* Timing
 1	2.5	12.5	15						
@@ -109,18 +109,6 @@ struct ADCABS
 	int32_t sum;     // Working sum of multiple scans
 	int32_t sumsave; // Saved sum for printf'ing
 };
-
-/* Everything for the ADC in one struct. */
-struct ADCFUNCTION
-{
-	struct ADCLC lc;    // Local Copy of parameters
-	struct ADCCALCOMMON common; // Vref & temp stuff
-	struct ADCABS abs[ADCDIRECTMAX]; // Absolute readings
-	uint32_t ctr; // Running count of updates.
-	uint16_t dmabuf[ADCDIRECTMAX]; // Readings for one ADC scan w DMA
-	uint8_t sumctr; // DMA summation counter
-};
-
 struct ADCCHANNEL	
 {
 	struct FILTERIIRF1 iir_f1;	// iir_f1 (float) filter
@@ -128,6 +116,18 @@ struct ADCCHANNEL
 	float    offset;  // Offset
 	uint32_t sum;     // Fast Sum of ADC readings
 };
+/* Everything for the ADC in one struct. */
+struct ADCFUNCTION
+{
+	struct ADCLC lc;    // Local Copy of parameters
+	struct ADCCALCOMMON common; // Vref & temp stuff
+	struct ADCABS abs[ADCDIRECTMAX]; // Absolute readings
+	struct ADCCHANNEL chan[ADCDIRECTMAX]; // ADC sums, calibrated endpt
+	uint32_t ctr; // Running count of updates.
+	uint16_t dmabuf[ADCDIRECTMAX]; // Readings for one ADC scan w DMA
+	uint8_t sumctr; // DMA summation counter
+};
+
 
 /* *************************************************************************/
 void adcparams_init(void);
@@ -145,12 +145,6 @@ void adcparams_chan(uint8_t adcidx);
  * *************************************************************************/
 void adcparams_cal(void);
 /*	@brief	: calibrate and filter ADC readings (from ADCTask.c)
- * *************************************************************************/
-float adcparams_calibbms(uint16_t x, uint8_t i);
-/*	@brief	: calibrate 
- *  @param  : x = raw ADC count.
- *  @param  : i = index of reading (0 - 19) 20 readings
- *  @return : calibrated value (float volts)
  * *************************************************************************/
 void adcparams_calibadc(void);
 /*	@brief	: calibrate and filter ADC channel readings (from ADCTask.c)

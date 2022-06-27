@@ -21,6 +21,8 @@ by the java program from the sql database.
 #define VREFMIN (1.15)
 #define VREFMAX (1.23)
 
+#define ADCSCALEFACTOR 1
+
 /* *************************************************************************
  * void adcparamsinit_init(struct ADCFUNCTION* p);
  * @brief	: Initialize struct with parameters common to all ADC for this =>board<=

@@ -78,23 +78,6 @@ void adcparams_init(void)
 
 	return;
 }
-
-/* *************************************************************************
- * float adcparams_calibbms(uint16_t x, uint8_t i);
- *	@brief	: calibrate 
- *  @param  : x = raw ADC count.
- *  @param  : i = index of reading (0 - 19) 20 readings
- *  @return : calibrated value (float volts)
- * *************************************************************************/
-float adcparams_calibbms(uint16_t a, uint8_t i)
-{
-	float x = a; // Convert int to float
-	float y = (x*x*adc1.lc.cabsbms[i].coef[2] +
-			     x*adc1.lc.cabsbms[i].coef[1] +
-			       adc1.lc.cabsbms[i].coef[0] );
-	return y;
-}
-
 /* *************************************************************************
  * void adcparams_calibadc(void);
  *	@brief	: calibrate and filter ADC channel readings (from ADCTask.c)
@@ -104,7 +87,7 @@ void adcparams_calibadc(void)
 	struct ADCFUNCTION* p = &adc1; // Convenience pointer
 	struct ADCABS* pabs = &p->abs[0]; // Absolute readings
 	struct ADCABS* pabs_end = &p->abs[ADCDIRECTMAX]; // Absolute readings
-	struct ADCCALABS* pcabsadc = &p->lc.cabsadc[0]; // Absolute readings [2]
+	struct ADCCALABS* pcabsadc = &p->lc.cabs[0]; // Absolute readings [2]
 
 	/* First update temperature compensated internal reference readings
 	   Internal voltage reference and temperature are the first two in
