@@ -26,7 +26,7 @@
 extern struct CAN_CTLBLOCK* pctl0; // Pointer to CAN1 control block
 extern CAN_HandleTypeDef hcan1;
 
-static void canfilt(uint16_t mm, struct MAILBOXCAN* p);
+//static void canfilt(uint16_t mm, struct MAILBOXCAN* p);
 
 TaskHandle_t CanCommHandle = NULL;
 
@@ -108,20 +108,9 @@ void CanComm_init(struct BQFUNCTION* p )
  * *************************************************************************/
 void StartCanComm(void* argument)
 {
-//while(1==1) osDelay(100);
-
-	BaseType_t qret;
-	uint32_t noteval2;
-	struct BMSSPIALL* pbmsspiall readreq = &bmsreadreq;
-
-	/* We use the parameters from BQ for this task. */
 	struct BQFUNCTION* p = &bqfunction;
 	struct CANRCVBUF* pcan;
-
-	uint32_t doneflagctr;
-
-	/* A notification copies the internal notification word to this. */
-	uint32_t noteval = 0; 
+	uint32_t noteval;
 	uint32_t timeoutwait;
 	uint8_t intadj = 0;
 	uint8_t code;
@@ -154,7 +143,7 @@ osDelay(20); // Wait for ADCTask to get going.
 		xTaskNotifyWait(0,0xffffffff, &noteval,timeoutwait);
 
 		/* Filter readings for calibration purposes. */
-		cancomm_items_filter(pssb->taskdatai16); // Filter 	
+//		cancomm_items_filter(pssb->taskdatai16); // Filter 	
 
 /* ******* CAN msg request for sending CELL VOLTAGES. */
 			// Code for which modules should respond bits [7:6]
@@ -224,7 +213,7 @@ bqfunction.CanComm_hb_ctr = 0;
 				bqfunction.CanComm_hb_ctr = 0;
 
 				/* Get readings. */
-				bmsdriver(&bmsspiall);
+				bmsdriver(REQ_READBMS);
 
 				/* Use dummy CAN msg, then it looks the same as a request CAN msg. */
 				can_hb.cd.uc[0] = CMD_CMD_TYPE2;  // Misc subcommands code

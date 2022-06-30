@@ -59,7 +59,7 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
 
    p->cellbal_del  = 2; // Legacy
 
-  /* Arrays have been compile using NCELLMAX [18] */
+  /* Arrays compiled using NCELLMAX [18] */
    p->ncell = 16; // Number of series cells in this module
 
    if (p->ncell > NCELLMAX) morse_trap(702); // Error trap as it needs fixing

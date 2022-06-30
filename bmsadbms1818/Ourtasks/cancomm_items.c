@@ -12,6 +12,7 @@
 #include "../../../../GliderWinchCommons/embed/svn_common/trunk/db/gen_db.h"
 #include "ADCTask.h"
 #include "iir_f1.h"
+#include "bmsdriver.h"
 
 void cancomm_items_sendcell(struct CANRCVBUF* pcan, float *pf);
 
@@ -289,7 +290,7 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pcan)
  		break;
 
  	case MISCQ_FETBALBITS: // 12 FET on/off discharge bits
- 		loaduint32(puc,adcspiall.cellbitssave);
+ 		loaduint32(puc,bqfunction.cellbal);
 		break;
 
 	case MISCQ_TOPOFSTACK: // BMS top-of-stack voltage
@@ -437,29 +438,3 @@ FETS--
 	return;
 }
 
-/* *************************************************************************
- * void cancomm_items_filter(uint16_t* pi);
- *	@brief	: Pass raw readings through filter 
- *  @param  : pi = pointer to array with uint16_t raw readings (sequence correct)
- * *************************************************************************/
-void cancomm_items_filter(uint16_t* pi)
-{
-	struct FILTERIIRF1* pf1 = &bqfunction.filtiirf1_raw[0]; // Filter parameters
-	struct ADCCALABS* pcabsbms = &adc1.lc.cabsbms[0];
-	float* pout = &bqfunction.raw_filt[0]; // Filtered output
-	float* pcal = &bqfunction.cal_filt[0]; // Flitered and calibrated
-	int i;
-
-	for (i = 0; i < ADCBMSMAX; i++)
-	{
-		*pout = iir_f1_f(pf1,(float)(*pi));
-
-		*pcal = *pout * *pout * adc1.lc.cabsbms[i].coef[2] +
-				*pout * adc1.lc.cabsbms[i].coef[1] +
-				  adc1.lc.cabsbms[i].coef[0];
-
-		 pout += 1;    pcal += 1;   pi += 1;
-		 pcabsbms += 1; pf1 += 1;
-	}
-	return;
-}

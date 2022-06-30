@@ -319,7 +319,7 @@ int main(void)
   bq_items_init();
   chgr_items_init();
   fanop_init();
-  adcspi_preinit();
+  bmsspi_preinit();
 
   /* USER CODE END RTOS_EVENTS */
 

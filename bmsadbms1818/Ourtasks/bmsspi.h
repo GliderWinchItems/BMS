@@ -19,9 +19,8 @@
  void bmsspi_gpio(void);
 /* @brief	: Read BMS 9 GPIOs & calibrate temperature sensors
  * *************************************************************************/
-void bmsspi_setfets(uint32_t fetbits);
+void bmsspi_setfets(void);
 /* @brief	: Load discharge fet settings into '1818 & set discharge timer
- * @param   : fetbits = discharge FET bits
  * *************************************************************************/
  
 /* *************************************************************************/
@@ -36,7 +35,7 @@ void bmsspi_readstuff(uint8_t code);
 /* @brief	: Do conversion, then read registers with results
  * @brief   : code = code for selection of register group
  * *************************************************************************/
-void bmsspi_rw_cmd(uint16_t* pcmd, uint16_t* pdata, uint8_t rw);
+void bmsspi_rw_cmd(const uint16_t* pcmd, uint16_t* pdata, uint8_t rw);
 /* @brief	: Send command  and write data (little endian)
  * @param   : pcmd = pointer to 2 byte command (little endian)
  * @brief   : pdata = pointer to six bytes to be written (little endian),

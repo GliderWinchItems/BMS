@@ -16,6 +16,9 @@
 #include "FanTask.h"
 #include "BQTask.h"
 #include "DTW_counter.h"
+#include "ADBMS1818_command_codes.h"
+#include "fetonoff.h"
+#include "pec15_reg.h"
 
 #include "morse.h"
 
@@ -29,12 +32,11 @@ extern struct BMSSPIALL bmsspiall;
 static union SPI12 spitx12; // SPI command sent to '1818'
 static union SPI12 spirx12; // SPI monitor received from '1818'
 static uint8_t  timstate;   // State for ISR handling: TIM
-static uint16_t cellbitssave; // Depends on readbmsfets code
 static int16_t  tim15ctr;   // TIM15CH1:OC turnover counter
 
 
 void bmsspi_readstuff(uint8_t code);
-void bmsspi_rw_cmd(uint16_t* pcmd, uint16_t* pdata, uint8_t rw);
+void bmsspi_rw_cmd(const uint16_t* pcmd, uint16_t* pdata, uint8_t rw);
 
 enum TIMSTATE
 {
@@ -68,7 +70,7 @@ static uint32_t noteval1;
 
 #define READOUTSIZE_ADVAX 7 // Number of registers to read 
 // Read commands for registers to be read
-static const uint16_t cmdv[READOUTSIZEADVAX] = {
+static const uint16_t cmdv[READOUTSIZE_ADVAX] = {
 	RDCVA, /* 0x004  // Read Cell Voltage Register Group A */
 	RDCVB, /* 0x006  // Read Cell Voltage Register Group B*/
 	RDCVC, /* 0x008  // Read Cell Voltage Register Group C*/
@@ -78,32 +80,32 @@ static const uint16_t cmdv[READOUTSIZEADVAX] = {
 	RDAUXA,/* 0x00C  // Read Auxiliary Register Group A   */
 };
 #define READOUTSIZE_AUX 4
-static const uint16_t cmdaux[READOUTSIZE_AUX = {
-	RDAUXA,/*   0x00C  // Read Auxiliary Register Group A */
-    RDAUXB,/*   0x00E  // Read Auxiliary Register Group B */
-    RDAUXC,/*   0x00D  // Read Auxiliary Register Group C */
-    RDAUXD,/*   0x00F  // Read Auxiliary Register Group D */
+static const uint16_t cmdaux[READOUTSIZE_AUX] = {
+	RDAUXA, /*   0x00C  // Read Auxiliary Register Group A */
+    RDAUXB, /*   0x00E  // Read Auxiliary Register Group B */
+    RDAUXC, /*   0x00D  // Read Auxiliary Register Group C */
+    RDAUXD, /*   0x00F  // Read Auxiliary Register Group D */
 };
 #define READOUTSIZE_STAT 2
 static const uint16_t cmdstat[READOUTSIZE_STAT] = {
-	RDSTATA,/*  0x010  // Read Status Register Group A */
-	RDSTATB,/*  0x012  // Read Status Register Group B */
+	RDSTATA, /*  0x010  // Read Status Register Group A */
+	RDSTATB, /*  0x012  // Read Status Register Group B */
 };
 #define READOUTSIZE_CONFIG	 2
-static const uint16_t cmdconfig[READOUTSIZE_STAT] = {
-	RDCFGA,/*  0x010  // Read Configuration Register Group A */
-	RDCFGB,/*  0x012  // Read Configuration Register Group B */
+static const uint16_t cmdconfig[READOUTSIZE_CONFIG] = {
+	RDCFGA, /*  0x010  // Read Configuration Register Group A */
+	RDCFGB, /*  0x012  // Read Configuration Register Group B */
 };
 #define READOUTSIZE_SCTRL	 1
 static const uint16_t cmdsreg[READOUTSIZE_SCTRL] = {
-	RDSCTRL  0x016 /* // Read S Control Register Group */
+	RDSCTRL /* 0x016  // Read S Control Register Group */
 };
 static const uint16_t cmdcmd[5] = {
 	ADCVAX, /* Start Combined Cell Voltage and GPIO1 GPIO2 Conversion */
 	ADAX,   /* Start GPIOs ADC Conversion */
 	ADSTAT, /* Start Status Group ADC Conversion */
-	NULL,   /* Skip sending a "start" command: Read Configuation */
-	NULL,   /* Skip sending a "start" command: Read S Register */
+	0,      /* Skip sending a "start" command: Read Configuation */
+	0,      /* Skip sending a "start" command: Read S Register */
 };
 static const uint16_t cmdw[3] = {
 	WRCFGA,  /*  0x001  // Write Configuration Register Group A */
@@ -119,17 +121,32 @@ uint8_t readbmsflag; // Let main know a BMS reading was made
  * *************************************************************************/
 void bmsspi_readbms(void)
 {
+	struct BQFUNCTION* pbq = &bqfunction;
+	int i;
+	struct BMSCAL* pf;
+	float x;
+
 	// Turn heater, dump, dump2, trickle chgr off
 	fetonoff_status_set(0);
-	bafunction.fet_status
 
 	// Read cells and GPIO1, GPIO2
 	bmsspi_readstuff(READCELLSGPIO12);
 
-	// TODO: calibration
-
+	pf = &pbq->lc.bmscal[0];
+	for (i = 0; i < NCELLMAX; i++)
+	{
+		// Copy register array into cell array
+		pbq->cellv_latest[i] = bmsspiall.cellreg[i];
+		// Calibration
+		x = pbq->cellv_latest[i];
+		pbq->cellv[i] = 
+		             pf->coef[0] + 
+				 x * pf->coef[1] +
+			 x * x * pf->coef[2];
+		pf +=1;
+	}
 	// Restore status of FETs
-	bmsspi_setfets(bqfunction.fet_status);
+	bmsspi_setfets();
 
 	return;
 }
@@ -145,25 +162,21 @@ void bmsspi_gpio(void)
 	return;
 }
 /* *************************************************************************
- * void bmsspi_setfets(uint32_t fetbits);
+ * void bmsspi_setfets(void);
  * @brief	: Load discharge fet settings into '1818 & set discharge timer
- * @param   : fetbits = discharge FET bits
  * *************************************************************************/
-void bmsspi_setfets(uint32_t fetbits)
+void bmsspi_setfets(void)
 {
-	/* Get current register settings. */
-	bmsspi_readstuff(READCONFIG); // Read Configuration Groups A & B
 
 	/* Update selected Group A & B settings with FET settings. */
 	// DCC12-DCC1 CFGA5 CFGAR4 | Discharge timer: DCTO
-	bmsspiall.configreg[2] &= ~0xFFFF; // Clear bits to be set
-	bmsspiall.configreg[2] |= ((fetbits & 0x0FFF) |
-		(0x02 << 24)); // DCTO[0-3] code = 1 minute
+	bmsspiall.configreg[2] = ((bqfunction.cellbal & 0x0FFF) |
+		(0x02 << 12)); // DCTO[0-3] code = 1 minute
 
 	// DCC18-DCC12 CFGBR1 CFGBR0 | Dischg timer enable: DTMEN = 1
-	bmsspiall.configreg[3] &= ~0x0BF0; // Clear bits to be set
-	bmsspiall.configreg[3] |= (((fetbits >> 4) & 0x03F0) |
-		(1 << 27)); // DTMEN bit
+	bmsspiall.configreg[3] &= ~0x0BFF; // Clear bits to be set
+	bmsspiall.configreg[3] |= (((bqfunction.cellbal >> 8) & 0x03FF) |
+		(1 << 11)); // DTMEN bit
 
 	/* Write-back configuration Groups A & B. */
 	bmsspi_writereg(WRITECONFIG);
@@ -178,12 +191,12 @@ void bmsspi_setfets(uint32_t fetbits)
 {
 	/* DMA1 CH3 (SPI write) peripheral aand memory addresses: */
 	hdma_spi1_tx.Instance->CPAR = (uint32_t)hspi1.Instance + 0x0C; // SPI DR adddress
-	hdma_spi1_tx.Instance->CMAR = (uint32_t)spitx12.uc[0]; // DMA stores from this array
+	hdma_spi1_tx.Instance->CMAR = (uint32_t)spitx12.u8[0]; // DMA stores from this array
 //	hdma_spi1_tx.Instance->CCR |= (1 << 1); // TCIE: enable DMA interrupt
 
 	/* DMA1 CH2 (SPI read) peripheral and memory addresses: */
 	hdma_spi1_rx.Instance->CPAR = (uint32_t)hspi1.Instance + 0x0C; // SPI DR address
-	hdma_spi1_rx.Instance->CMAR = (uint32_t)spirx12.uc[0]; // DMA stores from this array
+	hdma_spi1_rx.Instance->CMAR = (uint32_t)spirx12.u8[0]; // DMA stores from this array
 
 	/* MX may have these setup */
 	hdma_spi1_rx.Instance->CCR |=  0x2;  // Enable DMA read channel interrupt
@@ -214,20 +227,20 @@ void bmsspi_setfets(uint32_t fetbits)
 	return;
 }
 /* *************************************************************************
- * static uint16_t readreg(uint16_t* p, uint16_t* pcmdr, uint8_t n);
+ * static uint16_t readreg(const uint16_t* pcmdcmd, uint16_t* p, const uint16_t* pcmdr, uint8_t n);
  * @brief	: Read register, convert endianness
- * @param   : p = pointer to output array (little endian)
- * @param   : pcmdr = pointer to read command (NULL = skip conversionc command)
+ * @param   : pcmdcmd = pointer to output array (little endian)
+ * @param   : pcmdr = pointer to read command (0 = skip conversionc command)
  * @param   ; n = number of register reads
  * @return  : 0 = no PEC15 error
  * *************************************************************************/
-static unint16_t readreg(uint16_t* pcmdcmd, uint16_t* p, uint16_t* pcmdr, uint8_t n)
+static uint16_t readreg(const uint16_t* pcmdcmd, uint16_t* p, const uint16_t* pcmdr, uint8_t n)
 {
 	uint16_t i;
 
-	if (pcmdcmd != NULL)
+	if (pcmdcmd != 0)
 	{ /* Send a "Start conversion" command. */
-		bmsspi_rw_cmd(pcmdcmd, NULL, 3); 
+		bmsspi_rw_cmd(pcmdcmd, 0, 3); 
 
 		// Wait for conversions to complete
 		xTaskNotifyWait(0,0xffffffff, &noteval1, 3000);
@@ -237,8 +250,8 @@ static unint16_t readreg(uint16_t* pcmdcmd, uint16_t* p, uint16_t* pcmdr, uint8_
 	/* Read registers holding conversion results. */
 	for (i = 0; i < n; i++)
 	{
-	 	bmsspi_rw_cmd(pcmd, NULL, 2);
-	 	pcmd += 1;
+	 	bmsspi_rw_cmd(pcmdr, 0, 2);
+	 	pcmdr += 1;
 
 	 	// Wait for SPI reading sequence to complete
 		xTaskNotifyWait(0,0xffffffff, &noteval1, 3000);
@@ -249,6 +262,7 @@ static unint16_t readreg(uint16_t* pcmdcmd, uint16_t* p, uint16_t* pcmdr, uint8_
 		*p++ = (uint16_t)__REV16 (spirx12.u16[3]);
 		*p++ = (uint16_t)__REV16 (spirx12.u16[4]);
 	}
+	// TODO check PEC15 of a read
 	return 0;
 }
 /* *************************************************************************
@@ -257,7 +271,7 @@ static unint16_t readreg(uint16_t* pcmdcmd, uint16_t* p, uint16_t* pcmdr, uint8_
  * @param   : p = pointer to input array (little endian)
  * @param   : pcmdw = pointer to write command
  * *************************************************************************/
-static void writereg(uint16_t* pcmdw, uint16_t* p)
+static void writereg(const uint16_t* pcmdw, uint16_t* p)
 {
 	bmsspi_rw_cmd(pcmdw, p, 1); 
 
@@ -265,7 +279,7 @@ static void writereg(uint16_t* pcmdw, uint16_t* p)
 	xTaskNotifyWait(0,0xffffffff, &noteval1, 3000);
 	if (noteval1 == 0) morse_trap(251);
 
-	return 0;
+	return;
 }
 /* *************************************************************************
  * void bmsspi_writereg(uint8_t code);
@@ -277,12 +291,12 @@ void bmsspi_writereg(uint8_t code)
 	switch(code)
 	{
 	case WRITECONFIG: // Write configuration register groups A & B
-		writereg(&cmdw[0], bmsspiall.configreg[0]);
-		writereg(&cmdw[1], bmsspiall.configreg[1]);
+		writereg(&cmdw[0], &bmsspiall.configreg[0]);
+		writereg(&cmdw[1], &bmsspiall.configreg[1]);
 		break;
 
 	case WRITESREG: // Write S register groups
-		writereg(&cmdw[2], bmsspiall.sreg[0]);
+		writereg(&cmdw[2], &bmsspiall.sreg[0]);
 		break; 
 
 	default:
@@ -301,7 +315,7 @@ void bmsspi_readstuff(uint8_t code)
 	{
 	case READCELLSGPIO12: // Read cell voltages + GPIO1 & GPIO2
 		readreg(&cmdcmd[READCELLSGPIO12], bmsspiall.cellreg, cmdv, 6);
-		readreg(bmsspiall.auxreg, &cmdv[6], 1);
+		readreg(0, bmsspiall.auxreg, &cmdv[6], 1);
 		break;
 
 	case READGPIO: // Read all 9 GPIOs voltage registers: A-D
@@ -313,10 +327,10 @@ void bmsspi_readstuff(uint8_t code)
 		break;
 
 	case READCONFIG: // Read configuration
-		readreg(NULL, bmsspiall.configreg,cmdconfig,READOUTSIZE_CONFIG);
+		readreg(0, bmsspiall.configreg,cmdconfig,READOUTSIZE_CONFIG);
 
 	case READSREG: // Read S register
-		readreg(NULL, bmsspiall.sreg,cmdsreg,READOUTSIZE_SCTRL);
+		readreg(0, bmsspiall.sreg,cmdsreg,READOUTSIZE_SCTRL);
 		break;		
 
 	default: 
@@ -340,10 +354,10 @@ void bmsspi_readstuff(uint8_t code)
  *          : 2 = Send command+pec, read 6 bytes data+pec into spirx12.uc[4]-[11]
  *          : 3 = Send 2 byte command  + pec. Switch '1818 SDO to interrupt conversion completion
  * *************************************************************************/
-void bmsspi_rw_cmd(uint16_t* pcmd, uint16_t* pdata, uint8_t rw)
+void bmsspi_rw_cmd(const uint16_t* pcmd, uint16_t* pdata, uint8_t rw)
 {
-	struct BMSSPIALL* p = pbmsspiall; // Convenience pointer
-	uint32_t dmact; // Number of bytes for DMA
+	struct BMSSPIALL* p = &bmsspiall; // Convenience pointer
+	uint32_t dmact = 12; // Number of bytes for DMA
 
 	/* Do this early since time delay involved. */
 	CSB_GPIO_Port->BSRR = (CSB_Pin<<16); // Reset: CSB pin set low
@@ -353,10 +367,11 @@ void bmsspi_rw_cmd(uint16_t* pcmd, uint16_t* pdata, uint8_t rw)
 	/* Build byte array for a single SPI/DMA operation. */
 	// Command 
     CRC->CR = 0x9; // 16b poly, + reset CRC computation
-	p->spitx12.u16[0] = (uint16_t)__REV16 (pcmd);	// Command: big endian
+	p->spitx12.u16[0] = (uint16_t)__REV16 (*pcmd);	// Command: big endian
     *(__IO uint16_t*)CRC_BASE = (uint16_t)__REV16 (p->spitx12.u16[0]); 
 	p->spitx12.u16[1] = (uint16_t)__REV16 (CRC->DR); // Big endian: Store PEC for command bytes
 
+	/* Set dma count (dmact), and register to write (endian and pec15) */
 	switch (rw)
 	{
 	case 0: // Send command only
@@ -366,7 +381,6 @@ void bmsspi_rw_cmd(uint16_t* pcmd, uint16_t* pdata, uint8_t rw)
 
 	case 1: // Send command and write 6 data+2 pec
 if (pdata == NULL)	 morse_trap(259);
-		dmact = 12;
 		//* Set data as big endian 1/2 words, plus pec big endian
 		p->spitx12.u32[1] = (uint32_t)__REV   (*(uint32_t*)(pdata+2)); // Load 4 bytes
 		*(__IO uint32_t*)CRC_BASE = (uint32_t)__REV (p->spitx12.u32[1]);
@@ -377,8 +391,7 @@ if (pdata == NULL)	 morse_trap(259);
     	p->spitx12.u16[5] = (uint16_t)__REV16 (CRC->DR); // Big endian: Store PEC for command bytes
     	break;
 
-    case 3: // Send command that reads 8 bytes into spirx12
-		dmact = 12;
+    case 2: // Send command that reads 8 bytes into spirx12
 		break;
 
 	default: 
@@ -394,7 +407,7 @@ if (pdata == NULL)	 morse_trap(259);
 	hdma_spi1_tx.Instance->CNDTR = dmact; // Number to DMA transfer
 	hdma_spi1_tx.Instance->CCR |= 1;  // Enable channel 	
 
-	timstate = TTIMSTATE_1;
+	timstate = TIMSTATE_1;
 
 	/* Allow 5 us CSB (chip select) delay. Before enabling SPI. */
 	TIM15->CCR1 = TIM15->CNT + CSBDELAYFALL; 
@@ -408,7 +421,7 @@ if (pdata == NULL)	 morse_trap(259);
    ####################################################################### */
 void bmsspi_tim15_IRQHandler(void)
 {
-	struct BMSSPIALL* p = pbmsspiall; // Convenience pointer
+	struct BMSSPIALL* p = &bmsspiall; // Convenience pointer
 	BaseType_t xHPT = pdFALSE;
 
 	/* Clear interrupt flag. */

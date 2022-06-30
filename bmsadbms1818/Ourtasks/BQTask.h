@@ -28,12 +28,14 @@
 #define CID_CMD_MISC     6 // CAN msg with status and TBD stuff
 
 #define BSTATUS_NOREADING (1 << 0)	// Exactly zero = no reading
-#define BSTATUS_OPENWIRE  (1 << 1)  // Negative or over 5v indicative of open wire
+#define BSTATUS_OPENWIRE  (1 << 1)  // Negative or over 4.3v indicative of open wire
 #define BSTATUS_CELLTOOHI (1 << 2)  // One or more cells above max limit
 #define BSTATUS_CELLTOOLO (1 << 3)  // One or more cells below min limit
 #define BSTATUS_CELLBAL   (1 << 4)  // Cell balancing in progress
 #define BSTATUS_CHARGING  (1 << 5)  // Charging in progress
-#define BSTATUS_DUMPTOV   (1 << 6)  // Dump to a voltage in progress
+#define BSTATUS_DUMPTOV   (1 << 6)  // Discharge to a voltage in progress
+#define BSTATUS_CELLVRYLO (1 << 7)  // One or more cells very low
+
 
 #define FET_DUMP     (1 << 0) // 1 = DUMP FET ON
 #define FET_HEATER   (1 << 1) // 1 = HEATER FET ON
@@ -112,11 +114,14 @@ struct BQFUNCTION
 	uint8_t  cellx_high;   // Highest cellv index (0-17)
 	uint8_t  cellx_low;    // Lowest  cellv index (0-17)
 
-	float cellv[NCELLMAX]; // Cell voltage (calibrated volts) 
+	uint32_t cellv_max_bits; // Cells above cellv_max
+	uint32_t cellv_min_bits; // Cells below cellv_min
+	uint32_t cellv_vlc_bits; // Cells below cellv_vlc
+
+	float cellv[NCELLMAX]; // Cell voltage (calibrated volts)
+	float cellv_sort[NCELLMAX]; // cellv sorted
 	float current;   // Op-amp sensing: amps current
 	float temperature[3]; // Thermistors: Deg C temperature
-
-	uint32_t dchgfetbits; // 1 = discharge FET is on
 
 	// Cell balancing & relaxation hysteresis
 	uint32_t targetv;       // Balance voltage target
@@ -130,7 +135,8 @@ struct BQFUNCTION
 	float raw_filt[ADCBMSMAX]; // Filtered output
 	float cal_filt[ADCBMSMAX]; // Filtered and calibrated
 
-	uint32_t cellbal;       // Bits to activate cell balance fets
+//	uint32_t dchgfetbits; // 1 = discharge FET is on !!!!!!!!!!!
+	uint32_t cellbal;       // Bits to activate cell balance fets!!!!!!!!!!!
 	uint32_t cellspresent;  // Bits for cell positions that are installed
 	uint8_t active_ct;      // Count of bits set in cellbal
 	uint8_t battery_status; // Cell status code bits 

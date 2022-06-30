@@ -4,6 +4,9 @@
 * Board              :
 * Description        : Init function struc
 *******************************************************************************/
+/*
+06/27/2022 updated for ADBMS1818
+*/
 #include "bq_func_init.h"
 #include "CanCommTask.h"
 #include "iir_f1.h"
@@ -45,17 +48,19 @@ void bq_func_init(void)
 	p->cellbal        = 0; // Bits to activate cell balance fets
 	p->battery_status = 0; // Cell status Bits 
 	p->fet_status     = 0; // FET bits
-
-    p->hyster_sw  = 0; // 1 = means hysteresis (relaxation) currently in effect
-    p->trip_max   = 0; // Reset bits: 1 = cell reached max while hyster_sw = 0;
-    // End hysteresis (relaxation) when a cell reaches this voltage
-    p->hysterv_lo = (p->lc.cellv_max - p->lc.cellv_hyster);
+    p->hyster_sw      = 0; // 1 = means hysteresis (relaxation) currently in effect
+    p->hysterbits_hi  = 0; // Reset bits: 1 = cell reached max while hyster_sw = 0;
 
 	p->state      = 0;  // main state
 	p->substateA  = 0;  // 
 	p->substateB  = 0;  // spare substate 
 
-	for (i = 0; i < 16; i ++)
+	// End hysteresis (relaxation) when a cell reaches this voltage
+    p->hysterbits_lo = 0;
+    p->hysterbits_hi = 0;
+    p->hysterv_lo = (p->lc.cellv_max - p->lc.cellv_hyster);
+
+	for (i = 0; i < NCELLMAX; i ++)
 	{
 		p->cellv_latest[i] = 0;
 	}
@@ -79,6 +84,5 @@ void bq_func_init(void)
 			p->cellspresent |= (1<<i);
 		}
 	}
-
 	return;
 }

@@ -50,7 +50,8 @@ void bmsdriver_init(void)
  * *************************************************************************/
 void bmsdriver(uint8_t reqcode)
 {
-	qret = xSemaphoreTake(semphrbms, 5000)
+	BaseType_t qret;
+	qret = xSemaphoreTake(semphrbms, 5000);
 	if (qret != pdPASS) morse_trap(736);
 
 	/* Save task handle used for ISR ending a sequence. */

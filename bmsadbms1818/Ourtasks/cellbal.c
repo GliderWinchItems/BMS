@@ -1,6 +1,6 @@
 /******************************************************************************
 * File Name          : cellbal.c
-* Date First Issued  : 006/26/2022
+* Date First Issued  : 06/26/2022
 * Description        : ADBMS1818: cell balancing
 *******************************************************************************/
 
@@ -28,13 +28,12 @@ PC8  PC10 DUMP
 */
 
 #define CALLBALBIT00 (1<<0) // Wait notification 
-struct ADCREADREQ arrbal;
 float fcell[ADCBMSMAX]; // (16+3+1) = 20; Number of MAX14921 (cells+thermistors+tos)   
 float fcellsum;	
 
 
 /* *************************************************************************
- * void cellbal_do(struct ADCREADREQ* parq);
+ * void cellbal_do(void);
  * @brief	: Check cell voltages and set 
  *          : -  I/O pins for DUMP resistor FET ON/OFF
  *          : -  I/O pin for DUMP2 FET (External charger) ON/OFF
@@ -45,12 +44,10 @@ void cellbal_do(void)
 {
 	struct BQFUNCTION* pbq = &bqfunction;
 	struct BQLC* plc = &pbq->lc;
-	BaseType_t qret;
 	int i;
 	int32_t idata;
 	uint32_t flag_dump; // PC8 & PC10 for DUMP ON/OFF
 	uint32_t flag_extchgr; // External charger fet on/off
-	uint32_t doneflagctr;
 	uint16_t flag_trickle; // PWM count for trickle charge level
 	uint8_t  ctr1; // Count of cells at or above maximum (target)
 	uint8_t  ctr2; // Count of cells at or below minimum
@@ -61,25 +58,23 @@ void cellbal_do(void)
 	ctr1               = 0; // Above maximum count
 	ctr2               = 0; // Below minimum count
 	fcellsum           = 0; // Installled cell voltage sum
-	arrbal.cellbits    = 0; // Dischage FET bits
-	parg->cellopenbits = 0; // Unexpected open wire bits
+	pbq->cellbal       = 0; // Dischage FET bits
+	pbq->cellvopenbits = 0; // Unexpected open wire bits
 
 	/* Go through array for a maximum size box. */
 	for ( i = 0; i < NCELLMAX; i++)
 	{ // Skip predetermined empty box positions
 		if (plc->cellpos[i] != CELLNONE)
 		{
-/* NOTE:  Should idata be a filter (hence float)? */
-			idata = *(parg->taskdata + i);
-
 			/* Sum installed cells for later check against top-of-stack. */
-			fcellsum += idata;
+			fcellsum += pbq->cellv[i];
+			idata = pbq->cellv_latest[i]; // Convenience?
 
 			if (idata < plc->cellv_min)
 			{ // Below usable voltage range
-				if (idata < plc->cellopenlo)
+				if (idata < plc->cellopen_lo)
 				{ // Very low voltage is assumed to be an open wire
-					parg->cellopenbits |= (1 << i);
+					pbq->cellvopenbits |= (1 << i);
 				}
 				else
 				{ // Here, low, but not an unexpected open wire
@@ -89,36 +84,29 @@ void cellbal_do(void)
 			else if (idata < pbq->hysterv_lo)
 			{ // Here, Cell is at low of hysteresis (relaxation)
 				pbq->hyster_sw = 0; // Set hysteresis off
-				pbq->trip_max  = 0; // All cells have to trip max again.
+				pbq->hysterbits_hi  = 0; // All cells have to trip max again.
 			}
 			else if (idata > plc->cellv_max)
 			{ // Here voltage is above max
-				if (idata > plc->cellopenhi)
+				if (idata > plc->cellopen_hi)
 				{ // Very high voltage is assumed to be an open wire
-					parg->cellopenbits |= (1 << i);
+					pbq->cellvopenbits |= (1 << i);
 				}
 				else
 				{ // Here, high but not an unexpected open wire
 					ctr1 += 1; // Count cells above max
-				/* Note: cellibts is generated each pass. trip_max remains
-				   until hyster_sw turns off, then back on. Otherwise they
-				   are the same. */
-					arrbal.cellbits |= (1<<i); // Set discharge fet for this cell
-					pbq->trip_max       |= (1<<i); // Show it tripped the max
+					pbq->cellbal  |= (1<<i); // Set discharge fet for this cell
+					pbq->hysterbits_hi |= (1<<i); // Show it tripped the max
 				}				
 			}
 		}
 	}
 
 	/* Have =>ALL<= installed cells tripped the max voltage? */
-	if (pbq->cellspresent == pbq->trip_max)
+	if (pbq->cellspresent == pbq->hysterbits_hi)
 	{ // Here, yes. Go into hysteresis (relaxation) mode
 		pbq->hyster_sw = 1;
 	}
-
-	/* Save for others. */
-	bqfunction.cellvopenbits = arrbal.cellbits;
-
 
 	/* Default settings, if following doesn't override. */
 	flag_dump = ((1<<( 8+0))|(1<<(10+16))); // DUMP OFF
