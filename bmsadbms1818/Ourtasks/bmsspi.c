@@ -218,7 +218,7 @@ void bmsspi_setfets(void)
  	SPI1->CR1 |=  (0x3 << 0); // CPHA|CPOL = 1|1
 
  	/* Init CRC peripheral. */
- 	pec15_reg_init ();
+ 	pec15_reg_init();
 
 	/* EXTI4 ('1818 SDO conversion complete) interrupt initialize*/
   	HAL_NVIC_SetPriority(EXTI4_IRQn, 5, 0);

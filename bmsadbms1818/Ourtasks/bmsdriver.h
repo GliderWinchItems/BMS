@@ -42,15 +42,15 @@ struct BMSSPIALL
 	union SPI12 spitx12; // SPI command sent to '1818'
  	union SPI12 spirx12; // SPI monitor received from '1818'
 	uint32_t setfets;      // Discharge FET settings
-	uint16_t tim15ctr;
+	uint16_t tim15ctr;     // Count TIM15 overflows
 	uint16_t cellreg[6*3]; // Cell readings
 	uint16_t auxreg [4*3]; // Aux readings
 	uint16_t statreg[1*3]; // Status readings
 	uint16_t configreg[2*3]; // Configuration register
-	uint16_t sreg[1*3];  // S register
-	uint8_t  timstate;
-	uint8_t  reqcode;
-	uint8_t  bmssetfets; // Discharge FET bits to be set 
+	uint16_t sreg[1*3];    // S register
+	uint8_t  timstate;     // State for TIM15
+	uint8_t  reqcode;      // Request 
+	uint8_t  bmssetfets;   // Discharge FET bits to be set 
 	uint8_t  err;
 };
 

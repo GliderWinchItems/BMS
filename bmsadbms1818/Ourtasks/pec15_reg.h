@@ -8,9 +8,12 @@
 #ifndef __PEC15_REG
 #define __PEC15_REG
 
+#include "stm32l4xx_hal.h"
+#include "stm32l4xx_hal_crc.h"
+
 /* *************************************************************************/
- uint16_t pec15_reg_init (void);
- /*	@brief	: Iniitalize RCC and CRCregisters for CRC-15 computation
+void pec15_reg_init (void);
+/*  @brief  : Iniitalize RCC and CRCregisters for ADBMS1818 CRC-15 computation
  * *************************************************************************/
  uint16_t pec15_reg (uint8_t *pdata , int len);
 /*	@brief	: Reset and compute CRC

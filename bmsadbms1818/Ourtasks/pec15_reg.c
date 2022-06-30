@@ -23,7 +23,7 @@ six byte command ped15 computation--
 #include "pec15_reg.h"
 
 /* *************************************************************************
- * uint16_t pec15_reg_init (void);
+ * void pec15_reg_init (void);
  *  @brief  : Iniitalize RCC and CRCregisters for ADBMS1818 CRC-15 computation
  * *************************************************************************/
 #define SEED 0x10 // PEC15 initial value
