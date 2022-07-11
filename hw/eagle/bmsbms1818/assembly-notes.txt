@@ -1,0 +1,94 @@
+assembly-notes.txt
+bmsbms1818 (first version)
+07/07/2022
+
+Hardware
+
+1. Caps
+- Check shorts
+
+2. Resistors, LEDs, small FETs
+- Check shorts and bogus values
+
+3. Regulators install
+- 5v  CAN side
+- 12v CAN side
+- 5v   Processor side
+- 3.3v Processor side
+- 1.8v Processor side (VBAT)
+
+- Check for shorts on each regulator output.
+
+4. Install isoloated CAN if 8 pin version
+
+DC-DC isolated convertor module covers this IC!
+
+5. Install DC-DC convertor module
+
+6. Install CAN bus side header
+
+- Add two pin header JP8
+
+7. Diodes
+
+1N4148 (two thru)
+1N4148 (one smd)
+
+
+8. Check voltages 
+
+- Jumper JP8
+- Power up via ribbon, etc.
+- Green LED1 should light
+- DC-DC -> 15v
+- Regulators (see above)
+
+9. Small ICs & opto-isolators
+
+74HCT02 (IC2)
+MCP6006 (current sense op-amp)
+MCP1416 (FET driver)
+H11L1 (three opto's)
+
+10. Add processor and ADBMS1818
+
+- Adjacent pin short check
+
+11. Reset pushbutton.
+
+(Fits between the following so do it now)
+
+12. Add thru-hole stuff
+- 0.1 headers
+- FAN keyed header
+- Big Heater FET
+- Heater source/drain lugs
+- Inductor
+- 1uf 100v (tickle)
+- 100u 30v
+- 100u 50v
+- 2x10 Battery header
+- 18 33 ohm resistors (underside)
+
+13. Xtals (8 (or 16) MHz and 32.768KHz)
+
+Software
+
+Hacked version of the '14921 
+
+1. Compiled program should load
+
+Should run and green led flash (huzzah)
+UART output to minicom should work (more huzzahs)
+
+2. Oscillator initialization doesn't hang
+
+- 'MX enable/disable 8 MHz xtal
+- 'MX enable/disable 32.768 KHz xtal
+
+3. Check that both LEDs work (e.g. morse_trap)
+
+4. Check reset pushbutton
+
+
+

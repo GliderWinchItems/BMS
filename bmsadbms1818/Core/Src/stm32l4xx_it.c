@@ -299,7 +299,9 @@ void DMA1_Channel1_IRQHandler(void)
 void DMA1_Channel2_IRQHandler(void)
 {
   /* USER CODE BEGIN DMA1_Channel2_IRQn 0 */
-
+    // bmsspi.c
+  bmsspi_spidmarx_IRQHandler(&hdma_spi1_rx);
+  return;
   /* USER CODE END DMA1_Channel2_IRQn 0 */
   HAL_DMA_IRQHandler(&hdma_spi1_rx);
   /* USER CODE BEGIN DMA1_Channel2_IRQn 1 */
@@ -312,8 +314,10 @@ void DMA1_Channel2_IRQHandler(void)
   */
 void DMA1_Channel3_IRQHandler(void)
 {
-  /* USER CODE BEGIN DMA1_Channel3_IRQn 0 */
-
+  /* USER CODE BEGIN DMA1_Channel3_IRQn 0 */\
+  // bmsspi.c
+  bmsspi_spidmatx_IRQHandler(&hdma_spi1_tx);
+  return;
   /* USER CODE END DMA1_Channel3_IRQn 0 */
   HAL_DMA_IRQHandler(&hdma_spi1_tx);
   /* USER CODE BEGIN DMA1_Channel3_IRQn 1 */

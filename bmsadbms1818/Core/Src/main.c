@@ -45,7 +45,7 @@
 #include "ADCTask.h"
 #include "MailboxTask.h"
 #include "CanCommTask.h"
-#include "bmsdriver.h"
+#include "BMSTask.h"
 #include "fanop.h"
 #include "chgr_items.h"
 #include "adcspi.h"
@@ -310,19 +310,22 @@ int main(void)
   TaskHandle_t retT = xCanCommCreate(osPriorityNormal+1);
   if (retT == NULL) morse_trap(121);
 
+  retT = xBMSTaskCreate(osPriorityNormal+1);  
+  if (retT == NULL) morse_trap(123);
+
     /* Select interrupts for CAN1 */
   HAL_CAN_ActivateNotification(&hcan1, \
     CAN_IT_TX_MAILBOX_EMPTY     |  \
     CAN_IT_RX_FIFO0_MSG_PENDING |  \
     CAN_IT_RX_FIFO1_MSG_PENDING    );
 
-  /* Init some things called by 'defaultTask' */
+  /* Init some things called by tasks. */
   bq_func_init();
   bq_items_init();
   chgr_items_init();
   fanop_init();
   bmsspi_preinit();
-
+  
   /* USER CODE END RTOS_EVENTS */
 
   /* Start scheduler */
@@ -1289,7 +1292,7 @@ void StartDefaultTask(void *argument)
   /* USER CODE BEGIN 5 */
   int32_t i;
   uint32_t mctr = 0;
-  uint32_t noteval = 0; // TaskNotifyWait notification word
+//  uint32_t noteval = 0; // TaskNotifyWait notification word
 
 /* These #defines select uart output for monitoring. */
 
@@ -1312,6 +1315,15 @@ void StartDefaultTask(void *argument)
   {
     /* Loop polls various operations. */
     vTaskDelayUntil( &tickcnt, xPeriod );
+
+uint8_t* p8r = (uint8_t*)0x20003744;
+yprintf(&pbuf2,"\n\r%4d r:",mctr++);
+for (i=0; i<12;i++)
+  yprintf(&pbuf1," %02X", *p8r++);
+yprintf(&pbuf2," t:");
+uint8_t* p8t = (uint8_t*)0x20003750;
+for (i=0; i<12;i++)
+  yprintf(&pbuf2," %02X", *p8t++);
 
     /* Update FAN control. (4/sec) */
     fanop();

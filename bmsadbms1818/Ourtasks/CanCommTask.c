@@ -12,7 +12,7 @@
 #include "main.h"
 #include "morse.h"
 #include "bmsspi.h"
-#include "bmsdriver.h"
+#include "BMSTask.h"
 #include "CanCommTask.h"
 #include "MailboxTask.h"
 #include "CanTask.h"
@@ -213,7 +213,7 @@ bqfunction.CanComm_hb_ctr = 0;
 				bqfunction.CanComm_hb_ctr = 0;
 
 				/* Get readings. */
-				bmsdriver(REQ_READBMS);
+//$				bmsdriver(REQ_READBMS);
 
 				/* Use dummy CAN msg, then it looks the same as a request CAN msg. */
 				can_hb.cd.uc[0] = CMD_CMD_TYPE2;  // Misc subcommands code

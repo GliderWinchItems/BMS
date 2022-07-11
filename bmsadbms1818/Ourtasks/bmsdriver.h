@@ -23,8 +23,8 @@
 union SPI12
 {
 	uint8_t   u8[12];
-	uint16_t u16[6];
-	uint32_t u32[3];
+	uint16_t u16[ 6];
+	uint32_t u32[ 3];
 };
 
 /* Request Codes for services. */
@@ -38,17 +38,12 @@ union SPI12
 
 struct BMSSPIALL
 {
-	TaskHandle_t bmsTaskHandle;
-	union SPI12 spitx12; // SPI command sent to '1818'
- 	union SPI12 spirx12; // SPI monitor received from '1818'
 	uint32_t setfets;      // Discharge FET settings
-	uint16_t tim15ctr;     // Count TIM15 overflows
-	uint16_t cellreg[6*3]; // Cell readings
-	uint16_t auxreg [4*3]; // Aux readings
+	uint16_t cellreg[6*3]; // Cell volt regs: A B C D E F
+	uint16_t auxreg [4*3]; // Aux regs: A B C D
 	uint16_t statreg[1*3]; // Status readings
-	uint16_t configreg[2*3]; // Configuration register
+	uint16_t configreg[2*3]; // Configuration regs: A B
 	uint16_t sreg[1*3];    // S register
-	uint8_t  timstate;     // State for TIM15
 	uint8_t  reqcode;      // Request 
 	uint8_t  bmssetfets;   // Discharge FET bits to be set 
 	uint8_t  err;
@@ -58,6 +53,9 @@ struct BMSSPIALL
 void bmsdriver(uint8_t reqcode);
 /*	@brief	: Perform a bms function, e.g. read cells
  *  @param  : code = code(!) for function
+ * *************************************************************************/
+void bmsdriver_init(void);
+/*	@brief	: Initialize
  * *************************************************************************/
 
 extern SemaphoreHandle_t semphrbms;

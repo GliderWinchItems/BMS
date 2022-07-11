@@ -15,6 +15,8 @@
 #include "ChgrTask.h"
 #include "BQTask.h"
 
+uint32_t BQITEMSNOTE00 (1<<0)
+
 /* Sort Cell voltages */
 #define USESORTCODE
 

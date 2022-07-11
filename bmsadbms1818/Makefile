@@ -118,7 +118,7 @@ C_SOURCES += Ourtasks/CanCommTask.c
 C_SOURCES += Ourtasks/cancomm_items.c
 C_SOURCES += Ourtasks/fanop.c
 C_SOURCES += Ourtasks/bmsspi.c
-C_SOURCES += Ourtasks/bmsdriver.c
+C_SOURCES += Ourtasks/BMSTask.c
 C_SOURCES += Ourtasks/pec15_reg.c
 
 # /* USER CODE END */ 
