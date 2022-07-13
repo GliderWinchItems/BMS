@@ -1,7 +1,7 @@
 /******************************************************************************
 * File Name          : bq_items.c
-* Date First Issued  : 10/02/2021
-* Description        : routines associated with charging task
+* Date First Issued  : 07/11/2022
+* Description        : routines associated with charging & cell balance
 *******************************************************************************/
 /* 
 06/22/2022 Update for ADBMS1818 
@@ -19,7 +19,7 @@
 #include "bq_items.h"
 #include "BQTask.h"
 #include "fetonoff.h"
-#include "bmsdriver.h"
+#include "bmsspi.h"
 
 void bq_items_selectfet(void);
 
@@ -53,15 +53,17 @@ void bq_items_init(void)
 static void bq_items_q(uint8_t reqcode)
 {
 	BaseType_t ret;
+	uint32_t noteval1;
+	struct BMSREQ_Q* pq = &bmstask_q_readbms;
 
 	bmstask_q_readbms.reqcode = reqcode;
 	bmstask_q_readbms.noteyes = 0; // Do not notify calling task
 	bmstask_q_readbms.done = 1; // Show request queued
-	ret = xQueueSendToBack(BMSTaskReadReqQHandle, &bmstask_q_readbms, 0);
-	if (ret == NULL) morse_trap(201);
+	ret = xQueueSendToBack(BMSTaskReadReqQHandle, &pq, 0);
+	if (ret != pdPASS) morse_trap(201);
 
-	xTaskNotifyWait(0,0xffffffff, &noteval1, 3000);
-	if (noteval1 == 0) morse_trap(202);
+	xTaskNotifyWait(0,0xffffffff, &noteval1, 5500);
+	if (noteval1 == BQITEMSNOTE00) morse_trap(203);
 }
 /* *************************************************************************
  * uint8_t bq_items(void);
@@ -73,33 +75,37 @@ static void bq_items_q(uint8_t reqcode)
 static uint8_t state = 0;
 uint8_t bq_items(void)
 {
-	uint32_t noteval1;
-	uint8_t ret = 0;
+	uint8_t retx = 0;  // Default return code = nothing done
 	 /* Don't queue another request until the previous is finished. */
+	// Note: case 2 & 3 could be combined by queueing two requests
+	// but requires to request structs.
 	if (bmstask_q_readbms.done != 0) return 0;
 
 	switch(state)
 	{
-	case 0:
+	case 0: // OTO Initialize
 	 	bmstask_q_readbms.bmsTaskHandle = xTaskGetCurrentTaskHandle();
 	 	bmstask_q_readbms.tasknote = BQITEMSNOTE00;
 	 	state = 1;
-	 	/* Fall through. */
+	 /* Fall through. */
 	case 1: /* Every 'x' ms check balancing. */
-		if ((int32_t)(xTaskGetTickCount() - ticks_next) < 0) return 0;
-		ticks_next += TICKS_INC;
-		state = 2;
-		break;
+		if ((int32_t)(xTaskGetTickCount() - ticks_next) < 0) 
+			break;
 
+		ticks_next += TICKS_INC; // Next balancing cycle tick count
+		state = 2;
+	 /* Fall through. */
 	case 2: /* Get read & get current register settings. (REQ_READBMS) */
 		bq_items_q(REQ_READBMS); // Queue request
-while(1==1){HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_1);osDelay(125);}
+//while(1==1){HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_1);osDelay(125);}		
 		state = 3;
 		break;
 
 	case 3: /* REQ_READBMS completed. */
 	     /* Setup discharge FET bits, and update other FETs. */
-		retx = 1; // Return shows REQ_READBMS completed
+retx = 1;
+state = 1;
+break;
 		bq_items_selectfet(); // Determine on/off for all FETs
 
 		/* Activate the settings from the foregoing logic. */
@@ -107,12 +113,14 @@ while(1==1){HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_1);osDelay(125);}
 		bq_items_q(REQ_SETFETS); // Queue BMS request
 		// Other FETs
 		fetonoff_status_set(bqfunction.fet_status);
-		state = 4:
+
+		retx = 1;  // Return shows REQ_READBMS completed
+		state = 4; // Wait for REQ_SETFETS to complete
 		break;
 
 	case 4: // REQ_SETFETS completed
 		retx  = 2;  // Return shows REQ_SETFETS completed
-		state = 1;  // Start new cycle
+		state = 1;  // Ready for a new cycle
 		break;		
 	}
 	return retx;

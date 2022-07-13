@@ -12,7 +12,14 @@
 #include "cmsis_os.h"
 #include "stm32l4xx_hal.h"
 
+
 /* *************************************************************************/
+ void bmsspi_wakeseq(void);
+/* @brief	: Execute a non-interrupt driven '1818 wake up sequence.
+ * *************************************************************************/
+ void bmsspi_preinit(void);
+/* @brief	: Initialization
+ * *************************************************************************/
  void bmsspi_readbms(void);
 /* @brief	: Read BMS plus GPIO1,2
  * *************************************************************************/
@@ -22,11 +29,12 @@
 void bmsspi_setfets(void);
 /* @brief	: Load discharge fet settings into '1818 & set discharge timer
  * *************************************************************************/
+uint8_t bmsspi_keepawake(void);
+/* @brief	: Execute a valid command to keep awake
+ * @return  : state number of latest reading
+ * *************************************************************************/
  
 /* *************************************************************************/
- void bmsspi_preinit(void);
-/* @brief	: Initialization
- * *************************************************************************/
 void bmsspi_writereg(uint8_t code);
 /* @brief   : Write register group(s)
  * @param   : code = code for selection of register group
@@ -63,7 +71,5 @@ void bmsspi_spidmatx_IRQHandler(DMA_HandleTypeDef* phdma_spi1_tx);
 void EXTI4_IRQHandler(void);
 /* PB4 SPI MISO pin-1818 SDO pin: interrupt upon rising edge
    ####################################################################### */	
-
-//extern uint8_t readbmsflag; // Let main know a BMS reading was made
 
 #endif

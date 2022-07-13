@@ -118,6 +118,8 @@ void StartCanComm(void* argument)
 	/* CAN communications parameter init. */
 	CanComm_init(p);
 
+	cancomm_items_init();
+
 	extern CAN_HandleTypeDef hcan1;
 	HAL_CAN_Start(&hcan1); // CAN1
 
@@ -160,7 +162,7 @@ morse_trap(6666);
 				((code == (2 << 6)) && ((pcan->cd.uc[0] & 0x30) == p->ident_string)) ||
 				((code == (1 << 6)) && ((pcan->cd.uc[0] & 0x3F) == p->ident_onlyus)) )
 			{ // Here, respond to request, otherwise, ignore.
-				bmsdriver(REQ_READBMS); // Read cells + GPIO 1 & 2
+//				bmsdriver(REQ_READBMS); // Read cells + GPIO 1 & 2
 				cancomm_items_uni_bms(&can_hb, &bqfunction.cellv[0]);
 			}
 		}

@@ -12,7 +12,8 @@
 #include "../../../../GliderWinchCommons/embed/svn_common/trunk/db/gen_db.h"
 #include "ADCTask.h"
 #include "iir_f1.h"
-#include "bmsdriver.h"
+#include "BMSTask.h"
+#include "morse.h"
 
 void cancomm_items_sendcell(struct CANRCVBUF* pcan, float *pf);
 
@@ -22,7 +23,38 @@ static void send_bms_array(struct CANRCVBUF* pcan, float* pout, uint8_t n);
 static void send_allfets(struct CANRCVBUF* pcan);
 
 static uint8_t skip;
+static struct BMSREQ_Q  bmstask_q_readbms;
 
+/* *************************************************************************
+ * static void cancomm_items_q(uint8_t reqcode);
+ * @brief	: Queue request (for BMSTask handling)
+ * *************************************************************************/
+static void cancomm_items_q(uint8_t reqcode)
+{
+return;
+	BaseType_t ret;
+	uint32_t noteval1;
+	struct BMSREQ_Q* pq = &bmstask_q_readbms;
+
+	bmstask_q_readbms.reqcode = reqcode;
+	bmstask_q_readbms.noteyes = 0; // Do not notify calling task
+	bmstask_q_readbms.done = 1; // Show request queued
+	ret = xQueueSendToBack(BMSTaskReadReqQHandle, &pq, 0);
+	if (ret != pdPASS) morse_trap(201);
+
+	xTaskNotifyWait(0,0xffffffff, &noteval1, 3000);
+	if (noteval1 == 0) morse_trap(202);
+}
+/* *************************************************************************
+ * void cancomm_items_init(void);
+ * @brief	: Initialization
+ * *************************************************************************/
+void cancomm_items_init(void)
+{
+	bmstask_q_readbms.bmsTaskHandle = xTaskGetCurrentTaskHandle();
+	bmstask_q_readbms.tasknote = CANCOMMITEMSNOTE00;
+	return;
+}
 /* *************************************************************************
  * static void returncmd(struct CANTXQMSG* pmsg);
  *	@brief	: Copy request bytes
@@ -107,7 +139,7 @@ void cancomm_items_uni_bms(struct CANRCVBUF* pcan, float* pf)
 	switch(pcan->cd.uc[0])
 	{
 	case CMD_CMD_TYPE1: // Send Cell readings
-		bmsdriver(REQ_READBMS); // Read cells + GPIO 1 & 2
+		cancomm_items_q(REQ_READBMS); // Read cells + GPIO 1 & 2
 		cancomm_items_sendcell(pcan, pf);
 		break;
 
@@ -246,7 +278,7 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pcan)
 		break;
 
  	case MISCQ_CELLV_CAL:   // 2 cell voltage: calibrated
-		bmsdriver(REQ_READBMS); // Read cells + GPIO 1 & 2
+		cancomm_items_q(REQ_READBMS); // Read cells + GPIO 1 & 2
  		send_bms_array(pcan, &bqfunction.cal_filt[0], p->lc.ncell);
  		break;
 
@@ -255,7 +287,7 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pcan)
  		break;
 
  	case MISCQ_TEMP_CAL:    // 4 temperature sensor: calibrated
-		bmsdriver(REQ_TEMPERATURE); // Read cells + GPIO 1 & 2
+		cancomm_items_q(REQ_TEMPERATURE); // Read cells + GPIO 1 & 2
  		send_bms_array(pcan, &bqfunction.cal_filt[16], 3);
  		break;
 

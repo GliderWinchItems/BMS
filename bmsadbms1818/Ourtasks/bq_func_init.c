@@ -55,10 +55,10 @@ void bq_func_init(void)
 	p->substateA  = 0;  // 
 	p->substateB  = 0;  // spare substate 
 
-	// End hysteresis (relaxation) when a cell reaches this voltage
-    p->hysterbits_lo = 0;
-    p->hysterbits_hi = 0;
-    p->hysterv_lo = (p->lc.cellv_max - p->lc.cellv_hyster);
+	// Cell voltage hysteresis (relaxation)
+    p->hysterbits_lo = 0; // Cell bit ON: voltage less than hysteresis low
+    p->hysterbits_hi = 0; // Cell bit ON: voltage greater than max target
+    p->hysterv_lo = (p->lc.cellv_max - p->lc.cellv_hyster); // hyster volt low
 
 	for (i = 0; i < NCELLMAX; i ++)
 	{

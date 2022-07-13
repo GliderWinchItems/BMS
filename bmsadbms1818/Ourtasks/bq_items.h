@@ -1,7 +1,7 @@
 /******************************************************************************
-* File Name          : chgr_items.h
-* Date First Issued  : 10/02/2021
-* Description        : routines associated with charging task
+* File Name          : bq_items.h
+* Date First Issued  : 07/11/2022
+* Description        : routines associated with charging & cell balance
 *******************************************************************************/
 
 
@@ -14,8 +14,9 @@
 #include "stm32l4xx_hal.h"
 #include "ChgrTask.h"
 #include "BQTask.h"
+#include "BMSTask.h"
 
-uint32_t BQITEMSNOTE00 (1<<0)
+#define BQITEMSNOTE00 (1<<0) // WaitTask Notification bit
 
 /* Sort Cell voltages */
 #define USESORTCODE

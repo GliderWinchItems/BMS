@@ -8,6 +8,8 @@
 
 #include "can_iface.h"
 
+#define CANCOMMITEMSNOTE00 (1<<0) // CanCommTask TaskWait notification bit
+
 // payload [1] U8: TYPE2 Command code
  #define MISCQ_HEARTBEAT   0   // reserved for heartbeat
  #define MISCQ_STATUS      1 // status
@@ -35,6 +37,9 @@
  #define MISCQ_CURRENT_ADC 25 // Below cell #1 minus, current resistor: adc counts
 
 /* *************************************************************************/
+ void cancomm_items_init(void);
+/* @brief	: Initialization
+ * *************************************************************************/
 void cancomm_items_sendcell(struct CANRCVBUF* pcan, float *pf);
 /*	@brief	: Prepare and queue CAN msgs for sending cell voltage array
  *  @param  : pcan = pointer to struct CANRCVBUF from mailbox 

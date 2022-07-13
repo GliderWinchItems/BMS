@@ -48,7 +48,8 @@
 #include "BMSTask.h"
 #include "fanop.h"
 #include "chgr_items.h"
-#include "adcspi.h"
+//#include "adcspi.h"
+#include "bmsspi.h"
 
 #include "FreeRTOS.h"
 #include "semphr.h"
@@ -306,12 +307,12 @@ int main(void)
   Cret = canfilter_setup_first(0, &hcan1, 15); // CAN1
   if (Cret == HAL_ERROR) morse_trap(122);
 
-  /* CAN communication */
-  TaskHandle_t retT = xCanCommCreate(osPriorityNormal+1);
-  if (retT == NULL) morse_trap(121);
-
-  retT = xBMSTaskCreate(osPriorityNormal+1);  
+  TaskHandle_t retT = xBMSTaskCreate(osPriorityNormal+1);  
   if (retT == NULL) morse_trap(123);
+
+  /* CAN communication */
+  retT = xCanCommCreate(osPriorityNormal+1);
+  if (retT == NULL) morse_trap(121);
 
     /* Select interrupts for CAN1 */
   HAL_CAN_ActivateNotification(&hcan1, \
@@ -319,9 +320,8 @@ int main(void)
     CAN_IT_RX_FIFO0_MSG_PENDING |  \
     CAN_IT_RX_FIFO1_MSG_PENDING    );
 
-  /* Init some things called by tasks. */
+  /* Init some things used by tasks. */
   bq_func_init();
-  bq_items_init();
   chgr_items_init();
   fanop_init();
   bmsspi_preinit();
@@ -1303,19 +1303,50 @@ void StartDefaultTask(void *argument)
 
   yprintf(&pbuf1,"\n\n\rPROGRAM STARTS");
 
-  #define FORDELAY 50 // Delay of 'for' loop in ms
-  const TickType_t xPeriod = pdMS_TO_TICKS(FORDELAY);  
+  #define MAINFORLOOPDELAY 50 // Delay of 'for' loop in ms
+  const TickType_t xPeriod = pdMS_TO_TICKS(MAINFORLOOPDELAY);  
   TickType_t tickcnt = xTaskGetTickCount();
   uint16_t tickcnt_monitor = 0;
 
   bq_items_init(); // Updates tickcnt
 
-  /* Infinite loop */
-  for(;;)
-  {
-    /* Loop polls various operations. */
+//extern uint32_t bmsdbctr;
+//uint32_t bmsdbctr_prev = bmsdbctr;
+extern uint8_t dbgka;
+uint8_t dbgka_prev = dbgka;
+
+  for(;;) /* Loop polls various operations. */
+  {  
     vTaskDelayUntil( &tickcnt, xPeriod );
 
+//    bq_items();
+    if (dbgka_prev != dbgka)
+    {
+      dbgka_prev = dbgka;
+
+      switch (dbgka)
+      {
+      case 0: // config regs
+        yprintf(&pbuf2,"\n\r%5d CFGR %04X %04X %04X : %04X %04X %04X",mctr,
+          bmsspiall.configreg[0],bmsspiall.configreg[1],bmsspiall.configreg[2],
+          bmsspiall.configreg[3],bmsspiall.configreg[4],bmsspiall.configreg[4]);
+        break;
+      case 1: // Stat regs
+       yprintf(&pbuf2,"\n\r%5d STAT %04X %04X %04X : %04X %04X %04X",mctr,
+          bmsspiall.statreg[0],bmsspiall.statreg[1],bmsspiall.statreg[2],
+          bmsspiall.statreg[3],bmsspiall.statreg[4],bmsspiall.statreg[4]);      
+        break;
+      case 2:
+       yprintf(&pbuf2,"\n\r%5d SREG %04X %04X %04X\n",mctr,
+          bmsspiall.sreg[0],bmsspiall.sreg[1],bmsspiall.sreg[2]);
+        break;
+      default:
+        yprintf(&pbuf2,"\n\r%5d BOGUS",mctr);
+        break;
+      }
+      mctr++;
+    }
+#if 0
 uint8_t* p8r = (uint8_t*)0x20003744;
 yprintf(&pbuf2,"\n\r%4d r:",mctr++);
 for (i=0; i<12;i++)
@@ -1324,17 +1355,21 @@ yprintf(&pbuf2," t:");
 uint8_t* p8t = (uint8_t*)0x20003750;
 for (i=0; i<12;i++)
   yprintf(&pbuf2," %02X", *p8t++);
+#endif
 
+#if 0
     /* Update FAN control. (4/sec) */
     fanop();
+#endif
 
+#if 0
     /* Cell balance & control. */
     uint8_t ret8 = bq_items();
     if (ret8 == 0)
     {
       /* Pace monitoring output to 1 per sec. */
       tickcnt_monitor += 1;
-      if (tickcnt_monitor > (1000/(pdMS_TO_TICKS(FORDELAY))))
+      if (tickcnt_monitor > (1000/(pdMS_TO_TICKS(MAINFORLOOPDELAY))))
       {
         tickcnt_monitor = 0;
 
@@ -1345,6 +1380,7 @@ for (i=0; i<12;i++)
 
       }
     }
+#endif    
   } 
   /* USER CODE END 5 */
 }

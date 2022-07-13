@@ -114,6 +114,8 @@ void Error_Handler(void);
 #define DEFAULTTASKBIT01 (1 << 1)  // Task notification bit (from BQtask.c)
 #define DEFAULTTASKBIT02 (1 << 2)  // Task notification bit (from Mailbox)
 
+#define MAINFORLOOPDELAY 50 // main.c Delay of 'for' loop (ms)
+
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

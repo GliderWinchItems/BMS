@@ -14,7 +14,7 @@
 //#include "bmsdriver.h"
 #include "main.h"
 #include "FanTask.h"
-#include "BQTask.h"
+#include "BMSTask.h"
 #include "DTW_counter.h"
 #include "ADBMS1818_command_codes.h"
 #include "fetonoff.h"
@@ -29,8 +29,8 @@ extern DMA_HandleTypeDef hdma_spi1_tx;
 //extern	TaskHandle_t bmsTaskHandle; // Calling task's task handle
 extern struct BMSSPIALL bmsspiall;
 
-static union SPI12 spitx12; // SPI command sent to '1818'
-static union SPI12 spirx12; // SPI monitor received from '1818'
+ union SPI12 spitx12; // SPI command sent to '1818'
+ union SPI12 spirx12; // SPI monitor received from '1818'
 static uint8_t  timstate;   // State for ISR handling: TIM
 static int16_t  tim15ctr;   // TIM15CH1:OC turnover counter
 
@@ -63,12 +63,10 @@ enum WRITEREGS
 	WRITESREG,
 };
 
-#define CSBDELAYFALL (5*16) // CSB falling delay: 5 us with 16 MHz sysclock
-#define CSBDELAYRISE (3*16) // CSB rising delay: 3 us with 16 MHz sysclock
+#define CSBDELAYFALL (6*16) // CSB falling delay: 6 us with 16 MHz sysclock
+#define CSBDELAYRISE (5*16) // CSB rising delay: 5 us with 16 MHz sysclock
 
 static uint8_t rwtype; // code: command, command + data, etc.
-
-static uint32_t noteval1;
 
 #define READOUTSIZE_ADVAX 7 // Number of registers to read 
 // Read commands for registers to be read
@@ -128,6 +126,7 @@ void bmsspi_readbms(void)
 	struct BMSCAL* pf;
 	float x;
 
+// Debug/test spi w '1818'
 bmsspi_readstuff(READCONFIG);	
 while(1==1) {HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_2);osDelay(125);}
 
@@ -189,6 +188,47 @@ void bmsspi_setfets(void)
 	return;
 }
 /* *************************************************************************
+ * void bmsspi_wakeseq(void);
+ * @brief	: Execute a non-interrupt driven '1818 wake up sequence.
+ * *************************************************************************/
+void bmsspi_wakeseq(void)
+{
+	CSB_GPIO_Port->BSRR = (CSB_Pin); // Set: CSB pin set high
+	osDelay(1); // Greater than 250 ns delay
+	CSB_GPIO_Port->BSRR = (CSB_Pin<<16); // Reset: CSB pin set low
+	osDelay(1);
+	CSB_GPIO_Port->BSRR = (CSB_Pin); // Set: CSB pin set high
+	osDelay(6); // Startup delay
+	return;
+}
+/* *************************************************************************
+ * uint8_t bmsspi_keepawake(void);
+ * @brief	: Execute a valid command to keep awake. Sequence through commands
+ * @return  : state number of latest reading
+ * *************************************************************************/
+static uint8_t bmsspi_keepawake_state; // Step thru commands
+uint8_t bmsspi_keepawake(void)
+{
+	uint8_t retx;
+	switch(bmsspi_keepawake_state)
+	{
+	case 0: /* Read config registers A & B. */
+		bmsspi_readstuff(READCONFIG);
+		break;
+	case 1: /* Read status registers A & B. */
+		bmsspi_readstuff(READSTAT);
+		break;
+	case 2: // Read S Control register. */
+		bmsspi_readstuff(READSREG);
+		break;
+	}
+	retx = bmsspi_keepawake_state;
+	bmsspi_keepawake_state += 1;
+	if (bmsspi_keepawake_state > 2)
+	bmsspi_keepawake_state = 0;
+	return retx;
+}
+/* *************************************************************************
  * void bmsspi_preinit(void);
  * @brief	: Initialization
  * *************************************************************************/
@@ -208,6 +248,8 @@ void bmsspi_setfets(void)
 	hdma_spi1_tx.Instance->CCR &= ~0x2;  // Disable DMA write channel interrupt
 
 	CSB_GPIO_Port->BSRR = (CSB_Pin); // Set: CSB (/CS) pin set high
+
+	SPI1->CR1 &= ~(1 << 6); // Disable SPI (jic)
 
 	// Bit 1 TXDMAEN: Tx buffer DMA enable
 	// Bit 0 RXDMAEN: Rx buffer DMA enable
@@ -247,6 +289,8 @@ void bmsspi_setfets(void)
  * @param   ; n = number of register reads
  * @return  : 0 = no PEC15 error
  * *************************************************************************/
+uint16_t* dbp1;
+uint16_t* dbp2;
 static uint16_t readreg(const uint16_t* pcmdcmd, uint16_t* p, const uint16_t* pcmdr, uint8_t n)
 {
 	uint16_t i;
@@ -254,28 +298,30 @@ static uint16_t readreg(const uint16_t* pcmdcmd, uint16_t* p, const uint16_t* pc
 	if (pcmdcmd != 0)
 	{ /* Send a "Start conversion" command. */
 		bmsspi_rw_cmd(pcmdcmd, 0, 3); 
-morse_trap(4);
+//morse_trap(4);
 		// Wait for conversions to complete
-		xTaskNotifyWait(0,0xffffffff, &noteval1, 3000);
-		if (noteval1 == 0) morse_trap(254);
+//		xTaskNotifyWait(0,0xffffffff, &noteval1, 3000);
+//		if (noteval1 == 0) morse_trap(254);
 	}
-
+dbp1 = p;
 	/* Read registers holding conversion results. */
-	for (i = 0; i < n; i++)
+//	for (i = 0; i < n; i++)
+for (i = 0; i < 1; i++)
 	{
 	 	bmsspi_rw_cmd(pcmdr, 0, 2);
 	 	pcmdr += 1;
 
 	 	// Wait for SPI reading sequence to complete
-		xTaskNotifyWait(0,0xffffffff, &noteval1, 3000);
-		if (noteval1 == 0) morse_trap(259);
+//		xTaskNotifyWait(0,0xffffffff, &noteval1, 5000);
+//		if (noteval1 == 0) morse_trap(259);
 
 		// Convert big endian to little endian and store in array
 		*p++ = (uint16_t)__REV16 (spirx12.u16[2]);
 		*p++ = (uint16_t)__REV16 (spirx12.u16[3]);
 		*p++ = (uint16_t)__REV16 (spirx12.u16[4]);	
 	}
-morse_trap(22);
+dbp2 = p;	
+//morse_trap(22);
 	// TODO check PEC15 of a read
 	return 0;
 }
@@ -290,8 +336,8 @@ static void writereg(const uint16_t* pcmdw, uint16_t* p)
 	bmsspi_rw_cmd(pcmdw, p, 1); 
 
 	// Wait for conversions to complete
-	xTaskNotifyWait(0,0xffffffff, &noteval1, 3000);
-	if (noteval1 == 0) morse_trap(251);
+//	xTaskNotifyWait(0,0xffffffff, &noteval1, 3000);
+//	if (noteval1 == 0) morse_trap(251);
 
 	return;
 }
@@ -370,6 +416,7 @@ void bmsspi_readstuff(uint8_t code)
  * *************************************************************************/
 void bmsspi_rw_cmd(const uint16_t* pcmd, uint16_t* pdata, uint8_t rw)
 {
+	uint32_t noteval;
 //	struct BMSSPIALL* p = &bmsspiall; // Convenience pointer
 	uint32_t dmact = 12; // Number of bytes for DMA
 
@@ -379,13 +426,14 @@ void bmsspi_rw_cmd(const uint16_t* pcmd, uint16_t* pdata, uint8_t rw)
 	rwtype = rw; // Save for interrupt routines.
 
 // debug
-spitx12.u32[0] = 0;	
-spitx12.u32[1] = 0;	
-spitx12.u32[2] = 0;	
+	#define DB12 0xC3
+spitx12.u32[0] = DB12;	
+spitx12.u32[1] = DB12;	
+spitx12.u32[2] = DB12;	
 
-spirx12.u32[0] = 0;	
-spirx12.u32[1] = 0;	
-spirx12.u32[2] = 0;	
+spirx12.u32[0] = DB12;	
+spirx12.u32[1] = DB12;	
+spirx12.u32[2] = DB12;	
 
 	/* Build byte array for a single SPI/DMA operation. */
 	// Command: 2 bytes plus two byte pec15
@@ -403,7 +451,7 @@ spirx12.u32[2] = 0;
 		break;
 
 	case 1: // Send command and write 6 data+2 pec
-if (pdata == NULL)	 morse_trap(259);
+if (pdata == NULL)	 morse_trap(260);
 		//* Set data as big endian 1/2 words, plus pec big endian
 		 spitx12.u32[1] = (uint32_t)__REV   (*(uint32_t*)(pdata+2)); // Load 4 bytes
 		*(__IO uint32_t*)CRC_BASE = (uint32_t)__REV ( spitx12.u32[1]);
@@ -434,6 +482,9 @@ if (pdata == NULL)	 morse_trap(259);
 
 	/* Allow 5 us CSB (chip select) delay. Before enabling SPI. */
 	TIM15->CCR1 = TIM15->CNT + CSBDELAYFALL; 
+
+	xTaskNotifyWait(0,0xffffffff, &noteval,5000);
+	if (noteval != BMSTSKNOTEBIT00) morse_trap(751);
 
 	return;
 }	
