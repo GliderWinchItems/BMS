@@ -63,8 +63,8 @@ enum WRITEREGS
 	WRITESREG,
 };
 
-#define CSBDELAYFALL (6*16) // CSB falling delay: 6 us with 16 MHz sysclock
-#define CSBDELAYRISE (5*16) // CSB rising delay: 5 us with 16 MHz sysclock
+#define CSBDELAYFALL (12*16) // CSB falling delay: 6 us with 16 MHz sysclock
+#define CSBDELAYRISE (10*16) // CSB rising delay: 5 us with 16 MHz sysclock
 
 static uint8_t rwtype; // code: command, command + data, etc.
 
@@ -127,9 +127,9 @@ void bmsspi_readbms(void)
 	float x;
 
 // Debug/test spi w '1818'
-bmsspi_readstuff(READCONFIG);	
-while(1==1) {HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_2);osDelay(125);}
-
+//bmsspi_readstuff(READCONFIG);	
+//while(1==1) {HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_2);osDelay(125);}
+morse_trap(679);
 	// Turn heater, dump, dump2, trickle chgr off
 	fetonoff_status_set(0);
 
@@ -210,6 +210,7 @@ static uint8_t bmsspi_keepawake_state; // Step thru commands
 uint8_t bmsspi_keepawake(void)
 {
 	uint8_t retx;
+//bmsspi_keepawake_state = 0; // Debug
 	switch(bmsspi_keepawake_state)
 	{
 	case 0: /* Read config registers A & B. */
@@ -257,8 +258,7 @@ uint8_t bmsspi_keepawake(void)
 
 	// Bits 5:3 BR[2:0]: Baud rate control
  	SPI1->CR1 &= ~(0x7 << 3); // Clear existing
- 	SPI1->CR1 |=  (0x3 << 3); // Clock divider: 011: fPCLK/16
-// 	SPI1->CR1 |=  (0x4 << 3); // Clock divider: 100: fPCLK/32
+ 	SPI1->CR1 |=  (0x3 << 3); // Clock divider: 011: fPCLK/16 1 MHz
 
 	// Bit 0 CPHA: Clock phase: 1: The second clock transition is the first data capture edge 	
 	// Bit 1 CPOL: Clock polarity 0: CK to 0 when idle 1: CK to 1 when idle
@@ -267,6 +267,9 @@ uint8_t bmsspi_keepawake(void)
 
  	/* Init CRC peripheral. */
  	pec15_reg_init();
+
+ 	/* EXTI SDO/MISO PB4 end of conversion detection interrupt. */
+ 	EXTI->RTSR1 |= (1<<4); // Rising edge
 
 	/* EXTI4 ('1818 SDO conversion complete) interrupt initialize*/
   	HAL_NVIC_SetPriority(EXTI4_IRQn, 5, 0);
@@ -291,34 +294,85 @@ uint8_t bmsspi_keepawake(void)
  * *************************************************************************/
 uint16_t* dbp1;
 uint16_t* dbp2;
+uint16_t dbcrc1;
+uint16_t dbcrc2;
+uint8_t dbcthi = 0;
+uint8_t dbctlo = 10;
+uint16_t dbhicmd;
+uint16_t dblocmd;
+uint8_t actr = 0;
+uint32_t dbstat1;
+uint32_t dbstat2;
+
 static uint16_t readreg(const uint16_t* pcmdcmd, uint16_t* p, const uint16_t* pcmdr, uint8_t n)
 {
 	uint16_t i;
 
 	if (pcmdcmd != 0)
 	{ /* Send a "Start conversion" command. */
+dbstat1 = DTWTIME;		
 		bmsspi_rw_cmd(pcmdcmd, 0, 3); 
+dbstat2 = DTWTIME - dbstat1;		
 //morse_trap(4);
-		// Wait for conversions to complete
-//		xTaskNotifyWait(0,0xffffffff, &noteval1, 3000);
-//		if (noteval1 == 0) morse_trap(254);
 	}
+
 dbp1 = p;
-	/* Read registers holding conversion results. */
-//	for (i = 0; i < n; i++)
-for (i = 0; i < 1; i++)
+	/* Read registers with latest results. */
+	for (i = 0; i < n; i++)
+//for (i = 0; i < 1; i++)
 	{
+
+uint8_t ctr = 0;
+#define QQQCTR 10 // Repetition limit count
+do
+{		
+		/* Send command (with wait for completion) */
 	 	bmsspi_rw_cmd(pcmdr, 0, 2);
-	 	pcmdr += 1;
 
-	 	// Wait for SPI reading sequence to complete
-//		xTaskNotifyWait(0,0xffffffff, &noteval1, 5000);
-//		if (noteval1 == 0) morse_trap(259);
+  // Repeat if all one's was returned
+	ctr += 1; // Limit loops
+} while( (spirx12.u32[1] == 0xffffFFFF) && 
+	     (spirx12.u32[2] == 0xffffFFFF) && 
+	     (ctr < QQQCTR) );
+if (ctr >= QQQCTR) morse_trap(58); // Trap never completed
 
+/* Check number of loops w command. */
+actr += 1;
+if (actr > (5*3))
+{
+	actr = 0;
+	dbctlo = 10;
+	dbcthi = 0;
+	dbhicmd = 0x1234;
+	dblocmd = 0;
+}
+if (ctr <= dbctlo)
+{
+	dbctlo = ctr;
+	dblocmd = *pcmdr;
+}
+if (ctr >= dbcthi)
+{
+	dbcthi = ctr;
+	dbhicmd = *pcmdr;
+}
+
+/* Check PEC15 matches. */
+CRC->CR = 0x9; // 16b poly, + reset CRC computation
+*(__IO uint32_t*)CRC_BASE = (uint32_t)__REV (spirx12.u32[1]);
+*(__IO uint16_t*)CRC_BASE = (uint16_t)__REV16 (spirx12.u16[4]); 
+dbcrc1 = spirx12.u16[5];
+dbcrc2 = (uint16_t)__REV16 (CRC->DR);
+//if ( ((uint16_t)__REV16 (CRC->DR)) != spitx12.u16[5]);
+if (dbcrc2 != dbcrc1) morse_trap(68);
+	
 		// Convert big endian to little endian and store in array
 		*p++ = (uint16_t)__REV16 (spirx12.u16[2]);
 		*p++ = (uint16_t)__REV16 (spirx12.u16[3]);
 		*p++ = (uint16_t)__REV16 (spirx12.u16[4]);	
+
+		/* Point to next command. */
+	 	pcmdr += 1;
 	}
 dbp2 = p;	
 //morse_trap(22);
@@ -416,17 +470,18 @@ void bmsspi_readstuff(uint8_t code)
  * *************************************************************************/
 void bmsspi_rw_cmd(const uint16_t* pcmd, uint16_t* pdata, uint8_t rw)
 {
-	uint32_t noteval;
-//	struct BMSSPIALL* p = &bmsspiall; // Convenience pointer
-	uint32_t dmact = 12; // Number of bytes for DMA
+	uint32_t noteval; // Wait notification bits
+
+	// Number of bytes for DMA transfer
+	uint32_t dmact = 12; // Default size: cmd/pec + 6bytes/pec
 
 	/* Do this early since time delay involved. */
 	CSB_GPIO_Port->BSRR = (CSB_Pin<<16); // Reset: CSB pin set low
 
-	rwtype = rw; // Save for interrupt routines.
+	rwtype = rw; // Save for interrupt routine use.
 
 // debug
-	#define DB12 0xC3
+#define DB12 0xC3
 spitx12.u32[0] = DB12;	
 spitx12.u32[1] = DB12;	
 spitx12.u32[2] = DB12;	
@@ -483,6 +538,7 @@ if (pdata == NULL)	 morse_trap(260);
 	/* Allow 5 us CSB (chip select) delay. Before enabling SPI. */
 	TIM15->CCR1 = TIM15->CNT + CSBDELAYFALL; 
 
+	/* Wait for interrupt driven sequence to complete. */
 	xTaskNotifyWait(0,0xffffffff, &noteval,5000);
 	if (noteval != BMSTSKNOTEBIT00) morse_trap(751);
 
@@ -515,7 +571,7 @@ timstate = TIMSTATE_TO;
  	 	return;
 
 case TIMSTATE_TO:
-	//morse_trap(4);
+morse_trap(4);
 	break; 	 	
 
  	case TIMSTATE_2: // CSB rising delay expired
@@ -531,8 +587,12 @@ case TIMSTATE_TO:
 		if (tim15ctr > 0) break;
 		p->err |= 1; 
 
+		CSB_GPIO_Port->BSRR = (CSB_Pin); // Set: CSB pin set high
+
 		// Disable EXTI4 interrupting
-		EXTI4_IRQHandler();
+		EXTI->IMR1 &= ~(1<<4);
+		EXTI->EMR1 &= ~(1<<4);
+		EXTI->PR1   =  (1<<4); // Reset request: PB4
 
 //morse_trap(8); // EXTI interrupt wait timed out
 
@@ -559,13 +619,14 @@ void bmsspi_spidmarx_IRQHandler(DMA_HandleTypeDef* phdma_spi1_rx)
 	{ // Here, end of commands that starts conversions. 
 		/* Setup SPI MISO ('1818 SDO) to interrupt when it goes high. */
 		// Enable interrupt & event
-		EXTI->IMR1 |= (1<<4);
-		EXTI->EMR1 |= (1<<4);
-		EXTI->PR1  |= (1<<4); // Reset Pending JIC
+		EXTI->IMR1  |= (1<<4);
+		EXTI->EMR1  |= (1<<4);
+		EXTI->PR1   |= (1<<4); // Reset Pending JIC
+		
 
 	/* Timeout: JIC, and debugging, and whatever... */
-		timstate = TIMSTATE_3; // Count TIM15 turnovers
-		tim15ctr = 2; // ~8 ms
+		timstate = TIMSTATE_3; // Count TIM15 16b urnovers
+		tim15ctr = 3; // ~(3 * 4.096)ms (16 MHz clock)
 
 dbgt1 = DTWTIME;		
 
@@ -603,7 +664,7 @@ void EXTI4_IRQHandler(void)
 {
 // Conversion time?	
 dbgt2 = DTWTIME - dbgt1;
-//morse_trap(888);	
+morse_trap(888);	
 
 	CSB_GPIO_Port->BSRR = (CSB_Pin); // Set: CSB pin set high
 

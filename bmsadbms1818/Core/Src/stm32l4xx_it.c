@@ -314,7 +314,7 @@ void DMA1_Channel2_IRQHandler(void)
   */
 void DMA1_Channel3_IRQHandler(void)
 {
-  /* USER CODE BEGIN DMA1_Channel3_IRQn 0 */\
+  /* USER CODE BEGIN DMA1_Channel3_IRQn 0 */
   // bmsspi.c
   bmsspi_spidmatx_IRQHandler(&hdma_spi1_tx);
   return;

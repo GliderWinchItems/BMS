@@ -1218,7 +1218,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, LED_RED_Pin|LED_GRN_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOB, LED_GRN_Pin|LED_RED_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, PADxx_Pin|PAD7_Pin, GPIO_PIN_RESET);
@@ -1233,8 +1233,8 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(BQ_LD_GPIO_Port, BQ_LD_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : LED_RED_Pin LED_GRN_Pin PADxx_Pin PAD7_Pin */
-  GPIO_InitStruct.Pin = LED_RED_Pin|LED_GRN_Pin|PADxx_Pin|PAD7_Pin;
+  /*Configure GPIO pins : LED_GRN_Pin LED_RED_Pin PADxx_Pin PAD7_Pin */
+  GPIO_InitStruct.Pin = LED_GRN_Pin|LED_RED_Pin|PADxx_Pin|PAD7_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -1320,9 +1320,11 @@ uint8_t dbgka_prev = dbgka;
     vTaskDelayUntil( &tickcnt, xPeriod );
 
 //    bq_items();
+    HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_SET);
     if (dbgka_prev != dbgka)
     {
       dbgka_prev = dbgka;
+      HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_RESET);
 
       switch (dbgka)
       {
@@ -1344,6 +1346,12 @@ uint8_t dbgka_prev = dbgka;
         yprintf(&pbuf2,"\n\r%5d BOGUS",mctr);
         break;
       }
+extern uint8_t dbcthi;
+extern uint8_t dbctlo;
+extern uint16_t dbhicmd;
+extern uint16_t dblocmd;
+extern uint8_t actr;
+yprintf(&pbuf1,"\n\r%2d HI: %2d %04X LO: %2d %04X",actr,dbcthi,dbhicmd,dbctlo,dblocmd);
       mctr++;
     }
 #if 0
