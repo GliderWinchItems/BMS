@@ -46,7 +46,7 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->tim1_ccr1_on_vlc =   2;  // PWM ON count: Very Low Charge rate required
    p->tim1_arr_init    =  79;  // At 16 MHz: count of 80 = 5 us PWM frame
 
-   p->cellv_max   = 3500; // Max limit (mv) for charging any cell
+   p->cellv_max   = 3600; // Max limit (mv) for charging any cell
    p->cellv_min   = 2600; // Min limit (mv) for any discharging
    p->cellv_vlc   = 2550; // Below this (mv) Very Low Charge (vlc)required
    p->cellopen_hi = 4300; // Above this voltage cell wire is assumed open (mv)

@@ -1329,7 +1329,7 @@ uint8_t dbgka_prev = dbgka;
       switch (dbgka)
       {
       case 0: // config regs
-        yprintf(&pbuf2,"\n\r%5d CFGR %04X %04X %04X : %04X %04X %04X",mctr,
+       yprintf(&pbuf2,"\n\r%5d CFGR %04X %04X %04X : %04X %04X %04X",mctr,
           bmsspiall.configreg[0],bmsspiall.configreg[1],bmsspiall.configreg[2],
           bmsspiall.configreg[3],bmsspiall.configreg[4],bmsspiall.configreg[4]);
         break;
@@ -1342,6 +1342,12 @@ uint8_t dbgka_prev = dbgka;
        yprintf(&pbuf2,"\n\r%5d SREG %04X %04X %04X\n",mctr,
           bmsspiall.sreg[0],bmsspiall.sreg[1],bmsspiall.sreg[2]);
         break;
+      case 3:
+       yprintf(&pbuf2,"\n\r%5d WFGR %04X %04X %04X : %04X %04X %04X",mctr,
+          bmsspiall.configreg[0],bmsspiall.configreg[1],bmsspiall.configreg[2],
+          bmsspiall.configreg[3],bmsspiall.configreg[4],bmsspiall.configreg[4]);
+        break;
+
       default:
         yprintf(&pbuf2,"\n\r%5d BOGUS",mctr);
         break;

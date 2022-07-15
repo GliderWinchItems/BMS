@@ -22,6 +22,8 @@
 
 #include "morse.h"
 
+static void writereg(const uint16_t* pcmdw, uint16_t* p);
+
 extern SPI_HandleTypeDef hspi1;
 extern DMA_HandleTypeDef hdma_spi1_rx;
 extern DMA_HandleTypeDef hdma_spi1_tx;
@@ -201,6 +203,7 @@ void bmsspi_wakeseq(void)
 	osDelay(6); // Startup delay
 	return;
 }
+
 /* *************************************************************************
  * uint8_t bmsspi_keepawake(void);
  * @brief	: Execute a valid command to keep awake. Sequence through commands
@@ -222,10 +225,26 @@ uint8_t bmsspi_keepawake(void)
 	case 2: // Read S Control register. */
 		bmsspi_readstuff(READSREG);
 		break;
+	case 3: // Write config register A */
+		/* Update config regs. */
+		bmsspiall.configreg[0*3 + 0] = 0xCDEF;
+		bmsspiall.configreg[0*3 + 1] = 0xDEAD;
+		bmsspiall.configreg[0*3 + 2] = 0xBEEF;
+		bmsspiall.configreg[1*3 + 0] = 0x1234;
+		bmsspiall.configreg[1*3 + 1] = 0x89AB;
+		bmsspiall.configreg[1*3 + 2] = 0x9ABC;
+		bmsspi_writereg(WRITECONFIG);
+		break;		
 	}
+
+	// main.c uses bmsspi_keepawake_state change
+	// to display registers, and uses it as an
+	// index for yprintf.
 	retx = bmsspi_keepawake_state;
+
+	/* Step to next state. */
 	bmsspi_keepawake_state += 1;
-	if (bmsspi_keepawake_state > 2)
+	if (bmsspi_keepawake_state > 3)
 	bmsspi_keepawake_state = 0;
 	return retx;
 }
@@ -319,13 +338,12 @@ dbstat2 = DTWTIME - dbstat1;
 dbp1 = p;
 	/* Read registers with latest results. */
 	for (i = 0; i < n; i++)
-//for (i = 0; i < 1; i++)
 	{
 
 uint8_t ctr = 0;
 #define QQQCTR 10 // Repetition limit count
 do
-{		
+{	
 		/* Send command (with wait for completion) */
 	 	bmsspi_rw_cmd(pcmdr, 0, 2);
 
@@ -389,10 +407,6 @@ static void writereg(const uint16_t* pcmdw, uint16_t* p)
 {
 	bmsspi_rw_cmd(pcmdw, p, 1); 
 
-	// Wait for conversions to complete
-//	xTaskNotifyWait(0,0xffffffff, &noteval1, 3000);
-//	if (noteval1 == 0) morse_trap(251);
-
 	return;
 }
 /* *************************************************************************
@@ -405,8 +419,8 @@ void bmsspi_writereg(uint8_t code)
 	switch(code)
 	{
 	case WRITECONFIG: // Write configuration register groups A & B
-		writereg(&cmdw[0], &bmsspiall.configreg[0]);
-		writereg(&cmdw[1], &bmsspiall.configreg[1]);
+		writereg(&cmdw[0], &bmsspiall.configreg[0*3]);
+		writereg(&cmdw[1], &bmsspiall.configreg[1*3]);
 		break;
 
 	case WRITESREG: // Write S register groups
@@ -501,20 +515,21 @@ spirx12.u32[2] = DB12;
 	switch (rw)
 	{
 	case 0: // Send command only
-	case 3: // Send command only, switch '1818 SDO to interrupt 
+	case 3: // Send command and wait for conversion complete (SDO or timeout)
 		dmact = 4;
 		break;
 
 	case 1: // Send command and write 6 data+2 pec
 if (pdata == NULL)	 morse_trap(260);
-		//* Set data as big endian 1/2 words, plus pec big endian
-		 spitx12.u32[1] = (uint32_t)__REV   (*(uint32_t*)(pdata+2)); // Load 4 bytes
+		//* Set data as big endian 1/2 words, plus PEC15 big endian
+ 		CRC->CR = 0x9; // 16b poly, + reset CRC computation
+		 spitx12.u32[1] = (uint32_t)__REV   (*(uint32_t*)(pdata+0)); // Load 4 bytes
 		*(__IO uint32_t*)CRC_BASE = (uint32_t)__REV ( spitx12.u32[1]);
 
-		 spitx12.u16[4] = (uint16_t)__REV16 (*(uint16_t*)(pdata+4)); // Load 2 bytes
+		 spitx12.u16[4] = (uint16_t)__REV16 (*(uint16_t*)(pdata+2)); // Load 2 bytes
     	*(__IO uint16_t*)CRC_BASE = (uint16_t)__REV16 ( spitx12.u16[4]);
 
-    	 spitx12.u16[5] = (uint16_t)__REV16 (CRC->DR); // Big endian: Store PEC for command bytes
+    	 spitx12.u16[5] = (uint16_t)__REV16 (CRC->DR); // Big endian: Store data bytes PEC
     	break;
 
     case 2: // Send command that continues with reading 8 bytes into spirx12
@@ -531,7 +546,7 @@ if (pdata == NULL)	 morse_trap(260);
 
 	hdma_spi1_tx.Instance->CCR &= ~1; // Disable dma spi tx channel
 	hdma_spi1_tx.Instance->CNDTR = dmact; // Number to DMA transfer
-	hdma_spi1_tx.Instance->CCR |= 1;  // Enable channel 	
+//	hdma_spi1_tx.Instance->CCR |= 1;  // Enable channel 	
 
 	timstate = TIMSTATE_1;
 
@@ -564,6 +579,7 @@ void bmsspi_tim15_IRQHandler(void)
 
  	case TIMSTATE_1: // CSB falling delay expired. Read to send
  	 	// Start sending write command + data
+ 		hdma_spi1_tx.Instance->CCR |= 1;  // Enable channel 	
 		// Bit 6 SPE: SPI enable
 		SPI1->CR1 |= (1 << 6);
 		// SPI rx interrupt expected next.	
@@ -571,7 +587,7 @@ timstate = TIMSTATE_TO;
  	 	return;
 
 case TIMSTATE_TO:
-morse_trap(4);
+morse_trap(41);
 	break; 	 	
 
  	case TIMSTATE_2: // CSB rising delay expired
@@ -611,27 +627,25 @@ morse_trap(4);
    ####################################################################### */
 void bmsspi_spidmarx_IRQHandler(DMA_HandleTypeDef* phdma_spi1_rx)
 {
-	SPI1->CR1 &= ~(1 << 6); // Disable SPI
+//	SPI1->CR1 &= ~(1 << 6); // Disable SPI
+
 	// Reset DMA interrupt flags	
 	hdma_spi1_rx.DmaBaseAddress->IFCR = 0xfff;
-#if 1
+
 	if (rwtype == 3)
 	{ // Here, end of commands that starts conversions. 
 		/* Setup SPI MISO ('1818 SDO) to interrupt when it goes high. */
 		// Enable interrupt & event
-		EXTI->IMR1  |= (1<<4);
-		EXTI->EMR1  |= (1<<4);
-		EXTI->PR1   |= (1<<4); // Reset Pending JIC
+		EXTI->IMR1  |= (1<<4); // Interrupt mask register
+		EXTI->EMR1  |= (1<<4); // Event mask register
+		EXTI->PR1   |= (1<<4); // Reset Pending register JIC
 		
-
 	/* Timeout: JIC, and debugging, and whatever... */
 		timstate = TIMSTATE_3; // Count TIM15 16b urnovers
-		tim15ctr = 3; // ~(3 * 4.096)ms (16 MHz clock)
-
-dbgt1 = DTWTIME;		
+		tim15ctr = 2;// ~(2 * 4.096)ms (16 MHz clock)
 
 		// Expect next interrupt is SPI MISO pin going high
-		// CSB remains low amd '1818 pulls SDO (MISO) low
+		// CSB remains low and '1818 pulls SDO (MISO) low
 		// until conversion is complete, then raises SDO
 		// which will cause a rising edge EXTI interrupt.
 
@@ -639,7 +653,7 @@ dbgt1 = DTWTIME;
 		// TIM15 (TIMSTATE_3) timeout if there is a failure.
 		return;
 	}
-#endif
+
 	CSB_GPIO_Port->BSRR = (CSB_Pin); // Set: CSB pin set high
 
 	// Assure CSB minimum pulse width before next SPI operation.
