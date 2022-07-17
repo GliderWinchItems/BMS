@@ -1314,6 +1314,8 @@ void StartDefaultTask(void *argument)
 //uint32_t bmsdbctr_prev = bmsdbctr;
 extern uint8_t dbgka;
 uint8_t dbgka_prev = dbgka;
+extern uint32_t bshift;  
+extern uint32_t dbstat2;    
 
   for(;;) /* Loop polls various operations. */
   {  
@@ -1329,36 +1331,41 @@ uint8_t dbgka_prev = dbgka;
       switch (dbgka)
       {
       case 0: // config regs
-       yprintf(&pbuf2,"\n\r%5d CFGR %04X %04X %04X : %04X %04X %04X",mctr,
+       yprintf(&pbuf1,"\n\n\r\t\t%5d",mctr++);
+
+       yprintf(&pbuf2,"\n\r%5d CFGR  %04X %04X %04X : %04X %04X %04X %d",dbgka,
           bmsspiall.configreg[0],bmsspiall.configreg[1],bmsspiall.configreg[2],
-          bmsspiall.configreg[3],bmsspiall.configreg[4],bmsspiall.configreg[4]);
+          bmsspiall.configreg[3],bmsspiall.configreg[4],bmsspiall.configreg[5],bshift+1);
         break;
       case 1: // Stat regs
-       yprintf(&pbuf2,"\n\r%5d STAT %04X %04X %04X : %04X %04X %04X",mctr,
+       yprintf(&pbuf2,"\n\r%5d STAT  %04X %04X %04X : %04X %04X %04X %d",dbgka,dbstat2/16,
           bmsspiall.statreg[0],bmsspiall.statreg[1],bmsspiall.statreg[2],
-          bmsspiall.statreg[3],bmsspiall.statreg[4],bmsspiall.statreg[4]);      
+          bmsspiall.statreg[3],bmsspiall.statreg[4],bmsspiall.statreg[5]);      
         break;
       case 2:
-       yprintf(&pbuf2,"\n\r%5d SREG %04X %04X %04X\n",mctr,
+       yprintf(&pbuf2,"\n\r%5d SREG  %04X %04X %04X",dbgka,
           bmsspiall.sreg[0],bmsspiall.sreg[1],bmsspiall.sreg[2]);
         break;
       case 3:
-       yprintf(&pbuf2,"\n\r%5d WFGR %04X %04X %04X : %04X %04X %04X",mctr,
+       yprintf(&pbuf2,"\n\r%5d WFGR  %04X %04X %04X : %04X %04X %04X",dbgka,
           bmsspiall.configreg[0],bmsspiall.configreg[1],bmsspiall.configreg[2],
-          bmsspiall.configreg[3],bmsspiall.configreg[4],bmsspiall.configreg[4]);
+          bmsspiall.configreg[3],bmsspiall.configreg[4],bmsspiall.configreg[5]);
         break;
+      case 4:
+       yprintf(&pbuf2,"\n\r%5d ADVAX",dbgka);
+       for (i = 0; i < 18; i++) yprintf(&pbuf1," %5d",bmsspiall.cellreg[i]);
+        break;
+      case 5: // Temperature (AUX reg)
+       yprintf(&pbuf2,"\n\r%5d TEMP %6d %6d %6d %6d",
+        bmsspiall.auxreg[0],bmsspiall.auxreg[1],bmsspiall.auxreg[2],bmsspiall.auxreg[3]);
+       yprintf(&pbuf1," %6d %6d %6d %6d %6d",
+        bmsspiall.auxreg[4],bmsspiall.auxreg[5],bmsspiall.auxreg[6],bmsspiall.auxreg[7],bmsspiall.auxreg[8]);
+       break;
 
       default:
-        yprintf(&pbuf2,"\n\r%5d BOGUS",mctr);
+        yprintf(&pbuf2,"\n\r%d %5d BOGUS",dbgka, mctr);
         break;
       }
-extern uint8_t dbcthi;
-extern uint8_t dbctlo;
-extern uint16_t dbhicmd;
-extern uint16_t dblocmd;
-extern uint8_t actr;
-yprintf(&pbuf1,"\n\r%2d HI: %2d %04X LO: %2d %04X",actr,dbcthi,dbhicmd,dbctlo,dblocmd);
-      mctr++;
     }
 #if 0
 uint8_t* p8r = (uint8_t*)0x20003744;

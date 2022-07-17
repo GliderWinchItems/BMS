@@ -120,6 +120,7 @@ C_SOURCES += Ourtasks/fanop.c
 C_SOURCES += Ourtasks/bmsspi.c
 C_SOURCES += Ourtasks/BMSTask.c
 C_SOURCES += Ourtasks/pec15_reg.c
+C_SOURCES += Ourtasks/bms_items.c
 
 # /* USER CODE END */ 
 

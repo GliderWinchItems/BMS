@@ -19,6 +19,7 @@
 #include "ADBMS1818_command_codes.h"
 #include "fetonoff.h"
 #include "pec15_reg.h"
+#include "bms_items.h"
 
 #include "morse.h"
 
@@ -48,21 +49,6 @@ enum TIMSTATE
 	TIMSTATE_2,
 	TIMSTATE_3,
 	TIMSTATE_TO,
-};
-
-enum READCELLS
-{
-	READCELLSGPIO12,
-	READGPIO,
-	READSTAT,
-	READCONFIG,
-	READSREG,
-};
-
-enum WRITEREGS
-{
-	WRITECONFIG,
-	WRITESREG,
 };
 
 #define CSBDELAYFALL (12*16) // CSB falling delay: 6 us with 16 MHz sysclock
@@ -226,15 +212,14 @@ uint8_t bmsspi_keepawake(void)
 		bmsspi_readstuff(READSREG);
 		break;
 	case 3: // Write config register A */
-		/* Update config regs. */
-		bmsspiall.configreg[0*3 + 0] = 0xCDEF;
-		bmsspiall.configreg[0*3 + 1] = 0xDEAD;
-		bmsspiall.configreg[0*3 + 2] = 0xBEEF;
-		bmsspiall.configreg[1*3 + 0] = 0x1234;
-		bmsspiall.configreg[1*3 + 1] = 0x89AB;
-		bmsspiall.configreg[1*3 + 2] = 0x9ABC;
 		bmsspi_writereg(WRITECONFIG);
-		break;		
+		break;
+	case 4:	// Read cells and GPIO1 GPIO2
+		bmsspi_readstuff(REQ_READBMS); 
+		break;
+	case 5:
+		bmsspi_readstuff(REQ_TEMPERATURE);
+		break;
 	}
 
 	// main.c uses bmsspi_keepawake_state change
@@ -244,7 +229,7 @@ uint8_t bmsspi_keepawake(void)
 
 	/* Step to next state. */
 	bmsspi_keepawake_state += 1;
-	if (bmsspi_keepawake_state > 3)
+	if (bmsspi_keepawake_state > 5)
 	bmsspi_keepawake_state = 0;
 	return retx;
 }
@@ -385,10 +370,15 @@ dbcrc2 = (uint16_t)__REV16 (CRC->DR);
 if (dbcrc2 != dbcrc1) morse_trap(68);
 	
 		// Convert big endian to little endian and store in array
+#if 0
 		*p++ = (uint16_t)__REV16 (spirx12.u16[2]);
 		*p++ = (uint16_t)__REV16 (spirx12.u16[3]);
 		*p++ = (uint16_t)__REV16 (spirx12.u16[4]);	
-
+#else
+		*p++ = (spirx12.u16[2]);
+		*p++ = (spirx12.u16[3]);
+		*p++ = (spirx12.u16[4]);	
+#endif
 		/* Point to next command. */
 	 	pcmdr += 1;
 	}
@@ -419,8 +409,8 @@ void bmsspi_writereg(uint8_t code)
 	switch(code)
 	{
 	case WRITECONFIG: // Write configuration register groups A & B
-		writereg(&cmdw[0], &bmsspiall.configreg[0*3]);
-		writereg(&cmdw[1], &bmsspiall.configreg[1*3]);
+		writereg(&cmdw[0], &bmsspiall.configreg[0]);
+		writereg(&cmdw[1], &bmsspiall.configreg[3]);
 		break;
 
 	case WRITESREG: // Write S register groups
@@ -459,7 +449,11 @@ void bmsspi_readstuff(uint8_t code)
 
 	case READSREG: // Read S register
 		readreg(0, bmsspiall.sreg,cmdsreg,READOUTSIZE_SCTRL);
-		break;		
+		break;	
+
+	case REQ_TEMPERATURE:
+		readreg(&cmdcmd[1], bmsspiall.auxreg, cmdv,READOUTSIZE_ADVAX);
+		break;			
 
 	default: 
 		morse_trap (253);
@@ -523,12 +517,29 @@ spirx12.u32[2] = DB12;
 if (pdata == NULL)	 morse_trap(260);
 		//* Set data as big endian 1/2 words, plus PEC15 big endian
  		CRC->CR = 0x9; // 16b poly, + reset CRC computation
-		 spitx12.u32[1] = (uint32_t)__REV   (*(uint32_t*)(pdata+0)); // Load 4 bytes
-		*(__IO uint32_t*)CRC_BASE = (uint32_t)__REV ( spitx12.u32[1]);
+//		 spitx12.u32[1] = (uint32_t)__REV   (*(uint32_t*)(pdata+0)); // Load 4 bytes
+//		*(__IO uint32_t*)CRC_BASE = (uint32_t)__REV ( spitx12.u32[1]);
+
+#if 0
+		 spitx12.u16[2] = (uint16_t)__REV16 (*(uint16_t*)(pdata+0)); // Load 2 bytes
+    	*(__IO uint16_t*)CRC_BASE = (uint16_t)__REV16 ( spitx12.u16[2]);
+
+		 spitx12.u16[3] = (uint16_t)__REV16 (*(uint16_t*)(pdata+1)); // Load 2 bytes
+    	*(__IO uint16_t*)CRC_BASE = (uint16_t)__REV16 ( spitx12.u16[3]);
 
 		 spitx12.u16[4] = (uint16_t)__REV16 (*(uint16_t*)(pdata+2)); // Load 2 bytes
     	*(__IO uint16_t*)CRC_BASE = (uint16_t)__REV16 ( spitx12.u16[4]);
 
+#else
+ 		spitx12.u16[2] =  (*(uint16_t*)(pdata+0)); // Load 2 bytes
+    	*(__IO uint16_t*)CRC_BASE = (uint16_t)__REV16 ( spitx12.u16[2]);
+
+		 spitx12.u16[3] = (*(uint16_t*)(pdata+1)); // Load 2 bytes
+    	*(__IO uint16_t*)CRC_BASE = (uint16_t)__REV16 ( spitx12.u16[3]);
+
+		 spitx12.u16[4] = (*(uint16_t*)(pdata+2)); // Load 2 bytes
+    	*(__IO uint16_t*)CRC_BASE = (uint16_t)__REV16 ( spitx12.u16[4]);
+#endif    	
     	 spitx12.u16[5] = (uint16_t)__REV16 (CRC->DR); // Big endian: Store data bytes PEC
     	break;
 

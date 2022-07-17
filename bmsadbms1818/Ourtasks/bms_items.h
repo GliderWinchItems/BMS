@@ -15,5 +15,24 @@
 #include "bq_idx_v_struct.h"
 #include "bmsspi.h"
 
+/* *************************************************************************/
+void bms_items_cfgset_overunder(void);
+/* @brief	: Configuration set: Compute and set over and under voltage comparisons
+ * *************************************************************************/
+void bms_items_cfgset_dischargebits(uint32_t b);
+/* @brief	: Configuration set: Update discharge bits in configreg (in memory)
+ * @param   : b = bits for 18 cells (right justified): 0 = OFF, 1 = ON 
+ * *************************************************************************/
+void bms_items_cfgset_misc(void);
+/* @brief	: Configuration set: 
+ * @param   : b = bits for 18 cells (right justified): 0 = OFF, 1 = ON 
+ * *************************************************************************/
+void bms_items_cfg_int(void);
+/* @brief	: Configuration register initialize
+ * *************************************************************************/
+void bms_items_extract_configreg(void);
+/* @brief	: Extract current configreg settings
+ * *************************************************************************/
+
 #endif
 

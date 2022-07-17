@@ -12,6 +12,19 @@
 #include "cmsis_os.h"
 #include "stm32l4xx_hal.h"
 
+enum READCELLS
+{
+	READCELLSGPIO12,
+	READGPIO,
+	READSTAT,
+	READCONFIG,
+	READSREG,
+};
+enum WRITEREGS
+{
+	WRITECONFIG,
+	WRITESREG,
+};
 
 /* *************************************************************************/
  void bmsspi_wakeseq(void);
