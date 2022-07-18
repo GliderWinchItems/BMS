@@ -16,6 +16,9 @@
 #include "bmsspi.h"
 
 /* *************************************************************************/
+void bms_items_extract_statreg(void);
+/* @brief	: Extract & calibrate SC, ITMP, VA
+ * *************************************************************************/
 void bms_items_cfgset_overunder(void);
 /* @brief	: Configuration set: Compute and set over and under voltage comparisons
  * *************************************************************************/

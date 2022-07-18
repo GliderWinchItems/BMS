@@ -19,6 +19,7 @@ enum READCELLS
 	READSTAT,
 	READCONFIG,
 	READSREG,
+	READAUX,
 };
 enum WRITEREGS
 {
@@ -42,6 +43,9 @@ enum WRITEREGS
 void bmsspi_setfets(void);
 /* @brief	: Load discharge fet settings into '1818 & set discharge timer
  * *************************************************************************/
+void bms_gettemp(void);
+/* @brief	: Read AUX and get temperatures
+ * *************************************************************************/
 uint8_t bmsspi_keepawake(void);
 /* @brief	: Execute a valid command to keep awake
  * @return  : state number of latest reading
@@ -56,9 +60,9 @@ void bmsspi_readstuff(uint8_t code);
 /* @brief	: Do conversion, then read registers with results
  * @brief   : code = code for selection of register group
  * *************************************************************************/
-void bmsspi_rw_cmd(const uint16_t* pcmd, uint16_t* pdata, uint8_t rw);
+void bmsspi_rw_cmd(uint16_t cmd, uint16_t* pdata, uint8_t rw);
 /* @brief	: Send command  and write data (little endian)
- * @param   : pcmd = pointer to 2 byte command (little endian)
+ * @param   : cmd = 2 byte command (little endian)
  * @brief   : pdata = pointer to six bytes to be written (little endian),
  *          :    ignore pdata for read commands.
  * @brief   : rw = type of command sequence

@@ -23,8 +23,6 @@
 
 #include "morse.h"
 
-static void writereg(const uint16_t* pcmdw, uint16_t* p);
-
 extern SPI_HandleTypeDef hspi1;
 extern DMA_HandleTypeDef hdma_spi1_rx;
 extern DMA_HandleTypeDef hdma_spi1_tx;
@@ -40,7 +38,8 @@ static int16_t  tim15ctr;   // TIM15CH1:OC turnover counter
 uint32_t dbgt1,dbgt2;
 
 void bmsspi_readstuff(uint8_t code);
-void bmsspi_rw_cmd(const uint16_t* pcmd, uint16_t* pdata, uint8_t rw);
+void bmsspi_rw_cmd(uint16_t cmd, uint16_t* pdata, uint8_t rw);
+
 
 enum TIMSTATE
 {
@@ -87,18 +86,6 @@ static const uint16_t cmdconfig[READOUTSIZE_CONFIG] = {
 #define READOUTSIZE_SCTRL	 1
 static const uint16_t cmdsreg[READOUTSIZE_SCTRL] = {
 	RDSCTRL /* 0x016  // Read S Control Register Group */
-};
-static const uint16_t cmdcmd[5] = {
-	ADCVAX, /* Start Combined Cell Voltage and GPIO1 GPIO2 Conversion */
-	ADAX,   /* Start GPIOs ADC Conversion */
-	ADSTAT, /* Start Status Group ADC Conversion */
-	0,      /* Skip sending a "start" command: Read Configuation */
-	0,      /* Skip sending a "start" command: Read S Register */
-};
-static const uint16_t cmdw[3] = {
-	WRCFGA,  /*  0x001  // Write Configuration Register Group A */
-	WRCFGB,  /*  0x024  // Write Configuration Register Group B */
-	WRSCTRL, /*  0X014  // Write S Control Register Group */
 };
 
 uint8_t readbmsflag; // Let main know a BMS reading was made
@@ -170,9 +157,20 @@ void bmsspi_setfets(void)
 	bmsspiall.configreg[3] |= (((bqfunction.cellbal >> 8) & 0x03FF) |
 		(1 << 11)); // DTMEN bit
 
+	bmsspiall.configreg[0] |= 0x00F8; // Assure GPIO pulldowns off
+
 	/* Write-back configuration Groups A & B. */
 	bmsspi_writereg(WRITECONFIG);
 
+	return;
+}
+/* *************************************************************************
+ * void bms_gettemp(void);
+ * @brief	: Read AUX and get temperatures
+ * *************************************************************************/
+void bms_gettemp(void)
+{
+	bmsspi_readstuff(READAUX);
 	return;
 }
 /* *************************************************************************
@@ -215,10 +213,10 @@ uint8_t bmsspi_keepawake(void)
 		bmsspi_writereg(WRITECONFIG);
 		break;
 	case 4:	// Read cells and GPIO1 GPIO2
-		bmsspi_readstuff(REQ_READBMS); 
+		bmsspi_readstuff(READCELLSGPIO12); 
 		break;
 	case 5:
-		bmsspi_readstuff(REQ_TEMPERATURE);
+		bmsspi_readstuff(READAUX);
 		break;
 	}
 
@@ -277,7 +275,7 @@ uint8_t bmsspi_keepawake(void)
 
 	/* EXTI4 ('1818 SDO conversion complete) interrupt initialize*/
   	HAL_NVIC_SetPriority(EXTI4_IRQn, 5, 0);
-  	HAL_NVIC_EnableIRQ  (EXTI4_IRQn);
+  	HAL_NVIC_EnableIRQ  (EXTI4_IRQn);  	
 
   	/* Make use of TIM15:CH1 OC for timing BMS delays. */
 	// ARR default is 0xFFFF (max count-1)
@@ -289,15 +287,14 @@ uint8_t bmsspi_keepawake(void)
 	return;
 }
 /* *************************************************************************
- * static uint16_t readreg(const uint16_t* pcmdcmd, uint16_t* p, const uint16_t* pcmdr, uint8_t n);
+ * static uint16_t readreg(uint16_t cmdx, uint16_t* p, const uint16_t* pcmdr, uint8_t n);
  * @brief	: Read register, convert endianness
- * @param   : pcmdcmd = pointer to output array (little endian)
- * @param   : pcmdr = pointer to read command (0 = skip conversionc command)
+ * @param   : cmdx = 1st command
+ * @param   : p = pointer to in-memory register array
+ * @param   : pcmdr = pointer to read command (0 = skip conversion command)
  * @param   ; n = number of register reads
  * @return  : 0 = no PEC15 error
  * *************************************************************************/
-uint16_t* dbp1;
-uint16_t* dbp2;
 uint16_t dbcrc1;
 uint16_t dbcrc2;
 uint8_t dbcthi = 0;
@@ -308,19 +305,18 @@ uint8_t actr = 0;
 uint32_t dbstat1;
 uint32_t dbstat2;
 
-static uint16_t readreg(const uint16_t* pcmdcmd, uint16_t* p, const uint16_t* pcmdr, uint8_t n)
+static uint16_t readreg(uint16_t cmdx, uint16_t* p, const uint16_t* pcmdr, uint8_t n)
 {
 	uint16_t i;
 
-	if (pcmdcmd != 0)
+	if (cmdx != 0)
 	{ /* Send a "Start conversion" command. */
 dbstat1 = DTWTIME;		
-		bmsspi_rw_cmd(pcmdcmd, 0, 3); 
+		bmsspi_rw_cmd(cmdx, 0, 3); 
 dbstat2 = DTWTIME - dbstat1;		
 //morse_trap(4);
 	}
 
-dbp1 = p;
 	/* Read registers with latest results. */
 	for (i = 0; i < n; i++)
 	{
@@ -330,7 +326,7 @@ uint8_t ctr = 0;
 do
 {	
 		/* Send command (with wait for completion) */
-	 	bmsspi_rw_cmd(pcmdr, 0, 2);
+	 	bmsspi_rw_cmd(*pcmdr, 0, 2);
 
   // Repeat if all one's was returned
 	ctr += 1; // Limit loops
@@ -360,44 +356,24 @@ if (ctr >= dbcthi)
 	dbhicmd = *pcmdr;
 }
 
-/* Check PEC15 matches. */
-CRC->CR = 0x9; // 16b poly, + reset CRC computation
-*(__IO uint32_t*)CRC_BASE = (uint32_t)__REV (spirx12.u32[1]);
-*(__IO uint16_t*)CRC_BASE = (uint16_t)__REV16 (spirx12.u16[4]); 
-dbcrc1 = spirx12.u16[5];
-dbcrc2 = (uint16_t)__REV16 (CRC->DR);
-//if ( ((uint16_t)__REV16 (CRC->DR)) != spitx12.u16[5]);
-if (dbcrc2 != dbcrc1) morse_trap(68);
+	/* Check PEC15 matches. */
+	CRC->CR = 0x9; // 16b poly, + reset CRC computation
+	*(__IO uint32_t*)CRC_BASE = (uint32_t)__REV (spirx12.u32[1]);
+	*(__IO uint16_t*)CRC_BASE = (uint16_t)__REV16 (spirx12.u16[4]); 
+	dbcrc1 = spirx12.u16[5];
+	dbcrc2 = (uint16_t)__REV16 (CRC->DR);
+
+//	if ( ((uint16_t)__REV16 (CRC->DR)) != spitx12.u16[5])
+	if (dbcrc2 != dbcrc1) morse_trap(68); // This "works"
 	
-		// Convert big endian to little endian and store in array
-#if 0
-		*p++ = (uint16_t)__REV16 (spirx12.u16[2]);
-		*p++ = (uint16_t)__REV16 (spirx12.u16[3]);
-		*p++ = (uint16_t)__REV16 (spirx12.u16[4]);	
-#else
+		/* Copy 6 byte spi rx to memory array. */
 		*p++ = (spirx12.u16[2]);
 		*p++ = (spirx12.u16[3]);
 		*p++ = (spirx12.u16[4]);	
-#endif
 		/* Point to next command. */
 	 	pcmdr += 1;
 	}
-dbp2 = p;	
-//morse_trap(22);
-	// TODO check PEC15 of a read
 	return 0;
-}
-/* *************************************************************************
- * static void writereg(uint16_t* pcmdw, uint16_t* p);
- * @brief	: Write register with convert endianness
- * @param   : p = pointer to input array (little endian)
- * @param   : pcmdw = pointer to write command
- * *************************************************************************/
-static void writereg(const uint16_t* pcmdw, uint16_t* p)
-{
-	bmsspi_rw_cmd(pcmdw, p, 1); 
-
-	return;
 }
 /* *************************************************************************
  * void bmsspi_writereg(uint8_t code);
@@ -409,12 +385,14 @@ void bmsspi_writereg(uint8_t code)
 	switch(code)
 	{
 	case WRITECONFIG: // Write configuration register groups A & B
-		writereg(&cmdw[0], &bmsspiall.configreg[0]);
-		writereg(&cmdw[1], &bmsspiall.configreg[3]);
+//bmsspiall.configreg[0] |= 0x00F8;	// Why are bits going to zero?
+		bmsspi_rw_cmd(WRCFGA, &bmsspiall.configreg[0],1);
+//bmsspiall.configreg[3] |= 0x000F;			
+		bmsspi_rw_cmd(WRCFGB, &bmsspiall.configreg[3],1);
 		break;
 
-	case WRITESREG: // Write S register groups
-		writereg(&cmdw[2], &bmsspiall.sreg[0]);
+	case WRITESREG: // Write S Control Register Group
+		bmsspi_rw_cmd(WRSCTRL, &bmsspiall.sreg[0],1);
 		break; 
 
 	default:
@@ -432,27 +410,27 @@ void bmsspi_readstuff(uint8_t code)
 	switch (code)
 	{
 	case READCELLSGPIO12: // Read cell voltages + GPIO1 & GPIO2
-		readreg(&cmdcmd[READCELLSGPIO12], bmsspiall.cellreg, cmdv, 6);
+		readreg(ADCVAX, bmsspiall.cellreg, cmdv, 6);
 		readreg(0, bmsspiall.auxreg, &cmdv[6], 1);
 		break;
 
 	case READGPIO: // Read all 9 GPIOs voltage registers: A-D
-		readreg(&cmdcmd[READGPIO], bmsspiall.auxreg,cmdaux,READOUTSIZE_AUX);
+		readreg(ADAX, bmsspiall.auxreg, cmdaux, 4);
 		break;
 
 	case READSTAT: // Read status
-		readreg(&cmdcmd[READSTAT], bmsspiall.statreg,cmdstat,READOUTSIZE_STAT);
+		readreg(ADSTAT, bmsspiall.statreg, cmdstat, 2);
 		break;
 
 	case READCONFIG: // Read configuration
-		readreg(0, bmsspiall.configreg,cmdconfig,READOUTSIZE_CONFIG);
+		readreg(0, bmsspiall.configreg,cmdconfig,2);
 
 	case READSREG: // Read S register
-		readreg(0, bmsspiall.sreg,cmdsreg,READOUTSIZE_SCTRL);
+		readreg(0, bmsspiall.sreg,cmdsreg,1);
 		break;	
 
-	case REQ_TEMPERATURE:
-		readreg(&cmdcmd[1], bmsspiall.auxreg, cmdv,READOUTSIZE_ADVAX);
+	case READAUX:
+		readreg(ADAX, bmsspiall.auxreg, cmdaux,4);
 		break;			
 
 	default: 
@@ -465,9 +443,9 @@ void bmsspi_readstuff(uint8_t code)
 	return;
 }
 /* *************************************************************************
- * void bmsspi_rw_cmd(uint16_t* pcmd, uint16_t* pdata, uint8_t rw);
+ * void bmsspi_rw_cmd(uint16_t cmd, uint16_t* pdata, uint8_t rw);
  * @brief	: Send command  and write data (little endian)
- * @param   : pcmd = pointer to 2 byte command (little endian)
+ * @param   : cmd = 2 byte command (little endian)
  * @brief   : pdata = pointer to six bytes to be written (little endian),
  *          :    ignore pdata for read commands.
  * @brief   : rw = type of command sequence
@@ -476,7 +454,7 @@ void bmsspi_readstuff(uint8_t code)
  *          : 2 = Send command+pec, read 6 bytes data+pec into spirx12.uc[4]-[11]
  *          : 3 = Send 2 byte command  + pec. Switch '1818 SDO to interrupt conversion completion
  * *************************************************************************/
-void bmsspi_rw_cmd(const uint16_t* pcmd, uint16_t* pdata, uint8_t rw)
+void bmsspi_rw_cmd(uint16_t cmd, uint16_t* pdata, uint8_t rw)
 {
 	uint32_t noteval; // Wait notification bits
 
@@ -488,20 +466,10 @@ void bmsspi_rw_cmd(const uint16_t* pcmd, uint16_t* pdata, uint8_t rw)
 
 	rwtype = rw; // Save for interrupt routine use.
 
-// debug
-#define DB12 0xC3
-spitx12.u32[0] = DB12;	
-spitx12.u32[1] = DB12;	
-spitx12.u32[2] = DB12;	
-
-spirx12.u32[0] = DB12;	
-spirx12.u32[1] = DB12;	
-spirx12.u32[2] = DB12;	
-
 	/* Build byte array for a single SPI/DMA operation. */
 	// Command: 2 bytes plus two byte pec15
     CRC->CR = 0x9; // 16b poly, + reset CRC computation
-	spitx12.u16[0] = (uint16_t)__REV16 (*pcmd);	// Command: big endian
+	spitx12.u16[0] = (uint16_t)__REV16 (cmd);	// Command: big endian
     *(__IO uint16_t*)CRC_BASE = (uint16_t)__REV16 ( spitx12.u16[0]); 
 	spitx12.u16[1] = (uint16_t)__REV16 (CRC->DR); // Big endian: Store PEC for command bytes
 
@@ -517,20 +485,7 @@ spirx12.u32[2] = DB12;
 if (pdata == NULL)	 morse_trap(260);
 		//* Set data as big endian 1/2 words, plus PEC15 big endian
  		CRC->CR = 0x9; // 16b poly, + reset CRC computation
-//		 spitx12.u32[1] = (uint32_t)__REV   (*(uint32_t*)(pdata+0)); // Load 4 bytes
-//		*(__IO uint32_t*)CRC_BASE = (uint32_t)__REV ( spitx12.u32[1]);
 
-#if 0
-		 spitx12.u16[2] = (uint16_t)__REV16 (*(uint16_t*)(pdata+0)); // Load 2 bytes
-    	*(__IO uint16_t*)CRC_BASE = (uint16_t)__REV16 ( spitx12.u16[2]);
-
-		 spitx12.u16[3] = (uint16_t)__REV16 (*(uint16_t*)(pdata+1)); // Load 2 bytes
-    	*(__IO uint16_t*)CRC_BASE = (uint16_t)__REV16 ( spitx12.u16[3]);
-
-		 spitx12.u16[4] = (uint16_t)__REV16 (*(uint16_t*)(pdata+2)); // Load 2 bytes
-    	*(__IO uint16_t*)CRC_BASE = (uint16_t)__REV16 ( spitx12.u16[4]);
-
-#else
  		spitx12.u16[2] =  (*(uint16_t*)(pdata+0)); // Load 2 bytes
     	*(__IO uint16_t*)CRC_BASE = (uint16_t)__REV16 ( spitx12.u16[2]);
 
@@ -539,7 +494,7 @@ if (pdata == NULL)	 morse_trap(260);
 
 		 spitx12.u16[4] = (*(uint16_t*)(pdata+2)); // Load 2 bytes
     	*(__IO uint16_t*)CRC_BASE = (uint16_t)__REV16 ( spitx12.u16[4]);
-#endif    	
+
     	 spitx12.u16[5] = (uint16_t)__REV16 (CRC->DR); // Big endian: Store data bytes PEC
     	break;
 
@@ -594,6 +549,7 @@ void bmsspi_tim15_IRQHandler(void)
 		// Bit 6 SPE: SPI enable
 		SPI1->CR1 |= (1 << 6);
 		// SPI rx interrupt expected next.	
+
 timstate = TIMSTATE_TO; 
  	 	return;
 
@@ -613,6 +569,8 @@ morse_trap(41);
 		tim15ctr -= 1;
 		if (tim15ctr > 0) break;
 		p->err |= 1; 
+
+//		GPIOB->MODER |= (2 << 8); 
 
 		CSB_GPIO_Port->BSRR = (CSB_Pin); // Set: CSB pin set high
 
@@ -650,6 +608,9 @@ void bmsspi_spidmarx_IRQHandler(DMA_HandleTypeDef* phdma_spi1_rx)
 		EXTI->IMR1  |= (1<<4); // Interrupt mask register
 		EXTI->EMR1  |= (1<<4); // Event mask register
 		EXTI->PR1   |= (1<<4); // Reset Pending register JIC
+
+		/* Change PB4 to input mode. */
+//		GPIOB->MODER &= ~(3 << 8); 
 		
 	/* Timeout: JIC, and debugging, and whatever... */
 		timstate = TIMSTATE_3; // Count TIM15 16b urnovers

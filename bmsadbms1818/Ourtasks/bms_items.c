@@ -18,7 +18,6 @@
 #define DCTO   5 // Discharge timeout code: 0 = disabled, 1 = 0.5 minutes, 5 = 4 minutes
 #define FDRF   0 // 0 = normal; 1 = force digital redundancy for ADC conversion to fail
 #define PSBITS 0 // Redundancy sequential
-#define GPION  0x1FF // Config bits, 9 GPIOs: 0 = pull down on; 1 = off (default)
 #define DCC0   0 // GPIO9 pulldown: 0 = OFF; 1 = pull down ON
 
 static void uvov(uint8_t* p, uint8_t s);
@@ -80,13 +79,14 @@ void bms_items_cfgset_misc(void)
 		(ADCOPT << 0) |
 		(DTEN   << 1) |
 		(REFON  << 2) |
-		((GPION & 0x1E) << 3) ); /* GPIO5-GPIO1 */
+		(0xF8)        );   /* GPIO5-GPIO1 pulldown off */
 
 	bmsspiall.configreg[2] &= 0x0FFF; // Retain DCC12-DCC1 settings
 	bmsspiall.configreg[2] |= (DCTO << 12); /* 4b code */
 
 	bmsspiall.configreg[3] &= 0x03FF; // Retain DCC18-DCC13, GPIO9-GPIO6
 	bmsspiall.configreg[3] |= (
+		(0x0004)      | /* GPIO6-GPIO9 pulldown off. */
 		(DCC0   << 10) |
 		(DTMEN  << 11) |
 		(PSBITS << 12) |
@@ -130,10 +130,10 @@ struct EXTRACTSTATREG
 void bms_items_extract_statreg(void)
 {
 	uint8_t* pp;
-	extractstatreg.sc   =  bmsspiall.statreg[0] * 3.0f;
+	extractstatreg.sc   =  bmsspiall.statreg[0] * 0.003f;
 	extractstatreg.itmp = (bmsspiall.statreg[1] / 76.0f) - 276.0f;
-	extractstatreg.va   =  bmsspiall.statreg[2] * 0.001f;
-	extractstatreg.vd   =  bmsspiall.statreg[3] * 0.001f;
+	extractstatreg.va   =  bmsspiall.statreg[2] * 0.0001f;
+	extractstatreg.vd   =  bmsspiall.statreg[3] * 0.0001f;
 
 	/* Extract under & overvoltage bits */
 	pp = (uint8_t*)&bmsspiall.statreg[4];
@@ -166,7 +166,7 @@ struct EXTRACTCONFIGREG
 void bms_items_extract_configreg(void)
 {
 	uint32_t tmp;
-	uint8_t* p = &bmsspiall.configreg[0];
+	uint8_t* p = (uint8_t*)&bmsspiall.configreg[0];
 
 	/* Overvoltage comparison setting (volts). */
 	tmp  = ((*(p+2) >> 4) | ((uint32_t)*(p+3) << 12) );
