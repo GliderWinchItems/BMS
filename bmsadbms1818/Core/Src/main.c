@@ -480,7 +480,7 @@ static void MX_ADC1_Init(void)
   }
   /** Configure Regular Channel
   */
-  sConfig.Channel = ADC_CHANNEL_13;
+  sConfig.Channel = ADC_CHANNEL_14;
   sConfig.Rank = ADC_REGULAR_RANK_5;
   sConfig.SamplingTime = ADC_SAMPLETIME_247CYCLES_5;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
@@ -489,7 +489,6 @@ static void MX_ADC1_Init(void)
   }
   /** Configure Regular Channel
   */
-  sConfig.Channel = ADC_CHANNEL_14;
   sConfig.Rank = ADC_REGULAR_RANK_6;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
@@ -1234,6 +1233,12 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(BQ_LD_GPIO_Port, BQ_LD_Pin, GPIO_PIN_RESET);
 
+  /*Configure GPIO pin : PC4 */
+  GPIO_InitStruct.Pin = GPIO_PIN_4;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
   /*Configure GPIO pins : LED_GRN_Pin LED_RED_Pin PADxx_Pin PAD7_Pin */
   GPIO_InitStruct.Pin = LED_GRN_Pin|LED_RED_Pin|PADxx_Pin|PAD7_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -1357,12 +1362,14 @@ extern uint32_t dbstat2;
         "     11     12     13     14     15     16     17     18");
        yprintf(&pbuf2,"\n\r%5d ADCVAX",dbgka);
        for (i = 0; i < 18; i++) yprintf(&pbuf1," %6d",bmsspiall.cellreg[i]);
+       yprintf(&pbuf1," %d",dbstat2/16);
         break;
       case 5: // Temperature (AUX reg)
        yprintf(&pbuf2,"\n\r%5d AUX    %6d %6d %6d %6d",dbgka,
         bmsspiall.auxreg[0],bmsspiall.auxreg[1],bmsspiall.auxreg[2],bmsspiall.auxreg[3]);
-       yprintf(&pbuf1," %6d %6d %6d %6d %6d",
-        bmsspiall.auxreg[4],bmsspiall.auxreg[5],bmsspiall.auxreg[6],bmsspiall.auxreg[7],bmsspiall.auxreg[8]);
+       yprintf(&pbuf1," %6d %6d %6d %6d %6d %d",
+        bmsspiall.auxreg[4],bmsspiall.auxreg[5],bmsspiall.auxreg[6],bmsspiall.auxreg[7],bmsspiall.auxreg[8],
+        dbstat2/16);
 
        bms_items_extract_statreg();
        yprintf(&pbuf2,"\n\r%5d        TS:%6.2f TMP:%5.1f VA:%6.3f VG:%6.3f",dbgka,

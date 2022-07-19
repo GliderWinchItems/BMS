@@ -74,8 +74,6 @@ void Error_Handler(void);
 #define FAN_PWM_GPIO_Port GPIOA
 #define HV_div1_Pin GPIO_PIN_7
 #define HV_div1_GPIO_Port GPIOA
-#define Therm_spare1_Pin GPIO_PIN_4
-#define Therm_spare1_GPIO_Port GPIOC
 #define Therm_spare2_Pin GPIO_PIN_5
 #define Therm_spare2_GPIO_Port GPIOC
 #define LED_GRN_Pin GPIO_PIN_0

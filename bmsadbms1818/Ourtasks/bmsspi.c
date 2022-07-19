@@ -273,6 +273,9 @@ uint8_t bmsspi_keepawake(void)
  	/* EXTI SDO/MISO PB4 end of conversion detection interrupt. */
  	EXTI->RTSR1 |= (1<<4); // Rising edge
 
+ 	/* Px4 EXTI selection clear. */
+	SYSCFG->EXTICR[1] &= ~(0x7 << 0);	
+
 	/* EXTI4 ('1818 SDO conversion complete) interrupt initialize*/
   	HAL_NVIC_SetPriority(EXTI4_IRQn, 5, 0);
   	HAL_NVIC_EnableIRQ  (EXTI4_IRQn);  	
@@ -284,6 +287,10 @@ uint8_t bmsspi_keepawake(void)
 	TIM15->DIER = (1 << 1);  // Bit 1 CC1IE: Capture/Compare 1 interrupt enable
 	TIM15->CR1 |= 1;       // Start counter
 
+	EXTI->IMR1 &= ~(1<<4);
+	EXTI->EMR1 &= ~(1<<4);
+	EXTI->PR1   =  (1<<4); // Reset request: PB4
+
 	return;
 }
 /* *************************************************************************
@@ -292,85 +299,62 @@ uint8_t bmsspi_keepawake(void)
  * @param   : cmdx = 1st command
  * @param   : p = pointer to in-memory register array
  * @param   : pcmdr = pointer to read command (0 = skip conversion command)
- * @param   ; n = number of register reads
+ * @param   ; n = number of registers to read in register group
  * @return  : 0 = no PEC15 error
  * *************************************************************************/
-uint16_t dbcrc1;
-uint16_t dbcrc2;
-uint8_t dbcthi = 0;
-uint8_t dbctlo = 10;
-uint16_t dbhicmd;
-uint16_t dblocmd;
-uint8_t actr = 0;
+
 uint32_t dbstat1;
 uint32_t dbstat2;
 
+#define QQQCTR 10 // Repetition limit count
+uint16_t loopctr;
+
 static uint16_t readreg(uint16_t cmdx, uint16_t* p, const uint16_t* pcmdr, uint8_t n)
 {
+	uint16_t dbcrc2;
 	uint16_t i;
 
+	/* Check if a start conversion command */
 	if (cmdx != 0)
-	{ /* Send a "Start conversion" command. */
+	{ // Send a "Start conversion" command.
 dbstat1 = DTWTIME;		
 		bmsspi_rw_cmd(cmdx, 0, 3); 
 dbstat2 = DTWTIME - dbstat1;		
 //morse_trap(4);
 	}
 
-	/* Read registers with latest results. */
+	/* Read register group with latest results. */
 	for (i = 0; i < n; i++)
 	{
+		loopctr = 0;
+		do
+		{	
+			/* Send command (with wait for completion) */
+			bmsspi_rw_cmd(*pcmdr, 0, 2);
 
-uint8_t ctr = 0;
-#define QQQCTR 10 // Repetition limit count
-do
-{	
-		/* Send command (with wait for completion) */
-	 	bmsspi_rw_cmd(*pcmdr, 0, 2);
+			// Repeat if all one's was returned
+			loopctr += 1; // Limit loops
+		} while( (spirx12.u32[1] == 0xffffFFFF) && 
+			     (spirx12.u32[2] == 0xffffFFFF) && 
+			     (loopctr < QQQCTR) );
+		if (loopctr >= QQQCTR) morse_trap(58); // Trap never completed
 
-  // Repeat if all one's was returned
-	ctr += 1; // Limit loops
-} while( (spirx12.u32[1] == 0xffffFFFF) && 
-	     (spirx12.u32[2] == 0xffffFFFF) && 
-	     (ctr < QQQCTR) );
-if (ctr >= QQQCTR) morse_trap(58); // Trap never completed
+		/* Check PEC15 matches. */
+		// Compute PEC15 in received data
+		CRC->CR = 0x9; // 16b poly, + reset CRC computation
+		*(__IO uint32_t*)CRC_BASE = (uint32_t)__REV (spirx12.u32[1]);
+		*(__IO uint16_t*)CRC_BASE = (uint16_t)__REV16 (spirx12.u16[4]); 
 
-/* Check number of loops w command. */
-actr += 1;
-if (actr > (5*3))
-{
-	actr = 0;
-	dbctlo = 10;
-	dbcthi = 0;
-	dbhicmd = 0x1234;
-	dblocmd = 0;
-}
-if (ctr <= dbctlo)
-{
-	dbctlo = ctr;
-	dblocmd = *pcmdr;
-}
-if (ctr >= dbcthi)
-{
-	dbcthi = ctr;
-	dbhicmd = *pcmdr;
-}
-
-	/* Check PEC15 matches. */
-	CRC->CR = 0x9; // 16b poly, + reset CRC computation
-	*(__IO uint32_t*)CRC_BASE = (uint32_t)__REV (spirx12.u32[1]);
-	*(__IO uint16_t*)CRC_BASE = (uint16_t)__REV16 (spirx12.u16[4]); 
-	dbcrc1 = spirx12.u16[5];
-	dbcrc2 = (uint16_t)__REV16 (CRC->DR);
-
-//	if ( ((uint16_t)__REV16 (CRC->DR)) != spitx12.u16[5])
-	if (dbcrc2 != dbcrc1) morse_trap(68); // This "works"
+		// Compare received PEC to computed PEC
+		dbcrc2 = (uint16_t)__REV16 (CRC->DR); // Why is this needed!?
+		if (dbcrc2 != spirx12.u16[5]) 
+			morse_trap(68); 
 	
 		/* Copy 6 byte spi rx to memory array. */
 		*p++ = (spirx12.u16[2]);
 		*p++ = (spirx12.u16[3]);
 		*p++ = (spirx12.u16[4]);	
-		/* Point to next command. */
+		/* Point to next read command. */
 	 	pcmdr += 1;
 	}
 	return 0;
@@ -464,16 +448,16 @@ void bmsspi_rw_cmd(uint16_t cmd, uint16_t* pdata, uint8_t rw)
 	/* Do this early since time delay involved. */
 	CSB_GPIO_Port->BSRR = (CSB_Pin<<16); // Reset: CSB pin set low
 
-	rwtype = rw; // Save for interrupt routine use.
+	rwtype = rw; // Save for bmsspi_spidmarx_IRQHandler use.
 
-	/* Build byte array for a single SPI/DMA operation. */
+	/* Build byte array for issuing single SPI/DMA operation. */
 	// Command: 2 bytes plus two byte pec15
     CRC->CR = 0x9; // 16b poly, + reset CRC computation
 	spitx12.u16[0] = (uint16_t)__REV16 (cmd);	// Command: big endian
     *(__IO uint16_t*)CRC_BASE = (uint16_t)__REV16 ( spitx12.u16[0]); 
 	spitx12.u16[1] = (uint16_t)__REV16 (CRC->DR); // Big endian: Store PEC for command bytes
 
-	/* Set dma count (dmact), and register to write (endian and pec15) */
+	/* Set dma count (dmact), and  load data register if write (endian and pec15) */
 	switch (rw)
 	{
 	case 0: // Send command only
@@ -505,10 +489,15 @@ if (pdata == NULL)	 morse_trap(260);
 		morse_trap(255);		
 	}
 
+	/* Disable SPI1 DMA request. */
+	// Bit 1 TXDMAEN: Tx buffer DMA enable
+	// Bit 0 RXDMAEN: Rx buffer DMA enable
+	SPI1->CR2 &= ~(0x3); 
+
 	/* Setup DMA read and write. */
 	hdma_spi1_rx.Instance->CCR &= ~1; // Disable dma spi rx channel
 	hdma_spi1_rx.Instance->CNDTR = dmact; // Number to DMA transfer
-	hdma_spi1_rx.Instance->CCR |= 1;  // Enable channel
+//	hdma_spi1_rx.Instance->CCR |= 1;  // Enable channel
 
 	hdma_spi1_tx.Instance->CCR &= ~1; // Disable dma spi tx channel
 	hdma_spi1_tx.Instance->CNDTR = dmact; // Number to DMA transfer
@@ -545,12 +534,13 @@ void bmsspi_tim15_IRQHandler(void)
 
  	case TIMSTATE_1: // CSB falling delay expired. Read to send
  	 	// Start sending write command + data
- 		hdma_spi1_tx.Instance->CCR |= 1;  // Enable channel 	
-		// Bit 6 SPE: SPI enable
-		SPI1->CR1 |= (1 << 6);
+ 		SPI1->CR2 |= 0x3; // Enable DMA: TXDMAEN | RXDMAEN
+		hdma_spi1_rx.Instance->CCR |= 1;  // Enable DMA rx channel
+ 		hdma_spi1_tx.Instance->CCR |= 1;  // Enable DMA tx channel 	
+		SPI1->CR1 |= (1 << 6); // Enable SPE: SPI enable
 		// SPI rx interrupt expected next.	
 
-timstate = TIMSTATE_TO; 
+timstate = TIMSTATE_TO; // JIC: AND it happened!
  	 	return;
 
 case TIMSTATE_TO:
@@ -570,16 +560,15 @@ morse_trap(41);
 		if (tim15ctr > 0) break;
 		p->err |= 1; 
 
-//		GPIOB->MODER |= (2 << 8); 
-
-		CSB_GPIO_Port->BSRR = (CSB_Pin); // Set: CSB pin set high
-
 		// Disable EXTI4 interrupting
+		// Note: prior input MODER was input which is 0x0
+		SYSCFG->EXTICR[1] &= ~(0x7 << 0); 
+		GPIOB->MODER |= (0x2 << 8); // Set AF mode SPI1		
 		EXTI->IMR1 &= ~(1<<4);
 		EXTI->EMR1 &= ~(1<<4);
 		EXTI->PR1   =  (1<<4); // Reset request: PB4
 
-//morse_trap(8); // EXTI interrupt wait timed out
+		CSB_GPIO_Port->BSRR = (CSB_Pin); // Set: CSB pin set high		
 
 		// Notify ADCTask.c
 		xTaskNotifyFromISR(BMSTaskHandle, BMSTSKNOTEBIT00, eSetBits, &xHPT );
@@ -594,9 +583,16 @@ morse_trap(41);
 /* #######################################################################
  * SPI rx dma transfer complete
    ####################################################################### */
+uint32_t dbgexttim1;
+uint32_t dbgexttim2;
+
 void bmsspi_spidmarx_IRQHandler(DMA_HandleTypeDef* phdma_spi1_rx)
 {
-//	SPI1->CR1 &= ~(1 << 6); // Disable SPI
+	/* Close down sequence for SPI/DMA communication. */
+	hdma_spi1_tx.Instance->CCR &= ~1; // Disable dma spi tx channel
+	hdma_spi1_rx.Instance->CCR &= ~1; // Disable dma spi rx channel
+	SPI1->CR1 &= ~(1 << 6); // Disable SPI
+	SPI1->CR2 &= ~0x3; // // Disable DMA: TXDMAEN | RXDMAEN
 
 	// Reset DMA interrupt flags	
 	hdma_spi1_rx.DmaBaseAddress->IFCR = 0xfff;
@@ -605,27 +601,31 @@ void bmsspi_spidmarx_IRQHandler(DMA_HandleTypeDef* phdma_spi1_rx)
 	{ // Here, end of commands that starts conversions. 
 		/* Setup SPI MISO ('1818 SDO) to interrupt when it goes high. */
 		// Enable interrupt & event
+		EXTI->PR1   =  (1<<4); // Reset request: PB4		
 		EXTI->IMR1  |= (1<<4); // Interrupt mask register
 		EXTI->EMR1  |= (1<<4); // Event mask register
-		EXTI->PR1   |= (1<<4); // Reset Pending register JIC
-
-		/* Change PB4 to input mode. */
-//		GPIOB->MODER &= ~(3 << 8); 
+		GPIOB->MODER &= ~(0x3 << 8); // Set PB4 mode to input (0x0)
 		
-	/* Timeout: JIC, and debugging, and whatever... */
-		timstate = TIMSTATE_3; // Count TIM15 16b urnovers
-		tim15ctr = 2;// ~(2 * 4.096)ms (16 MHz clock)
+	/* Timeout: JIC no EXTI4 interrupt, and debugging, and whatever... */
+		timstate = TIMSTATE_3; // Long timeout: count TIM15 16b turnovers
+		tim15ctr = 3;// ~(2 * 4.096)ms (16 MHz clock)
+
+EXTI->PR1   =  (1<<4); // Reset request: PB4	
+SYSCFG->EXTICR[1] &= ~(0x7 << 0); // Clear EXTI4
+SYSCFG->EXTICR[1] |=  (0x1 << 0); // Select PB4
+
+dbgexttim1 = DTWTIME;
 
 		// Expect next interrupt is SPI MISO pin going high
 		// CSB remains low and '1818 pulls SDO (MISO) low
 		// until conversion is complete, then raises SDO
-		// which will cause a rising edge EXTI interrupt.
+		// which will (should!) cause a rising edge EXTI interrupt.
 
 		// Expect EXTI4 interrupt when conversion completes
 		// TIM15 (TIMSTATE_3) timeout if there is a failure.
 		return;
 	}
-
+	/* Here, no waiting for '1818 conversions needed. */
 	CSB_GPIO_Port->BSRR = (CSB_Pin); // Set: CSB pin set high
 
 	// Assure CSB minimum pulse width before next SPI operation.
@@ -645,12 +645,16 @@ void bmsspi_spidmatx_IRQHandler(DMA_HandleTypeDef* phdma_spi1_tx)
 /* #######################################################################
  * void EXTI4_IRQHandler(void);
  * PB4 SPI MISO pin-1818 SDO pin: interrupt upon rising edge
-   ####################################################################### */	
+   ####################################################################### */
+uint32_t dbgexti4ctr;	
 void EXTI4_IRQHandler(void)
 {
+dbgexttim2 = DTWTIME - dbgexttim1;
+
 // Conversion time?	
 dbgt2 = DTWTIME - dbgt1;
 morse_trap(888);	
+dbgexti4ctr += 1;
 
 	CSB_GPIO_Port->BSRR = (CSB_Pin); // Set: CSB pin set high
 
@@ -658,6 +662,9 @@ morse_trap(888);
 	EXTI->IMR1 &= ~(1<<4);
 	EXTI->EMR1 &= ~(1<<4);
 	EXTI->PR1   =  (1<<4); // Reset request: PB4
+
+	// Note: prior input MODER was input which is 0x0
+	GPIOB->MODER |= (0x2 << 8); // Set AF mode SPI1
 
 	// Assure CSB minimum pulse width before next SPI operation.
 	timstate = TIMSTATE_2;

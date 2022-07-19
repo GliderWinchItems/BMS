@@ -136,7 +136,6 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* hadc)
     PA3     ------> ADC1_IN8
     PA4     ------> ADC1_IN9
     PA7     ------> ADC1_IN12
-    PC4     ------> ADC1_IN13
     PC5     ------> ADC1_IN14
     */
     GPIO_InitStruct.Pin = FET_CUR_A2_Pin;
@@ -149,10 +148,10 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* hadc)
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-    GPIO_InitStruct.Pin = Therm_spare1_Pin|Therm_spare2_Pin;
+    GPIO_InitStruct.Pin = Therm_spare2_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_ANALOG_ADC_CONTROL;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+    HAL_GPIO_Init(Therm_spare2_GPIO_Port, &GPIO_InitStruct);
 
     /* ADC1 DMA Init */
     /* ADC1 Init */
@@ -201,10 +200,9 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef* hadc)
     PA3     ------> ADC1_IN8
     PA4     ------> ADC1_IN9
     PA7     ------> ADC1_IN12
-    PC4     ------> ADC1_IN13
     PC5     ------> ADC1_IN14
     */
-    HAL_GPIO_DeInit(GPIOC, FET_CUR_A2_Pin|Therm_spare1_Pin|Therm_spare2_Pin);
+    HAL_GPIO_DeInit(GPIOC, FET_CUR_A2_Pin|Therm_spare2_Pin);
 
     HAL_GPIO_DeInit(GPIOA, OPAMP_INP_Pin|OPAMP_OUT_Pin|dc_dc_15V_Pin|HV_div1_Pin);
 
