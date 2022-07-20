@@ -58,18 +58,18 @@ void bmsspi_writereg(uint8_t code);
  * *************************************************************************/
 void bmsspi_readstuff(uint8_t code);
 /* @brief	: Do conversion, then read registers with results
- * @brief   : code = code for selection of register group
+ * @param   : code = code for selection of register group
  * *************************************************************************/
 void bmsspi_rw_cmd(uint16_t cmd, uint16_t* pdata, uint8_t rw);
-/* @brief	: Send command  and write data (little endian)
+/* @brief	: Send command  and load (write) data (little endian) if rw = 3
  * @param   : cmd = 2 byte command (little endian)
- * @brief   : pdata = pointer to six bytes to be written (little endian),
- *          :    ignore pdata for read commands.
- * @brief   : rw = type of command sequence
+ * @param   : pdata = pointer to six bytes to be written (little endian),
+ *          :    ignore pdata for read commands (rw = 2).
+ * @param   : rw = type of command sequence
  *          : 0 = Send 2 byte command  + pec
  *          : 1 = Send command+pec, plus 6 bytes data+pec
  *          : 2 = Send command+pec, read 6 bytes data+pec into spirx12.uc[4]-[11]
- *          : 3 = Send 2 byte command  + pec. Switch '1818 SDO to interrupt conversion completion
+ *          : 3 = Send 2 byte command  + pec. Wait for conversion completion
  * *************************************************************************/
 
 

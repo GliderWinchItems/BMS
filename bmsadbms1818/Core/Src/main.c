@@ -1218,14 +1218,14 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_4|DUMP2_Pin|DUMP_NOT_Pin|DUMP_Pin
+                          |HEATER_NOT_Pin|HEATER_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, LED_GRN_Pin|LED_RED_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, PADxx_Pin|PAD7_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, DUMP2_Pin|DUMP_NOT_Pin|DUMP_Pin|HEATER_NOT_Pin
-                          |HEATER_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(CSB_GPIO_Port, CSB_Pin, GPIO_PIN_RESET);
@@ -1233,10 +1233,13 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(BQ_LD_GPIO_Port, BQ_LD_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin : PC4 */
-  GPIO_InitStruct.Pin = GPIO_PIN_4;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  /*Configure GPIO pins : PC4 DUMP_NOT_Pin DUMP_Pin HEATER_NOT_Pin
+                           HEATER_Pin */
+  GPIO_InitStruct.Pin = GPIO_PIN_4|DUMP_NOT_Pin|DUMP_Pin|HEATER_NOT_Pin
+                          |HEATER_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pins : LED_GRN_Pin LED_RED_Pin PADxx_Pin PAD7_Pin */
@@ -1252,13 +1255,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(DUMP2_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : DUMP_NOT_Pin DUMP_Pin HEATER_NOT_Pin HEATER_Pin */
-  GPIO_InitStruct.Pin = DUMP_NOT_Pin|DUMP_Pin|HEATER_NOT_Pin|HEATER_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pin : CSB_Pin */
   GPIO_InitStruct.Pin = CSB_Pin;
@@ -1312,7 +1308,7 @@ void StartDefaultTask(void *argument)
   #define MAINFORLOOPDELAY 50 // Delay of 'for' loop in ms
   const TickType_t xPeriod = pdMS_TO_TICKS(MAINFORLOOPDELAY);  
   TickType_t tickcnt = xTaskGetTickCount();
-  uint16_t tickcnt_monitor = 0;
+  //uint16_t tickcnt_monitor = 0;
 
   bq_items_init(); // Updates tickcnt
 
@@ -1344,7 +1340,7 @@ extern uint32_t dbstat2;
           bmsspiall.configreg[3],bmsspiall.configreg[4],bmsspiall.configreg[5],bshift+1);
         break;
       case 1: // Stat regs
-       yprintf(&pbuf2,"\n\r%5d STAT   %04X %04X %04X : %04X %04X %04X %d",dbgka,dbstat2/16,
+       yprintf(&pbuf2,"\n\r%5d STAT   %04X %04X %04X : %04X %04X %04X %d %d",dbgka,dbstat2,dbstat2/16,
           bmsspiall.statreg[0],bmsspiall.statreg[1],bmsspiall.statreg[2],
           bmsspiall.statreg[3],bmsspiall.statreg[4],bmsspiall.statreg[5]);      
         break;
