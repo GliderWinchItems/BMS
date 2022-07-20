@@ -1340,9 +1340,9 @@ extern uint32_t dbstat2;
           bmsspiall.configreg[3],bmsspiall.configreg[4],bmsspiall.configreg[5],bshift+1);
         break;
       case 1: // Stat regs
-       yprintf(&pbuf2,"\n\r%5d STAT   %04X %04X %04X : %04X %04X %04X %d %d",dbgka,dbstat2,dbstat2/16,
+       yprintf(&pbuf2,"\n\r%5d STAT   %04X %04X %04X : %04X %04X %04X %d ",dbgka,
           bmsspiall.statreg[0],bmsspiall.statreg[1],bmsspiall.statreg[2],
-          bmsspiall.statreg[3],bmsspiall.statreg[4],bmsspiall.statreg[5]);      
+          bmsspiall.statreg[3],bmsspiall.statreg[4],bmsspiall.statreg[5],dbstat2/16);      
         break;
       case 2:
        yprintf(&pbuf2,"\n\r%5d SREG   %04X %04X %04X",dbgka,
