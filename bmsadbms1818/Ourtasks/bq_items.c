@@ -32,7 +32,7 @@ void bq_items_selectfet(void);
 
 struct BQFUNCTION bqfunction;	
 
-#define TICKS_INC 250 // Duration between balance updates (ms)
+#define TICKS_INC 2000 // Duration between balance updates (ms)
 static uint32_t ticks_next;
 
 static struct BMSREQ_Q  bmstask_q_readbms;
@@ -62,8 +62,8 @@ static void bq_items_q(uint8_t reqcode)
 	ret = xQueueSendToBack(BMSTaskReadReqQHandle, &pq, 0);
 	if (ret != pdPASS) morse_trap(201);
 
-	xTaskNotifyWait(0,0xffffffff, &noteval1, 5500);
-	if (noteval1 == BQITEMSNOTE00) morse_trap(203);
+//	xTaskNotifyWait(0,0xffffffff, &noteval1, 5500);
+//	if (noteval1 == BQITEMSNOTE00) morse_trap(203);
 }
 /* *************************************************************************
  * uint8_t bq_items(void);
@@ -86,6 +86,7 @@ uint8_t bq_items(void)
 	case 0: // OTO Initialize
 	 	bmstask_q_readbms.bmsTaskHandle = xTaskGetCurrentTaskHandle();
 	 	bmstask_q_readbms.tasknote = BQITEMSNOTE00;
+	 	ticks_next = TICKS_INC + xTaskGetTickCount();
 	 	state = 1;
 	 /* Fall through. */
 	case 1: /* Every 'x' ms check balancing. */
@@ -101,11 +102,11 @@ uint8_t bq_items(void)
 		state = 3;
 		break;
 
-	case 3: /* REQ_READBMS completed. */
+	case 3: /* Wait for REQ_READBMS completion. */
+		if (bmstask_q_readbms.done != 0)		
+			break;
+		retx = 1;
 	     /* Setup discharge FET bits, and update other FETs. */
-retx = 1;
-state = 1;
-break;
 		bq_items_selectfet(); // Determine on/off for all FETs
 
 		/* Activate the settings from the foregoing logic. */
@@ -113,12 +114,12 @@ break;
 		bq_items_q(REQ_SETFETS); // Queue BMS request
 		// Other FETs
 		fetonoff_status_set(bqfunction.fet_status);
-
-		retx = 1;  // Return shows REQ_READBMS completed
-		state = 4; // Wait for REQ_SETFETS to complete
+		state = 4; 
 		break;
 
-	case 4: // REQ_SETFETS completed
+	case 4: // Wait for REQ_SETFETS to complete
+		if (bmstask_q_readbms.done != 0)		
+			break;
 		retx  = 2;  // Return shows REQ_SETFETS completed
 		state = 1;  // Ready for a new cycle
 		break;		

@@ -1308,8 +1308,7 @@ void StartDefaultTask(void *argument)
   #define MAINFORLOOPDELAY 50 // Delay of 'for' loop in ms
   const TickType_t xPeriod = pdMS_TO_TICKS(MAINFORLOOPDELAY);  
   TickType_t tickcnt = xTaskGetTickCount();
-  //uint16_t tickcnt_monitor = 0;
-
+  
   bq_items_init(); // Updates tickcnt
 
 //extern uint32_t bmsdbctr;
@@ -1318,6 +1317,8 @@ extern uint8_t dbgka;
 uint8_t dbgka_prev = dbgka;
 extern uint32_t bshift;  
 extern uint32_t dbstat2;    
+
+  uint32_t fctr = 0;
 
   for(;;) /* Loop polls various operations. */
   {  
@@ -1390,28 +1391,31 @@ for (i=0; i<12;i++)
   yprintf(&pbuf2," %02X", *p8t++);
 #endif
 
-#if 0
+#if 1
     /* Update FAN control. (4/sec) */
     fanop();
 #endif
 
-#if 0
+#if 1
     /* Cell balance & control. */
+    uint32_t dcc = extractconfigreg.dcc;
+    char cline[128];
     uint8_t ret8 = bq_items();
-    if (ret8 == 0)
-    {
-      /* Pace monitoring output to 1 per sec. */
-      tickcnt_monitor += 1;
-      if (tickcnt_monitor > (1000/(pdMS_TO_TICKS(MAINFORLOOPDELAY))))
+    if (ret8 == 2)
+    { // Here a cell balance update was completed
+      bms_items_extract_configreg();
+
+      yprintf(&pbuf1,"\n\r%5d FETS  ",fctr++);\
+      memset(cline,' ',(4*18));
+      for (i=0; i < 18; i++)
       {
-        tickcnt_monitor = 0;
-
-        /* '1818 Cell register */
-        yprintf(&pbuf1,"\n\rV  ");
-        for (i = 0; i < 18; i++)
-          yprintf(&pbuf2," %7d",bmsspiall.cellreg[i]);
-
+        if ((dcc & (1<<i)) != 0)
+          cline[i*4] = '#';
+        else
+          cline[i*4] = '.';
       }
+      cline[18*4] = 0;
+      yprintf(&pbuf2,"%s",cline);
     }
 #endif    
   } 

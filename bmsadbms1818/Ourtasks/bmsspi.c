@@ -36,13 +36,12 @@ extern struct BMSSPIALL bmsspiall;
  union SPI12 spitx12; // SPI command sent to '1818'
  union SPI12 spirx12; // SPI monitor received from '1818'
 static uint8_t  timstate;   // State for ISR handling: TIM
-static int16_t  tim15ctr;   // TIM15CH1:OC turnover counter
 
 uint32_t dbgt1,dbgt2;
 
 void bmsspi_readstuff(uint8_t code);
 void bmsspi_rw_cmd(uint16_t cmd, uint16_t* pdata, uint8_t rw);
-static uint16_t readreg(uint16_t cmdx, uint16_t* p, const uint16_t* pcmdr, uint8_t n);
+static uint16_t readreg(uint16_t cmdx, uint32_t wait, uint16_t* p, const uint16_t* pcmdr, uint8_t n);
 
 enum TIMSTATE
 {
@@ -55,6 +54,7 @@ enum TIMSTATE
 
 #define CSBDELAYFALL (6*16) // CSB falling delay: 6 us with 16 MHz sysclock
 #define CSBDELAYRISE (5*16) // CSB rising delay: 5 us with 16 MHz sysclock
+#define DELAYCONVERTMIN (55*16) // Minimum end of conversion command delay
 
 static uint8_t rwtype; // code: command, command + data, etc.
 
@@ -107,7 +107,7 @@ void bmsspi_readbms(void)
 // Debug/test spi w '1818'
 //bmsspi_readstuff(READCONFIG);	
 //while(1==1) {HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_2);osDelay(125);}
-morse_trap(679);
+//morse_trap(679);
 	// Turn heater, dump, dump2, trickle chgr off
 	fetonoff_status_set(0);
 
@@ -137,32 +137,36 @@ morse_trap(679);
  * @brief	: Do conversion, then read registers with results
  * @param   : code = code for selection of register group
  * *************************************************************************/
+/*
+The time conversion delays below (second argument in readreg call) are based 
+on the "normal" setting of 7 KHz ADC rate (and system clock of 16 MHz).
+*/
 void bmsspi_readstuff(uint8_t code)
 {
 	switch (code)
 	{
 	case READCELLSGPIO12: // ADC cell voltages + GPIO1 & GPIO2
-		readreg(ADCVAX, bmsspiall.cellreg, cmdv, 6); // ADC and Read cell volts
-		readreg(0, bmsspiall.auxreg, &cmdv[6], 1); // Read AUX reg A GPIO1-3
+		readreg(ADCVAX,(3140*16),bmsspiall.cellreg, cmdv, 6); // ADC and Read cell volts
+		readreg(     0,        0,bmsspiall.auxreg, &cmdv[6], 1); // Read AUX reg A GPIOs 1-3
 		break;
 
-	case READGPIO: // Read all 9 GPIOs voltage registers: A-D
-		readreg(ADAX, bmsspiall.auxreg, cmdaux, 4);
+	case READGPIO: // ADC and Read all 9 GPIOs voltage registers: A B C D 
+		readreg(  ADAX,(3862*16),bmsspiall.auxreg, cmdaux, 4);
 		break;
 
-	case READSTAT: // Read status
-		readreg(ADSTAT, bmsspiall.statreg, cmdstat, 2);
+	case READSTAT: // ADC and Read status regs: A B
+		readreg(ADSTAT,(1556*16),bmsspiall.statreg, cmdstat, 2);
 		break;
 
 	case READCONFIG: // Read configuration
-		readreg(0, bmsspiall.configreg,cmdconfig,2);
+		readreg(     0,        0,bmsspiall.configreg,cmdconfig,2);
 
 	case READSREG: // Read S register
-		readreg(0, bmsspiall.sreg,cmdsreg,1);
+		readreg(     0,        0,bmsspiall.sreg,cmdsreg,1);
 		break;	
 
-	case READAUX:
-		readreg(ADAX, bmsspiall.auxreg, cmdaux,4);
+	case READAUX: // ADC and Read all 9 GPIOs voltage registers: A B C D 
+		readreg(  ADAX,(3900*16),bmsspiall.auxreg, cmdaux,4);
 		break;			
 
 	default: 
@@ -191,6 +195,8 @@ void bmsspi_gpio(void)
  * *************************************************************************/
 void bmsspi_setfets(void)
 {
+	/* Get latest configuration registers A & B */
+	readreg(     0,        0,bmsspiall.configreg,cmdconfig,2);
 
 	/* Update selected Group A & B settings with FET settings. */
 	// DCC12-DCC1 CFGA5 CFGAR4 | Discharge timer: DCTO
@@ -206,6 +212,9 @@ void bmsspi_setfets(void)
 
 	/* Write-back configuration Groups A & B. */
 	bmsspi_writereg(WRITECONFIG);
+
+	/* Readback FET settings (for debugging and testing) */
+	readreg(     0,        0,bmsspiall.configreg,cmdconfig,2);
 
 	return;
 }
@@ -235,7 +244,7 @@ void bmsspi_wakeseq(void)
 
 /* *************************************************************************
  * uint8_t bmsspi_keepawake(void);
- * @brief	: Execute a valid command to keep awake. Sequence through commands
+ * @brief	: Execute valid commands to keep awake. Sequence through commands
  * @return  : state number of latest reading
  * *************************************************************************/
 static uint8_t bmsspi_keepawake_state; // Step thru commands
@@ -348,7 +357,7 @@ uint8_t bmsspi_keepawake(void)
 	return;
 }
 /* *************************************************************************
- * static uint16_t readreg(uint16_t cmdx, uint16_t* p, const uint16_t* pcmdr, uint8_t n);
+ * static uint16_t readreg(uint16_t cmdx, uint32_t wait, uint16_t* p, const uint16_t* pcmdr, uint8_t n);
  * @brief	: Read register, convert endianness
  * @param   : cmdx = 1st command
  * @param   : p = pointer to in-memory register array
@@ -361,7 +370,8 @@ uint32_t dbstat2;
 #define QQQCTR 10 // Repetition limit count
 uint16_t loopctr;
 
-static uint16_t readreg(uint16_t cmdx, uint16_t* p, const uint16_t* pcmdr, uint8_t n)
+uint32_t wait_isr;
+static uint16_t readreg(uint16_t cmdx, uint32_t wait, uint16_t* p, const uint16_t* pcmdr, uint8_t n)
 {
 	uint16_t dbcrc2;
 	uint16_t i;
@@ -370,7 +380,8 @@ static uint16_t readreg(uint16_t cmdx, uint16_t* p, const uint16_t* pcmdr, uint8
 	if (cmdx != 0)
 	{ // "Start conversion" command (waits for conversion)
 GPIOC->BSRR = (1<<4); // Set PC4 high
-dbstat1 = DTWTIME;		
+dbstat1 = DTWTIME;	
+		wait_isr = wait; // Save for spi rx dma interrupt 	
 		bmsspi_rw_cmd(cmdx, NULL, 3); 
 dbstat2 = DTWTIME - dbstat1;		
 //morse_trap(4);
@@ -532,7 +543,7 @@ if (pdata == NULL) morse_trap(260);
    ####################################################################### */
 void bmsspi_tim15_IRQHandler(void)
 {
-	struct BMSSPIALL* p = &bmsspiall; // Convenience pointer
+//	struct BMSSPIALL* p = &bmsspiall; // Convenience pointer
 	BaseType_t xHPT = pdFALSE;
 
 	/* Clear interrupt flag. */
@@ -567,12 +578,24 @@ void bmsspi_tim15_IRQHandler(void)
 		portYIELD_FROM_ISR( xHPT );		
 		return;
 
-	case TIMSTATE_3: // EXTI wait for rising EXTI timed out
-		tim15ctr -= 1;
-		if (tim15ctr > 0) break;
-
+	case TIMSTATE_3: // Wait for a conversion command timer expiration.
+		if ((wait_isr >> 16) != 0)
+		{ // Here, a timer turnover was set.
+			wait_isr -= (1 << 16); // Subtract the turnover count
+			if ((wait_isr >> 16) != 0)
+			{ // Another timer turnover is needed.
+				break;
+			}
+			else
+			{ // Remaining wait_isr count is less than one timer turnover
+				if (wait_isr < 48) wait_isr = 48; // Allow enough to assure next instruction
+				TIM15->CCR1 = TIM15->CNT + wait_isr; 
+				break;
+			}
+		}
+		/* Here time delay accomplished! */
 #ifdef  USESDOTOSIGNALENDCONVERSION 
-		p->err |= 1; 
+		bmsspiall.err |= 1; 
 		// Disable EXTI4 interrupting
 		// Note: prior input MODER was input which is 0x0
 		SYSCFG->EXTICR[1] &= ~(0x7 << 0); 
@@ -611,16 +634,16 @@ void bmsspi_spidmarx_IRQHandler(DMA_HandleTypeDef* phdma_spi1_rx)
 	hdma_spi1_rx.DmaBaseAddress->IFCR = 0xfff;
 
 // Pin for 'scope triggering
-GPIOC->BSRR = (1<<(4+16)); // Set low
+GPIOC->BSRR = (1<<(4+16)); // Set PC4 pin low
 
+	/* ADC conversion cmmands require end-of-conversion handling. */
 	if (rwtype == 3)
 	{ // Here, end of commands that starts conversions. 
 
-		/* Setup SPI MISO ('1818 SDO) to interrupt when it goes high. */
-		// Enable interrupt & event
-
 /*  Use rising SDO to signal end of conversions. */		
 #ifdef USESDOTOSIGNALENDCONVERSION 
+		/* Setup SPI MISO ('1818 SDO) to interrupt when it goes high. */
+		// Enable interrupt & event
 		EXTI->PR1   =  (1<<4); // Reset request: PB4		
 		EXTI->IMR1  |= (1<<4); // Interrupt mask register
 		EXTI->EMR1  |= (1<<4); // Event mask register
@@ -628,17 +651,40 @@ GPIOC->BSRR = (1<<(4+16)); // Set low
 		SYSCFG->EXTICR[1] |=  (0x1 << 0); // Select PB4
 dbgexttim1 = DTWTIME;		
 #endif
+
 	/* Timeout: JIC no EXTI4 interrupt, and debugging, and whatever... */
 		timstate = TIMSTATE_3; // Long timeout: count TIM15 16b turnovers
-		tim15ctr = 1;// ~(1 * 4.096)ms (16 MHz clock)
 
-		// Expect next interrupt is SPI MISO pin going high
-		// CSB remains low and '1818 pulls SDO (MISO) low
-		// until conversion is complete, then raises SDO
-		// which will (should!) cause a rising edge EXTI interrupt.
+if (wait_isr == 0) morse_trap(801); // What!!
 
-		// Expect EXTI4 interrupt when conversion completes
-		// TIM15 (TIMSTATE_3) timeout if there is a failure.
+		// Time counts greater than 65535 must count turnovers
+		if ((wait_isr >> 16) > 0)
+		{ // Overflow counting required.
+			TIM15->CCR1 = TIM15->CNT; // Time OV from "now"
+			return;
+		}
+
+		// Here, wait_isr is less than one timer turnover
+		// Allow a minimum timeout JIC
+		if (wait_isr > DELAYCONVERTMIN) 
+		{
+			TIM15->CCR1 = TIM15->CNT + wait_isr; 
+		}
+		else
+		{ // Who would set such a low conversion timerout?
+			morse_trap(802); // Likely bogus
+			TIM15->CCR1 = TIM15->CNT + DELAYCONVERTMIN; 
+		}
+
+		/* For detecting end-of-conversion using SDO 
+		   Expect next interrupt is SPI MISO pin going high
+		   CSB remains low and '1818 pulls SDO (MISO) low
+		   until conversion is complete, then raises SDO
+		   which will (should!) cause a rising edge EXTI interrupt.
+
+		   Expect EXTI4 interrupt when conversion completes
+		   TIM15 (TIMSTATE_3) timeout if there is a failure.
+		 */
 		return;
 	}
 	/* Here, no waiting for '1818 conversions needed. */
