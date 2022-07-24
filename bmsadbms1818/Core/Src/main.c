@@ -1404,8 +1404,12 @@ for (i=0; i<12;i++)
     if (ret8 == 2)
     { // Here a cell balance update was completed
       bms_items_extract_configreg();
+extern uint8_t dbgf;
+extern struct BMSREQ_Q  bmstask_q_readbms;
+      yprintf(&pbuf1,"\n\r    %05X   ",bmstask_q_readbms.setfets);
+      for (i=0; i < 18; i++) yprintf(&pbuf2,"%4d",(1+i));
 
-      yprintf(&pbuf1,"\n\r%5d FETS  ",fctr++);\
+      yprintf(&pbuf1,"\n\r%5d %02d FETS  ",fctr++,dbgf+1);\
       memset(cline,' ',(4*18));
       for (i=0; i < 18; i++)
       {
@@ -1416,6 +1420,13 @@ for (i=0; i<12;i++)
       }
       cline[18*4] = 0;
       yprintf(&pbuf2,"%s",cline);
+
+      yprintf(&pbuf1,"\n\r config:");
+      for (i=0; i < 6; i++)
+      {
+        yprintf(&pbuf2," %04X",bmsspiall.configreg[i]);
+      }
+
     }
 #endif    
   } 

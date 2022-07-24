@@ -200,12 +200,12 @@ void bmsspi_setfets(void)
 
 	/* Update selected Group A & B settings with FET settings. */
 	// DCC12-DCC1 CFGA5 CFGAR4 | Discharge timer: DCTO
-	bmsspiall.configreg[2] = ((bqfunction.cellbal & 0x0FFF) |
+	bmsspiall.configreg[2] = ((pssb->setfets & 0x0FFF) |
 		(0x02 << 12)); // DCTO[0-3] code = 1 minute
 
 	// DCC18-DCC12 CFGBR1 CFGBR0 | Dischg timer enable: DTMEN = 1
-	bmsspiall.configreg[3] &= ~0x0BFF; // Clear bits to be set
-	bmsspiall.configreg[3] |= (((bqfunction.cellbal >> 8) & 0x03FF) |
+	bmsspiall.configreg[3] &= ~0x03F0; // Clear bits to be set
+	bmsspiall.configreg[3] |= (((pssb->setfets & 0x3F000) >> 8) |
 		(1 << 11)); // DTMEN bit
 
 	bmsspiall.configreg[0] |= 0x00F8; // Assure GPIO pulldowns off

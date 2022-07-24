@@ -57,15 +57,15 @@ void bms_items_cfgset_overunder(void)
  * *************************************************************************/
 void bms_items_cfgset_dischargebits(uint32_t b)
 {
-	b = (b & 0x3FFFF); // JIC
+  b &= 0x3FFFF; // JIC
 	// Update discharge low ord 12 bits in CFGAR 5,4
-	bmsspiall.configreg[2] &= 0xF000; // Retain DCTO[0]-[3]
+	bmsspiall.configreg[2] &= ~0x0FFF; // Retain DCTO[0]-[3]
 	bmsspiall.configreg[2] |= (b & 0x0FFF); // DCC1- DCC12
 
 	// Update discharge hi ord 4 bits in CFGBR0
-	bmsspiall.configreg[3] &= 0xFC0F; // Clear DCC13-DCC18
-	bmsspiall.configreg[3] |= ((b >> 8) & 0x3F0);
+	bmsspiall.configreg[3] &= ~0x03F0; // Clear DCC13-DCC18
 
+	bmsspiall.configreg[3] |= ((b & 0x3F000) >> 8);
 	return;
 }
 /* *************************************************************************
@@ -177,9 +177,9 @@ void bms_items_extract_configreg(void)
 	extractconfigreg.vuv = (tmp +1) * 16.0f;
 
 	/* Discharge cell bits, right justified */
-	extractconfigreg.dcc = ( *(p+4) | 
-		((uint32_t)(*(p+5) & 0x0F) << 8) |
-		((uint32_t)(*p+6) << 8) );
+	extractconfigreg.dcc = (
+		 (bmsspiall.configreg[2] & 0x0FFF) |
+		((bmsspiall.configreg[3] & 0x03F0) << 8) );
 
 	/* GPIO9-GPIO1 */
 	extractconfigreg.gpio = *(p+0) >> 3 | ((uint16_t)(*(p+6) & 0x0F) << 5);

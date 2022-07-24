@@ -35,7 +35,7 @@ struct BQFUNCTION bqfunction;
 #define TICKS_INC 2000 // Duration between balance updates (ms)
 static uint32_t ticks_next;
 
-static struct BMSREQ_Q  bmstask_q_readbms;
+/* static */ struct BMSREQ_Q  bmstask_q_readbms;
 
 /* *************************************************************************
  * void bq_items_init(void);
@@ -72,6 +72,9 @@ static void bq_items_q(uint8_t reqcode)
  *          : 1 = READBMS completed FETSET started
  *          : 2 = FETSET completed
  * *************************************************************************/
+uint8_t dbgf = 17;
+uint8_t dbgfct;
+
 static uint8_t state = 0;
 uint8_t bq_items(void)
 {
@@ -109,6 +112,16 @@ uint8_t bq_items(void)
 	     /* Setup discharge FET bits, and update other FETs. */
 		bq_items_selectfet(); // Determine on/off for all FETs
 
+#if 0 // Testing discharge FET bit operation
+//dbgfct += 1; // Step through bits
+//if (dbgfct > 3) // Stay on each or a while
+{
+	dbgfct = 0;
+//	dbgf += 1; if (dbgf > 17) dbgf = 0;
+dbgf = 1; // Set & compile for each
+	bmstask_q_readbms.setfets = (1 << dbgf);
+}
+#endif
 		/* Activate the settings from the foregoing logic. */
 		// Update discharge FETs
 		bq_items_q(REQ_SETFETS); // Queue BMS request
