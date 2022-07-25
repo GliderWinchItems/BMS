@@ -36,6 +36,9 @@ void bms_items_cfg_int(void);
 void bms_items_extract_configreg(void);
 /* @brief	: Extract current configreg settings
  * *************************************************************************/
+void bms_items_therm_temps(void);
+/* @brief	: Convert to temperature the latest thermistor voltages
+ * *************************************************************************/
 
 #endif
 

@@ -35,6 +35,13 @@ struct BMSCAL
    //int32_t  ioffset; // Offset before float conversion
 };
 
+struct BMSCALTEMP // Thermister->temperature calibration
+{
+   float tt[3]; // coefficients for: x^0 x^1 x^2
+   float temp;  // Temperature (deg C)
+   uint8_t installed; // Installed: 0 = no, 1 = yes
+};
+
 
 /* Parameters levelwind instance (LC = Local Copy) */
 struct BQLC
@@ -84,6 +91,11 @@ struct BQLC
    uint8_t ncell;       // Number of series cells in module
    uint8_t npositions;  // Number of cell positions in module "box"
    uint8_t cellpos[NCELLMAX]; // Cell position - 1 given index [cell number - 1]
+
+   struct BMSCALTEMP thermcal[3]; // Thermisters: calibration & results
+   // Below min fan is off
+   float  temp_fan_min; // Between max & min fan proporational
+   float  temp_fan_max; // Above max fan is 100%
 
  // CAN ids ...........................................................................
    //                                  CANID_NAME            CANID       PAYLOAD FORMAT

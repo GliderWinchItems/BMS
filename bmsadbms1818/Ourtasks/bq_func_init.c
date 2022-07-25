@@ -84,5 +84,9 @@ void bq_func_init(void)
 			p->cellspresent |= (1<<i);
 		}
 	}
+
+	/* Fan control. */
+	p->fanspeed = 0; // Fan speed: rpm pct 0 - 100
+	
 	return;
 }

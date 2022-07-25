@@ -13,13 +13,14 @@
 #include "morse.h"
 #include "fanop.h"
 #include "DTW_counter.h"
+#include "bq_items.h"
 
 extern TIM_HandleTypeDef htim2;
 
 #define TICKUPDATE 25 // 250 ms between updates
 
 /* Sets fan speed. */
-uint8_t fanspeed; // Fan speed: rpm pct 0 - 100
+static uint8_t compute_fanspeed(void);
 
 float fanrpm;
 
@@ -56,10 +57,11 @@ void fanop_init(void)
    return;
 }
 /* *************************************************************************
- * void fanop(void);
+ * float fanop(void);
  *	@brief	: Update 
+ *  @return : 0 = nothing done; not 0 = rpm
  * *************************************************************************/
-void fanop(void)
+float fanop(void)
 {
 	#define K (60 * 16E6 / 2) // Conversion to RPM of pulse_counts / timer_duration
 
@@ -92,10 +94,14 @@ void fanop(void)
 		fanrpm = K * (float)deltaN / fdeltaT;
 
 		/* Update FAN pwm. */
-fanspeed = 18; // 14 = minimum; 100+ = full speed
+//bqfunction.fanspeed = 18; // 14 = minimum; 100+ = full speed
+		bqfunction.fanspeed = compute_fanspeed();
 
-		pT2base->CCR1 = (640 * fanspeed)/100;
+		pT2base->CCR1 = (640 * bqfunction.fanspeed)/100;
+
+		return fanrpm;
 	}
+	return 0;
 }
 /* *************************************************************************
  * void FanTask_TIM2_IRQHandler(void);
@@ -111,4 +117,40 @@ void FanTask_TIM2_IRQHandler(void)
 		pT2base->SR = 0x08; // Reset interrupt flag: CC3IF
 	}	
 	return;
+}
+/* *************************************************************************
+ * static uint8_t compute_fanspeed(void);
+ * @brief	: Compute a fanspeed setting based on thermistor temperature readings
+ * *************************************************************************/
+static uint8_t compute_fanspeed(void)
+{
+	uint8_t max = 0;
+	uint8_t tmp = 0;
+	float tmpf;
+	int i;
+	for (i = 0; i < 3; i++)
+	{ 
+		if (bqfunction.lc.thermcal[0].installed == 1)
+		{ // Here, thermistor position is installed
+			if (bqfunction.lc.thermcal[i].temp > bqfunction.lc.temp_fan_min)
+			{
+				if (bqfunction.lc.thermcal[i].temp > bqfunction.lc.temp_fan_max)
+				{
+					tmp = 100;
+				}
+				else
+				{ // Min speed pwm is 14, and max is 100 (hence 86.0 below)
+					tmpf = ((bqfunction.lc.thermcal[i].temp - bqfunction.lc.temp_fan_min) /
+				           (bqfunction.lc.temp_fan_max - bqfunction.lc.temp_fan_min)     );
+					tmp = (tmpf * 86.0f) + 14;
+				}
+			}
+			else
+			{
+				tmp = 0;
+			}
+		}
+		if (tmp > max) max = tmp;
+	}
+	return tmp;
 }

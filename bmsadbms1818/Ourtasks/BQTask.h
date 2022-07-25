@@ -27,6 +27,7 @@
 #define CID_MSG_CELLV06  5 // CAN msg with cell readings 16 or 16 17 18
 #define CID_CMD_MISC     6 // CAN msg with status and TBD stuff
 
+/* Battery status bits: 'battery_status' */
 #define BSTATUS_NOREADING (1 << 0)	// Exactly zero = no reading
 #define BSTATUS_OPENWIRE  (1 << 1)  // Negative or over 4.3v indicative of open wire
 #define BSTATUS_CELLTOOHI (1 << 2)  // One or more cells above max limit
@@ -36,7 +37,7 @@
 #define BSTATUS_DUMPTOV   (1 << 6)  // Discharge to a voltage in progress
 #define BSTATUS_CELLVRYLO (1 << 7)  // One or more cells very low
 
-
+/* FET status bits" 'fet_status' */
 #define FET_DUMP     (1 << 0) // 1 = DUMP FET ON
 #define FET_HEATER   (1 << 1) // 1 = HEATER FET ON
 #define FET_DUMP2    (1 << 2) // 1 = DUMP2 FET ON (external charger)
@@ -125,10 +126,10 @@ struct BQFUNCTION
 
 	// Cell balancing & relaxation hysteresis
 	uint32_t targetv;       // Balance voltage target
-	float hysterv_lo;       // Hysteresis bottom voltage.
+	float    hysterv_lo;    // Hysteresis bottom voltage.
 	uint32_t hysterbits_hi; // Bits for cells that reached cellv_max (target)
 	uint32_t hysterbits_lo; // Bits for cells that fell below hysterv_lo
-	uint8_t hyster_sw;      // Hysteresis switch: 1 = peak was reached
+	uint8_t  hyster_sw;     // Hysteresis switch: 1 = peak was reached
 
 	/* Filter raw readings for calibration purposes. */
 	struct FILTERIIRF1 filtiirf1_raw[ADCBMSMAX]; // Filter parameters
@@ -141,6 +142,10 @@ struct BQFUNCTION
 	uint8_t active_ct;      // Count of bits set in cellbal
 	uint8_t battery_status; // Cell status code bits 
 	uint8_t fet_status;     // This controls on/off of FETs
+
+	uint8_t fanspeed; // Fan speed (timer pwm setting): 14 = minimum for rotation; 100+ = full speed
+	float   fanrpm;   // Fan speed (rpm)
+
 
 	uint8_t err;
 

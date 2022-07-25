@@ -1373,6 +1373,10 @@ extern uint32_t dbstat2;
           extractstatreg.sc, extractstatreg.itmp,
           extractstatreg.va, extractstatreg.vd  );
 
+       bms_items_therm_temps(); // Convert thermistor readings to tempature (deg C)
+       yprintf(&pbuf1,"\n\rTEMP:%5.1f %5.1f %5.1f FSPD: %d",bqfunction.lc.thermcal[0].temp,
+          bqfunction.lc.thermcal[1].temp,bqfunction.lc.thermcal[2].temp, bqfunction.fanspeed);
+
        break;
 
       default:
@@ -1380,16 +1384,6 @@ extern uint32_t dbstat2;
         break;
       }
     }
-#if 0
-uint8_t* p8r = (uint8_t*)0x20003744;
-yprintf(&pbuf2,"\n\r%4d r:",mctr++);
-for (i=0; i<12;i++)
-  yprintf(&pbuf1," %02X", *p8r++);
-yprintf(&pbuf2," t:");
-uint8_t* p8t = (uint8_t*)0x20003750;
-for (i=0; i<12;i++)
-  yprintf(&pbuf2," %02X", *p8t++);
-#endif
 
 #if 1
     /* Update FAN control. (4/sec) */
@@ -1399,8 +1393,10 @@ for (i=0; i<12;i++)
 #if 1
     /* Cell balance & control. */
     uint32_t dcc = extractconfigreg.dcc;
-    char cline[128];
-    uint8_t ret8 = bq_items();
+    char cline[96];
+
+    /* Check cell balance. */
+    uint8_t ret8 = bq_items(); 
     if (ret8 == 2)
     { // Here a cell balance update was completed
       bms_items_extract_configreg();

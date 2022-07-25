@@ -111,22 +111,6 @@ void bms_items_cfg_int(void)
  * void bms_items_extract_statreg(void);
  * @brief	: Extract & calibrate SC, ITMP, VA
   * *************************************************************************/
- /* === for reference ===
-struct EXTRACTSTATREG
-{
-	float    vov;   // Readback of overvoltage setting
-	float    vuv;   // Readback of undervoltage setting
-	float     sc;   // Sum of Cells (volts)
-	float   itmp;   // Internal die temperature (deg C)
-	float     va;   // Analog supply voltage (volts)
-	float     vd;   // Digital supply (volts)
-	uint32_t cov;   // Overvoltage bits 
-	uint32_t cuv;   // Undervoltage bits
-	uint8_t  rev;   // Revision code
-	uint8_t  muxfail; 
-	uint8_t  thsd;  // 1 = thermal shutdown 
-};
-*/
 void bms_items_extract_statreg(void)
 {
 	uint8_t* pp;
@@ -153,16 +137,6 @@ void bms_items_extract_statreg(void)
  * void bms_items_extract_configreg(void);
  * @brief	: Extract current configreg settings
  * *************************************************************************/
-/*
-struct EXTRACTCONFIGREG
-{  // extract settings
-	float    vov;   // Readback of overvoltage setting
-	float    vuv;   // Readback of undervoltage setting
-	uint32_t dcc;   // Discharge cell bits: 1 = ON
-	uint16_t gpio;  // 9 GPIO's: 0 = pin at logic 0;
-	uint16_t cfbr1; // bits: MUTE,FDRF,PS1,PS0,DTMEN,DCC0,0,0
-};
-*/
 void bms_items_extract_configreg(void)
 {
 	uint32_t tmp;
@@ -189,8 +163,6 @@ void bms_items_extract_configreg(void)
 	return;
 }
 
-
-
 static void uvov(uint8_t* p, uint8_t s)
 {
 	if ( (*p & 0x01) != 0)
@@ -210,5 +182,30 @@ static void uvov(uint8_t* p, uint8_t s)
 		extractstatreg.cuv |= (1 << (s+2));
 	if ( (*p & 0x80) != 0)
 		extractstatreg.cuv |= (1 << (s+3));
+	return;
+}
+/* *************************************************************************
+ * void bms_items_therm_temps(void);
+ * @brief	: Convert to temperature the latest thermistor voltages
+ * *************************************************************************/
+void bms_items_therm_temps(void)
+{
+	int i;
+	float* pf;
+	float tmpf;
+	uint16_t* paux = &bmsspiall.auxreg[1];
+
+	for (i = 0; i < 3; i++)
+	{
+		pf = &bqfunction.lc.thermcal[i].tt[0];
+		tmpf = *paux;
+		bqfunction.lc.thermcal[i].temp = 
+		 (*(pf + 2) * tmpf * tmpf) +
+ 		 (*(pf + 1) * tmpf) +
+		 (*(pf + 0)       );
+
+		pf += 1;
+		paux += 1;
+	}
 	return;
 }

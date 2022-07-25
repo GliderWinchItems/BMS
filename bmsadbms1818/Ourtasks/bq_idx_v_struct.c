@@ -283,6 +283,27 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
       p->bmscal[i].iir_f1.onemcoef = 1 - p->bmscal[i].iir_f1.coef;
    }
 
+// Thermisters: calibration & results
+   p->thermcal[0].tt[0] = 100.81f; 
+   p->thermcal[0].tt[1] = -3.85E-3f;
+   p->thermcal[0].tt[2] = 2.99E-8;
+
+   p->thermcal[1].tt[0] = 100.81f; 
+   p->thermcal[1].tt[1] = -3.85E-3f;
+   p->thermcal[1].tt[2] = 2.99E-8;
+
+   p->thermcal[2].tt[0] = 100.81f; 
+   p->thermcal[2].tt[1] = -3.85E-3f;
+   p->thermcal[2].tt[2] = 2.99E-8;
+
+   /* Positions installed set to 1. Otherwise 0. */
+   p->thermcal[0].installed = 1; // GPIO 2 JP2
+   p->thermcal[1].installed = 1; // GPIO 3 JP4
+   p->thermcal[2].installed = 1; // GPIO 4 JP5
+
+   p->temp_fan_min = 27.5f; // Between max & min fan proporational
+   p->temp_fan_max = 48.0f; // Above max fan is 100%
+
 // List of CAN ID's for setting up hw filter for incoming msgs
    //                      CANID_HEX      CANID_NAME             CAN_MSG_FMT     DESCRIPTION
    	// We receive: EMC

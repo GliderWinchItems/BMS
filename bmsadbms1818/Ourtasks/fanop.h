@@ -17,8 +17,9 @@
 void fanop_init(void);
 /*	@brief	: Init fan operation
  * *************************************************************************/
- void fanop(void);
+float fanop(void);
 /*	@brief	: Update 
+ *  @return : 0 = nothing done; not 0 = rpm
  * *************************************************************************/
 
 extern uint8_t fanspeed; // Fan speed: rpm pct 0 - 100
