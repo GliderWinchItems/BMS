@@ -22,8 +22,8 @@ uint8_t fetonoff(uint8_t fetnum, uint8_t fetcommand)
 {
 	struct BQFUNCTION* pbq = &bqfunction;
 
-	if (fetcommand == FET_SETON)
-	{ /* Set I/O pins to turn FET ON. */
+	if (fetcommand == FET_SETOFF)
+	{ /* Set I/O pins to turn FET OFF. */
 		switch (fetnum)
 		{
 		case FET_DUMP:   // DUMP = Battery module discharge "dump"
@@ -33,7 +33,7 @@ uint8_t fetonoff(uint8_t fetnum, uint8_t fetcommand)
 			break;
 
 		case FET_DUMP2:  // DUMP2 = Spare for relays, etc.
-			HAL_GPIO_WritePin(DUMP2_GPIO_Port,DUMP2_Pin, GPIO_PIN_SET);
+			HAL_GPIO_WritePin(DUMP2_GPIO_Port,DUMP2_Pin, GPIO_PIN_RESET);
 			pbq->fet_status |= FET_DUMP2;
 			break;
 
@@ -43,8 +43,8 @@ uint8_t fetonoff(uint8_t fetnum, uint8_t fetcommand)
 			pbq->fet_status |= FET_HEATER;
 
 		 case FET_CHGR:
-		 	TIM1->CCR1 = pbq->tim1_ccr1; // FET ON time
-			pbq->fet_status |= FET_CHGR;
+		 		 	TIM1->CCR1 = 0; // FET ON time
+			pbq->fet_status &= ~FET_CHGR;
 			break;
 
 		default: // Bogus FET designation
@@ -53,7 +53,7 @@ uint8_t fetonoff(uint8_t fetnum, uint8_t fetcommand)
 		}
 	}
 	else
-	{ /* Set I/O pins to turn FET OFF. */
+	{ /* Set I/O pins to turn FET ON. */
 		switch (fetnum)
 		{
 		case FET_DUMP:   // Battery module discharge "dump"
@@ -63,7 +63,7 @@ uint8_t fetonoff(uint8_t fetnum, uint8_t fetcommand)
 			break;
 
 		case FET_DUMP2:  // DUMP2 = Spare for relays, etc.
-			HAL_GPIO_WritePin(DUMP2_GPIO_Port,DUMP2_Pin, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(DUMP2_GPIO_Port,DUMP2_Pin, GPIO_PIN_SET);
 			pbq->fet_status &= ~FET_DUMP2;
 			break;
 
@@ -74,8 +74,8 @@ uint8_t fetonoff(uint8_t fetnum, uint8_t fetcommand)
 			break;
 
 		 case FET_CHGR:
-		 	TIM1->CCR1 = 0; // FET ON time
-			pbq->fet_status &= ~FET_CHGR;
+		 	TIM1->CCR1 = pbq->tim1_ccr1; // FET ON time
+			pbq->fet_status |= FET_CHGR;
 			break;
 
 		default: // Bogus FET bit designation
@@ -92,6 +92,7 @@ uint8_t fetonoff(uint8_t fetnum, uint8_t fetcommand)
  * *************************************************************************/
 void fetonoff_status_set(uint8_t status)
 {
+//status = 0x00;// Testing External FETs on/off
 	if ((status & FET_DUMP)    == 0)  // External charger
 		fetonoff( FET_DUMP,   FET_SETOFF);
 	else
