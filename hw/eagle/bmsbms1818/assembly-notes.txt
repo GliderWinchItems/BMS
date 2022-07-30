@@ -90,5 +90,42 @@ UART output to minicom should work (more huzzahs)
 
 4. Check reset pushbutton
 
+...
+
+5. Discharge FETs
+
+bq_items.c: Check that each S pin sets and
+turns discharge FET.
+
+code blurb about line 115
+
+set dbgf with bit for corresponding discharge FET
+ and check voltdivider pcb to see if correct cell
+ volts drop and adjacent do not.
+
+bmstask_q_readbms.setfets = (1 << dbgf);
+
+6. External Thermistors & FAN
+- Check default calibration
+- Set minimum fan temp to just above ambient, e.g. in 
+bq_idx_v_struct.c
+p->temp_fan_min = 27.5f;
+
+Warm up thermistors and fan should start, and get 
+faster with higher temps.
+
+line 97 in fanop.c can be uncommented to override 
+the thermistor computed setting.
+
+7. External FETs
+
+fetonoff.c: set 'status' to turn each bit on/off and
+check the board output.
+
+8. Wake 
+
+- Jumper JP1 with ribbon power and see if boots up
+
+- 
 
 

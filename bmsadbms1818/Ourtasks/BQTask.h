@@ -15,6 +15,8 @@
 #include "CanTask.h"
 #include "adc_idx_v_struct.h"
 
+#define USESORTCODE
+
 #define BQVSIZE 20 // Readout loop size (16 cells plus others)
 
 #define NUMCANMSGS 7 // Number of predefined CAN msgs 
@@ -106,8 +108,10 @@ struct BQFUNCTION
 
 	uint16_t tim1_ccr1;  // Present CCR1 (PWM count)
 
+#ifdef  USESORTCODE
 	struct BQCELLV cellv_bal[NCELLMAX]; // Working array for cell balancing
-	uint16_t cellv_latest[NCELLMAX]; // Cell voltage readings x10 (millivolts)
+#endif	
+	uint16_t cellv_latest[NCELLMAX]; // Cell voltage readings (0.1 millivolts)
 	uint32_t cellvopenbits;// Bits for unexpected open cells (1 = open wire suspected) 
 	int32_t  cellv_total;  // Sum of cell voltages (0.1 millivolts)
 	int16_t  cellv_high;   // Highest cellv 0.1 millivolts

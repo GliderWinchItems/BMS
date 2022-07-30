@@ -23,16 +23,15 @@
 
 extern ADC_HandleTypeDef hadc1;
 
+uint32_t dbg_adcsum[ADCDIRECTMAX];
+
 /* Summation of one ADC scan (with oversampling) */
 // One array being filled while other being processed
 // Size is DMA (regular conversions) + plus (injected Vrefint, Vtemp)
-uint32_t adcsumdb[2][ADCDIRECTMAX]; 
-static uint32_t* padcsum = &adcsumdb[0][0];
-uint8_t  adcsumidx = 0;
 
 // IIR filtering of adcsumdb[][]
-float adcsumfilt[2][ADCDIRECTMAX];
-float* padcfilt = &adcsumfilt[0][0];
+float adcsumfilt[ADCDIRECTMAX];
+float* padcfilt = &adcsumfilt[0];
 
 static uint8_t decimatectr = 0; 
 
@@ -83,9 +82,21 @@ p16 = pdma;
 		{
 			pdma = adc1dmatskblk[0].pdma2;
 		}
-
 		/* Sum the readings 1/2 of DMA buffer to an array. */
-		adcfastsum16(&adc1.chan[0], pdma); // Fast in-line addition
+//		adcfastsum16(&adc1.chan[0], pdma); // Fast in-line addition
+
+		// Sum two scans in 1/2 DMA buffer. */
+		pz = &adc1.chan[0];
+		(pz + 0)->sum = *(pdma + 0) + *(pdma + 0 + 9);
+		(pz + 1)->sum = *(pdma + 1) + *(pdma + 1 + 9);
+		(pz + 2)->sum = *(pdma + 2) + *(pdma + 2 + 9);
+		(pz + 3)->sum = *(pdma + 3) + *(pdma + 3 + 9);
+		(pz + 4)->sum = *(pdma + 4) + *(pdma + 4 + 9);
+		(pz + 5)->sum = *(pdma + 5) + *(pdma + 5 + 9);
+		(pz + 6)->sum = *(pdma + 6) + *(pdma + 6 + 9);
+		(pz + 7)->sum = *(pdma + 7) + *(pdma + 7 + 9);
+		(pz + 8)->sum = *(pdma + 8) + *(pdma + 8 + 9);
+
 		adc1.ctr += 1; // Update count
 
 dwt1 = DTWTIME;
@@ -93,19 +104,19 @@ dwtdiff = dwt1 - dwt2;
 dwt2 = dwt1;
 
 		// Calibrate and Pass sum through IIR filter
-		padcfilt = &adcsumfilt[adcsumidx][0];
-		pz = &adc1.chan[0];
+		padcfilt = &adcsumfilt[0];
+		
 		for (int i = 0; i < ADCDIRECTMAX; i++)
 		{ // Calibrate and filter sums
 			ftmp = adc1.chan[i].sum; //*(padcsum + i); // Convert to floats
+dbg_adcsum[i] = adc1.chan[i].sum;
 			// y = a + b * x;
 			ftmp = adc1.lc.cabs[i].offset + adc1.lc.cabs[i].scale * ftmp;
-//			*(padcfilt + i) = ftmp;
-			*(padcfilt + i) = iir_f1_f(&adc1.lc.cabs[i].iir_f1, ftmp);
+			*(padcfilt + i) = ftmp;
+//			*(padcfilt + i) = iir_f1_f(&adc1.lc.cabs[i].iir_f1, ftmp);
 			pz->sum = 0;
 			pz += 1;
 		}
-		adcsumidx ^= 1; // Switch to alternate summation array
 
 		// Counter for 'main' throttling ADC output
 		decimatectr += 1;

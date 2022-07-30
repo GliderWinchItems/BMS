@@ -37,6 +37,8 @@ struct ADCDMATSKBLK adc1dmatskblk[ADCNUM];
    notebit2 notify at the end of the dma buffer
      associates with pdma + dmact * phadc->Init.NbrOfConversion
 */
+uint16_t* dbg_pdma;
+uint16_t* dbg_pdma2;
 
 struct ADCDMATSKBLK* adctask_init(ADC_HandleTypeDef* phadc,\
 	uint32_t  notebit1,\
@@ -70,7 +72,7 @@ taskENTER_CRITICAL();
 	/* Get dma buffer allocated */
 	pdma = (uint16_t*)calloc(length, sizeof(uint16_t));
 	if (pdma == NULL) {taskEXIT_CRITICAL();morse_trap(63);}
-
+dbg_pdma = pdma;
 	/* Populate our control block */
 /* The following reproduced for convenience--
 struct ADCDMATSKBLK
@@ -95,7 +97,7 @@ struct ADCDMATSKBLK
 	pblk->pdma1    = pdma;
 	pblk->pdma2    = pdma + (ADCSEQNUM * phadc->Init.NbrOfConversion);
 	pblk->adctaskHandle = ADCTaskHandle;
-
+dbg_pdma2 = pblk->pdma2;
 /**
   * @brief  Enables ADC DMA request after last transfer (Single-ADC mode) and enables ADC peripheral  
   * @param  hadc pointer to a ADC_HandleTypeDef structure that contains

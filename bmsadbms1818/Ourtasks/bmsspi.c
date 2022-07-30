@@ -402,7 +402,7 @@ dbstat2 = DTWTIME - dbstat1;
 			     (spirx12.u32[2] == 0xffffFFFF) && 
 			     (loopctr < QQQCTR) );
 		if (loopctr >= QQQCTR) morse_trap(58); // Loop reached limit
-		if (loopctr >       1) morse_trap(59); // More than one pass
+		if (loopctr >       2) morse_trap(59); // More than one pass
 
 		/* Check PEC15 matches. */
 		// Compute PEC15 in received data

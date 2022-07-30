@@ -98,7 +98,7 @@ int adc_idx_v_struct_hardcode_params(struct ADCLC* p)
 // ADC1IDX_PA4_DC_DC     8 // IN9	247.5   3	6.8K|33K divider
 	p->cabs[ADC1IDX_PA4_DC_DC].iir_f1.coef     = CELLTC; // Filter time constant
 	p->cabs[ADC1IDX_PA4_DC_DC].iir_f1.skipctr  = SKIPCT;  // Initial skip
-	p->cabs[ADC1IDX_PA4_DC_DC].scale     = 7.3697748E-05f;
+	p->cabs[ADC1IDX_PA4_DC_DC].scale     = 1.477667957E-04f;
 	p->cabs[ADC1IDX_PA4_DC_DC].ioffset    = 0;  // Offset before scale
 
 	/* Initialize iir filter. */

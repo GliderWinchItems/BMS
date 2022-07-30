@@ -48,9 +48,9 @@
 #include "BMSTask.h"
 #include "fanop.h"
 #include "chgr_items.h"
-//#include "adcspi.h"
 #include "bmsspi.h"
 #include "bms_items.h"
+#include "rtcregs.h"
 
 #include "FreeRTOS.h"
 #include "semphr.h"
@@ -326,7 +326,13 @@ int main(void)
   chgr_items_init();
   fanop_init();
   bmsspi_preinit();
-  
+  rtcregs_init();
+
+  /* This will run the 5 and 3.3v regulators from the ribbone
+     Cell #3 when the CAN power has been removed. */
+//  HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13,GPIO_PIN_SET);
+HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13,GPIO_PIN_RESET);
+
   /* USER CODE END RTOS_EVENTS */
 
   /* Start scheduler */
@@ -771,7 +777,6 @@ static void MX_RTC_Init(void)
 
   RTC_TimeTypeDef sTime = {0};
   RTC_DateTypeDef sDate = {0};
-  RTC_AlarmTypeDef sAlarm = {0};
 
   /* USER CODE BEGIN RTC_Init 1 */
 
@@ -782,10 +787,10 @@ static void MX_RTC_Init(void)
   hrtc.Init.HourFormat = RTC_HOURFORMAT_24;
   hrtc.Init.AsynchPrediv = 127;
   hrtc.Init.SynchPrediv = 255;
-  hrtc.Init.OutPut = RTC_OUTPUT_ALARMA;
+  hrtc.Init.OutPut = RTC_OUTPUT_DISABLE;
   hrtc.Init.OutPutRemap = RTC_OUTPUT_REMAP_NONE;
   hrtc.Init.OutPutPolarity = RTC_OUTPUT_POLARITY_HIGH;
-  hrtc.Init.OutPutType = RTC_OUTPUT_TYPE_PUSHPULL;
+  hrtc.Init.OutPutType = RTC_OUTPUT_TYPE_OPENDRAIN;
   if (HAL_RTC_Init(&hrtc) != HAL_OK)
   {
     Error_Handler();
@@ -812,23 +817,6 @@ static void MX_RTC_Init(void)
   sDate.Year = 0x0;
 
   if (HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BCD) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /** Enable the Alarm A
-  */
-  sAlarm.AlarmTime.Hours = 0x0;
-  sAlarm.AlarmTime.Minutes = 0x0;
-  sAlarm.AlarmTime.Seconds = 0x0;
-  sAlarm.AlarmTime.SubSeconds = 0x0;
-  sAlarm.AlarmTime.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
-  sAlarm.AlarmTime.StoreOperation = RTC_STOREOPERATION_RESET;
-  sAlarm.AlarmMask = RTC_ALARMMASK_NONE;
-  sAlarm.AlarmSubSecondMask = RTC_ALARMSUBSECONDMASK_ALL;
-  sAlarm.AlarmDateWeekDaySel = RTC_ALARMDATEWEEKDAYSEL_DATE;
-  sAlarm.AlarmDateWeekDay = 0x1;
-  sAlarm.Alarm = RTC_ALARM_A;
-  if (HAL_RTC_SetAlarm(&hrtc, &sAlarm, RTC_FORMAT_BCD) != HAL_OK)
   {
     Error_Handler();
   }
@@ -1218,8 +1206,8 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_4|DUMP2_Pin|DUMP_NOT_Pin|DUMP_Pin
-                          |HEATER_NOT_Pin|HEATER_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13|GPIO_PIN_4|DUMP2_Pin|DUMP_NOT_Pin
+                          |DUMP_Pin|HEATER_NOT_Pin|HEATER_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, LED_GRN_Pin|LED_RED_Pin, GPIO_PIN_SET);
@@ -1233,10 +1221,10 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(BQ_LD_GPIO_Port, BQ_LD_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : PC4 DUMP_NOT_Pin DUMP_Pin HEATER_NOT_Pin
-                           HEATER_Pin */
-  GPIO_InitStruct.Pin = GPIO_PIN_4|DUMP_NOT_Pin|DUMP_Pin|HEATER_NOT_Pin
-                          |HEATER_Pin;
+  /*Configure GPIO pins : PC13 PC4 DUMP_NOT_Pin DUMP_Pin
+                           HEATER_NOT_Pin HEATER_Pin */
+  GPIO_InitStruct.Pin = GPIO_PIN_13|GPIO_PIN_4|DUMP_NOT_Pin|DUMP_Pin
+                          |HEATER_NOT_Pin|HEATER_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -1288,15 +1276,24 @@ static void MX_GPIO_Init(void)
   * @param  argument: Not used
   * @retval None
   */
+uint32_t adc1_ctr_prev;
+uint32_t fctr = 0;
+uint8_t adcctr = 0;
+uint8_t wakectr;
+uint8_t state_defaultTask = 0;
+static struct BMSREQ_Q bmsreq_1;
+struct BMSREQ_Q* pbmsreq_1 = &bmsreq_1;
+
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
   int32_t i;
   uint32_t mctr = 0;
-//  uint32_t noteval = 0; // TaskNotifyWait notification word
 
-/* These #defines select uart output for monitoring. */
+// Poll 'done' so task handle not needed
+  //bmsreq_read.bmsTaskHandle   = xTaskGetCurrentTaskHandle();
+  //bmsreq_update.bmsTaskHandle = bmsreq_read.msTaskHandle;
 
   struct SERIALSENDTASKBCB* pbuf1 = getserialbuf(&HUARTMON,144);
   if (pbuf1 == NULL) morse_trap(115);
@@ -1316,14 +1313,37 @@ void StartDefaultTask(void *argument)
 extern uint8_t dbgka;
 uint8_t dbgka_prev = dbgka;
 extern uint32_t bshift;  
-extern uint32_t dbstat2;    
-
-  uint32_t fctr = 0;
+extern uint32_t dbstat2;
+uint32_t adcdiff;
 
   for(;;) /* Loop polls various operations. */
   {  
     vTaskDelayUntil( &tickcnt, xPeriod );
 
+    adcctr += 1;
+    if (adcctr > 20)
+    {
+      adcctr = 0;
+#if 1
+      yprintf(&pbuf1,"\n\rADCf: %4d",(adc1.ctr-adc1_ctr_prev));
+      adc1_ctr_prev = adc1.ctr;
+      for (i = 0; i < 9; i++)
+      {
+        yprintf(&pbuf2," %6.1f",adcsumfilt[i]);
+      }
+#endif   
+#if 1
+      adcdiff = (adc1.ctr-adc1_ctr_prev);
+      adc1_ctr_prev = adc1.ctr;
+      yprintf(&pbuf1,"\n\rADCi: %4d",adcdiff);     
+    extern uint32_t dbg_adcsum[ADCDIRECTMAX];        
+      yprintf(&pbuf1," %6d %6d %6d %6d %6d %6d %6d %6d %6d",
+          dbg_adcsum[0],dbg_adcsum[1],dbg_adcsum[2],dbg_adcsum[3],dbg_adcsum[4],
+          dbg_adcsum[5],dbg_adcsum[6],dbg_adcsum[7],dbg_adcsum[8]);
+#endif 
+    }
+
+#if 0
 //    bq_items();
     HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_SET);
     if (dbgka_prev != dbgka)
@@ -1384,13 +1404,20 @@ extern uint32_t dbstat2;
         break;
       }
     }
+#endif    
 
 #if 1
     /* Update FAN control. (4/sec) */
     fanop();
 #endif
 
-#if 1
+#if 0
+/* Check WAKE */
+
+
+#endif
+
+#if 0
     /* Cell balance & control. */
     uint32_t dcc = extractconfigreg.dcc;
     char cline[96];
@@ -1423,9 +1450,59 @@ extern struct BMSREQ_Q  bmstask_q_readbms;
         yprintf(&pbuf2," %04X",bmsspiall.configreg[i]);
       }
 
+  #if 1 /* RTC register check. */
+      switch (state_defaultTask)
+      {
+        case 0:
+          bmsreq_1.reqcode = REQ_RTCREAD;
+          bmsreq_1.done = 1; // Show req is queued
+          int ret = xQueueSendToBack(BMSTaskReadReqQHandle, &pbmsreq_1, 0);
+          if (ret != pdPASS) morse_trap(109);      
+          state_defaultTask = 1;
+        case 1:          
+          if (bmsreq_1.done != 0) 
+            break;
+          uint32_t* prtc32 = (uint32_t*)&RTC->BKP0R;
+          yprintf(&pbuf1,"\n\rRTC: F:%05X H:%05X L:%05X",*(prtc32+0),*(prtc32+1),*(prtc32+2));
+          
+          uint16_t* prtc16 = (uint16_t*)&RTC->BKP0R + 6;
+          for (i = 0; i < 18; i++)
+          {
+            yprintf(&pbuf2," %5d",*prtc16);
+            prtc16 += 1;
+          }
+
+          uint8_t* prtc8 = (uint8_t*)prtc16;
+          yprintf(&pbuf1," H:%02X B:%02X F:%02X E:%02X ",*(prtc8+0),*(prtc8+1),*(prtc8+2),*(prtc8+3));
+
+          if (bmsreq_1.other == 0)
+          {
+            yprintf(&pbuf2," OK");
+          }
+          else
+          {
+            yprintf(&pbuf2," NOT OK");
+            /* if NOT OK do an update. */
+            bmsreq_1.reqcode = REQ_RTCUPDATE;
+            bmsreq_1.done = 1; // Show req is queued
+            int ret = xQueueSendToBack(BMSTaskReadReqQHandle, &pbmsreq_1, 0);
+            if (ret != pdPASS) morse_trap(108);      
+            state_defaultTask = 2;
+          }
+        case 2:
+          if (bmsreq_1.done != 0) 
+            break;
+          state_defaultTask = 0;
+          break;
+      }         
+  #endif
+
     }
 #endif    
   } 
+
+
+
   /* USER CODE END 5 */
 }
 

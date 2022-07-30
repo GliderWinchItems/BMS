@@ -53,7 +53,6 @@ void bq_items_init(void)
 static void bq_items_q(uint8_t reqcode)
 {
 	BaseType_t ret;
-	uint32_t noteval1;
 	struct BMSREQ_Q* pq = &bmstask_q_readbms;
 
 	bmstask_q_readbms.reqcode = reqcode;

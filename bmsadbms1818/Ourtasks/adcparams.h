@@ -16,27 +16,21 @@
 #include "iir_f1.h"
 #include "adc_idx_v_struct.h"
 #include "ADCTask.h"
-
-
-
-
-
-/* Timing
-1	2.5	12.5	15						
-2	24.5	12.5	37						
-3	24.5	12.5	37						
-4	640.5	12.5	653						
-5	247.5	12.5	260						
-6	247.5	12.5	260						
-7	247.5	12.5	260						
-8	247.5	12.5	260						
-9	247.5	12.5	260						
-
-Cycles	MHz	    us	over   us	DMA sum	Total ms
-2042	80	25.525	16	408.4	16	    6.5344
-2042	80	25.525	16	408.4	16	    6.5344
+/*
+					         Clock		   Repeat	
+					            80	  us	 16	
+IN4		1	2.5	    12.5	15	80	0.1875 	 3.0000	FET 0.1
+IN5		2	24.5	12.5	37	80	0.4625	 7.4000	FET RC
+IN8		3	24.5	12.5	37	80	0.4625	 7.4000	OPA
+IN12	4   640.5	12.5	653	80	8.1625 130.6000	HV
+IN14	5	247.5	12.5	260	80	3.2500	52.0000 Therm PC5
+IN14	6	247.5	12.5	260	80	3.2500	52.0000 Therm PC5
+IN0		7	247.5	12.5	260	80	3.2500	52.0000 Vref
+IN17	8	247.5	12.5	260	80	3.2500	52.0000 Temp
+IN9		9	247.5	12.5	260	80	3.2500	52.0000 DC-DC volt		
+						           25.5250  408.4000	
+						              MS 2.4485798237	
 */
-
 
 /* Processor ADC reading sequence/array indices */
 /* These indices -=>MUST<= match the hardware ADC scan sequence in STM32CubeMX. */
