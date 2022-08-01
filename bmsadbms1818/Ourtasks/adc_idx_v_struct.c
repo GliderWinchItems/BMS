@@ -41,6 +41,8 @@ int adc_idx_v_struct_hardcode_params(struct ADCLC* p)
 	p->calintern.fvreftmpco= 15.0f;    // Vref temp coefficient (15 is based on similar parts)
 	p->calintern.fvtemp    =  1.40f;  // Vtemp voltage at 25 degC
 
+	p->powergone = 13.0f; // Below this dc-dc converter voltge assume CAN power is gone
+
 
 
 /* ADC channels (except for ADC_IN1 used with BMS).*/
@@ -68,37 +70,37 @@ int adc_idx_v_struct_hardcode_params(struct ADCLC* p)
 // ADC1IDX_PA7_HV_DIV    3	// IN12	640.5	4
 	p->cabs[ADC1IDX_PA7_HV_DIV].iir_f1.coef     = CELLTC; // Filter time constant
 	p->cabs[ADC1IDX_PA7_HV_DIV].iir_f1.skipctr  = SKIPCT;  // Initial skip
-	p->cabs[ADC1IDX_PA7_HV_DIV].scale     = 2.7205433E-04f; // Apply calibration below 
+	p->cabs[ADC1IDX_PA7_HV_DIV].scale     = 5.424129E-04f; // Apply calibration below 
 	p->cabs[ADC1IDX_PA7_HV_DIV].ioffset    = 0;  // Offset before scale
 
 // ADC1IDX_PC4_THERMSP1  4	// IN13	247.5	6
 	p->cabs[ADC1IDX_PC4_THERMSP1].iir_f1.coef     = CELLTC; // Filter time constant
 	p->cabs[ADC1IDX_PC4_THERMSP1].iir_f1.skipctr  = SKIPCT;  // Initial skip
-	p->cabs[ADC1IDX_PC4_THERMSP1].scale     = DEFAULTSCALE; // Apply calibration below 
+	p->cabs[ADC1IDX_PC4_THERMSP1].scale     = 2.520833E-05f; // Apply calibration below 
 	p->cabs[ADC1IDX_PC4_THERMSP1].ioffset    = 0;  // Offset before scale
 
 // ADC1IDX_PC5_THERMSP2  5	// IN14	247.5	7
 	p->cabs[ADC1IDX_PC5_THERMSP2].iir_f1.coef     = CELLTC; // Filter time constant
 	p->cabs[ADC1IDX_PC5_THERMSP2].iir_f1.skipctr  = SKIPCT;  // Initial skip
-	p->cabs[ADC1IDX_PC5_THERMSP2].scale     = DEFAULTSCALE; // Apply calibration below 
+	p->cabs[ADC1IDX_PC5_THERMSP2].scale     = 2.520833E-05f; // Apply calibration below 
 	p->cabs[ADC1IDX_PC5_THERMSP2].ioffset    = 0;  // Offset before scale
 
 // ADC1IDX_INTERNALVREF  6	// IN0	247.5	1	
 	p->cabs[ADC1IDX_INTERNALVREF].iir_f1.coef     = 0.99f; // Filter time constant
 	p->cabs[ADC1IDX_INTERNALVREF].iir_f1.skipctr  = SKIPCT;  // Initial skip
-	p->cabs[ADC1IDX_INTERNALVREF].scale     = 1.2591575E-05f; // Apply calibration below 
+	p->cabs[ADC1IDX_INTERNALVREF].scale     = 2.520833E-05f; // Apply calibration below 
 	p->cabs[ADC1IDX_INTERNALVREF].ioffset    = 0;  // Offset before scale
 
 // ADC1IDX_INTERNALTEMP  7	// IN17	247.5	2
 	p->cabs[ADC1IDX_INTERNALTEMP].iir_f1.coef     = 0.99f; // Filter time constant
 	p->cabs[ADC1IDX_INTERNALTEMP].iir_f1.skipctr  = SKIPCT;  // Initial skip
-	p->cabs[ADC1IDX_INTERNALTEMP].scale     = (1.0f/(4.0f*16.0f)); // Apply calibration below 
+	p->cabs[ADC1IDX_INTERNALTEMP].scale     = 0.03125; //  1/32 scale factor
 	p->cabs[ADC1IDX_INTERNALTEMP].ioffset    = 0;  // Offset before scale
 
 // ADC1IDX_PA4_DC_DC     8 // IN9	247.5   3	6.8K|33K divider
 	p->cabs[ADC1IDX_PA4_DC_DC].iir_f1.coef     = CELLTC; // Filter time constant
 	p->cabs[ADC1IDX_PA4_DC_DC].iir_f1.skipctr  = SKIPCT;  // Initial skip
-	p->cabs[ADC1IDX_PA4_DC_DC].scale     = 1.477667957E-04f;
+	p->cabs[ADC1IDX_PA4_DC_DC].scale     = 1.478422E-04f;
 	p->cabs[ADC1IDX_PA4_DC_DC].ioffset    = 0;  // Offset before scale
 
 	/* Initialize iir filter. */

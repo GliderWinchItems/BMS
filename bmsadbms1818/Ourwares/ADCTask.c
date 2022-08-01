@@ -16,6 +16,7 @@
 #include "morse.h"
 #include "adcfastsum16.h"
 //#include "adcextendsum.h"
+#include "rtcregs.h"
 
 #include "main.h"
 #include "DTW_counter.h"
@@ -24,16 +25,6 @@
 extern ADC_HandleTypeDef hadc1;
 
 uint32_t dbg_adcsum[ADCDIRECTMAX];
-
-/* Summation of one ADC scan (with oversampling) */
-// One array being filled while other being processed
-// Size is DMA (regular conversions) + plus (injected Vrefint, Vtemp)
-
-// IIR filtering of adcsumdb[][]
-float adcsumfilt[ADCDIRECTMAX];
-float* padcfilt = &adcsumfilt[0];
-
-static uint8_t decimatectr = 0; 
 
 TaskHandle_t ADCTaskHandle;
 
@@ -46,7 +37,6 @@ float fclpos;
  *	@brief	: Task startup
  * *************************************************************************/
 uint16_t* p16;
-uint32_t dwt1,dwt2,dwtdiff;
 
 void StartADCTask(void *argument)
 {
@@ -87,6 +77,7 @@ p16 = pdma;
 
 		// Sum two scans in 1/2 DMA buffer. */
 		pz = &adc1.chan[0];
+
 		(pz + 0)->sum = *(pdma + 0) + *(pdma + 0 + 9);
 		(pz + 1)->sum = *(pdma + 1) + *(pdma + 1 + 9);
 		(pz + 2)->sum = *(pdma + 2) + *(pdma + 2 + 9);
@@ -97,31 +88,45 @@ p16 = pdma;
 		(pz + 7)->sum = *(pdma + 7) + *(pdma + 7 + 9);
 		(pz + 8)->sum = *(pdma + 8) + *(pdma + 8 + 9);
 
+/* WOW. Optimizer does the following with on cycle per statement! */
+dbg_adcsum[0] = (pz + 0)->sum;
+dbg_adcsum[1] = (pz + 1)->sum;		
+dbg_adcsum[2] = (pz + 2)->sum;		
+dbg_adcsum[3] = (pz + 3)->sum;		
+dbg_adcsum[4] = (pz + 4)->sum;		
+dbg_adcsum[5] = (pz + 5)->sum;		
+dbg_adcsum[6] = (pz + 6)->sum;		
+dbg_adcsum[7] = (pz + 7)->sum;		
+dbg_adcsum[8] = (pz + 8)->sum;	
+
 		adc1.ctr += 1; // Update count
 
-dwt1 = DTWTIME;
-dwtdiff = dwt1 - dwt2;
-dwt2 = dwt1;
-
 		// Calibrate and Pass sum through IIR filter
-		padcfilt = &adcsumfilt[0];
-		
 		for (int i = 0; i < ADCDIRECTMAX; i++)
 		{ // Calibrate and filter sums
-			ftmp = adc1.chan[i].sum; //*(padcsum + i); // Convert to floats
-dbg_adcsum[i] = adc1.chan[i].sum;
+			ftmp = pz->sum; // Convert to float
 			// y = a + b * x;
-			ftmp = adc1.lc.cabs[i].offset + adc1.lc.cabs[i].scale * ftmp;
-			*(padcfilt + i) = ftmp;
-//			*(padcfilt + i) = iir_f1_f(&adc1.lc.cabs[i].iir_f1, ftmp);
-			pz->sum = 0;
+			adc1.abs[i].f = adc1.lc.cabs[i].offset + adc1.lc.cabs[i].scale * ftmp;
+			adc1.abs[i].filt = iir_f1_f(&adc1.lc.cabs[i].iir_f1, adc1.abs[i].f);
+			pz->sum = 0; // Zero sum in prep for next cycle.
 			pz += 1;
 		}
 
-		// Counter for 'main' throttling ADC output
-		decimatectr += 1;
+		if (adc1.abs[8].f < adc1.lc.powergone)
+		{ // Here, assume CAN power has been cut off
+			/* Processor likely running on Cell #3 power,
+			   which is connected when PC13 is ON. */
+			rtcregs_update(); // Update RTC registers
+
+HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_SET);  // GRN OFF
+HAL_GPIO_WritePin(GPIOB,GPIO_PIN_1,GPIO_PIN_RESET); // Blnk RED LED
+osDelay(20); // Delay for red led blink
+			// Turn off Cell #3 power
+			HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13,GPIO_PIN_RESET);
+			while(1==1);
+		}
   	}
-  	return;
+  	return; // Never never
 }
 /* *************************************************************************
  * osThreadId xADCTaskCreate(uint32_t taskpriority);

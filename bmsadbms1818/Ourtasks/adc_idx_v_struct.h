@@ -70,6 +70,7 @@ struct ADCCALABS
 	uint32_t version;		// struct version number
 	struct ADC1CALINTERNAL calintern; // Vref and Temp internal sensors
 	struct ADCCALABS cabs[ADCDIRECTMAX]; // Processor ADC Absolute readings
+	float powergone; // Begin ending sequence when DC-DC converter voltage drops below this
  };
 
 /* **************************************************************************************/

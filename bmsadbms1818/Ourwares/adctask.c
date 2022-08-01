@@ -13,6 +13,7 @@
 #include "adcfastsum16.h"
 #include "ADCTask.h"
 
+#include "DTW_counter.h"
 #include "morse.h"
 
 extern ADC_HandleTypeDef hadc1;
@@ -124,9 +125,13 @@ taskEXIT_CRITICAL();
  * void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc);
  *	@brief	: Call back from stm32f4xx_hal_adc: Halfway point of dma buffer
  * *************************************************************************/
+uint32_t dwt1,dwt2,dwtdiff;
+
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc)
 {
 //	morse_trap(222);
+dwt1 = DTWTIME;
+
 	adcommon.dmact += 1; // Running count
 	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 	struct ADCDMATSKBLK* ptmp = &adc1dmatskblk[0];
@@ -147,6 +152,8 @@ void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc)
  * *************************************************************************/
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
+dwtdiff =  DTWTIME - dwt1;
+
 	adcommon.dmact += 1; // Running count
 	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 	struct ADCDMATSKBLK* ptmp = &adc1dmatskblk[0];
@@ -161,4 +168,3 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 	portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
 	return;
 }
-

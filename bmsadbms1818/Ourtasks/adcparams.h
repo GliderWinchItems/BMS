@@ -99,7 +99,7 @@ struct ADCCALCOMMON
 struct ADCABS
 {
 	float filt;      // Filtered ADC reading
-	float f;         // Not filtered
+	float f;         // Calibrated, not filtered
 	int32_t sum;     // Working sum of multiple scans
 	int32_t sumsave; // Saved sum for printf'ing
 };
@@ -115,10 +115,9 @@ struct ADCFUNCTION
 {
 	struct ADCLC lc;    // Local Copy of parameters
 	struct ADCCALCOMMON common; // Vref & temp stuff
-	struct ADCABS abs[ADCDIRECTMAX]; // Absolute readings
-	struct ADCCHANNEL chan[ADCDIRECTMAX]; // ADC sums, calibrated endpt
+	struct ADCABS abs[ADCDIRECTMAX]; // Absolute readings calibrated
+	struct ADCCHANNEL chan[ADCDIRECTMAX]; //
 	uint32_t ctr; // Running count of updates.
-	uint16_t dmabuf[ADCDIRECTMAX]; // Readings for one ADC scan w DMA
 	uint8_t sumctr; // DMA summation counter
 };
 
@@ -128,20 +127,9 @@ void adcparams_init(void);
 /*	@brief	: Copy parameters into structs
  * NOTE: => ASSUMES ADC1 ONLY <==
  * *************************************************************************/
-void adcparams_internal(struct ADCCALCOMMON* pacom, struct ADCFUNCTION* padc1);
-/*	@brief	: Update values used for compensation from Vref and Temperature
- * @param	: pacom = Pointer calibration parameters for Temperature and Vref
- * @param	: padc1 = Pointer to array of ADC reading sums plus other stuff
- * *************************************************************************/
-void adcparams_chan(uint8_t adcidx);
-/*	@brief	: calibration, compensation, filtering for channels
- * @param	: adcidx = index into ADC1 array
- * *************************************************************************/
-void adcparams_cal(void);
-/*	@brief	: calibrate and filter ADC readings (from ADCTask.c)
- * *************************************************************************/
-void adcparams_calibadc(void);
-/*	@brief	: calibrate and filter ADC channel readings (from ADCTask.c)
+ float adcparams_caltemp(void);
+/*	@brief	: calibrate processor internal temperature reading
+ *  @return : Internal temperature (deg C)
  * *************************************************************************/
 
 /* Calibration values common to all ADC modules. */

@@ -328,10 +328,10 @@ int main(void)
   bmsspi_preinit();
   rtcregs_init();
 
-  /* This will run the 5 and 3.3v regulators from the ribbone
+  /* This will run the 5 and 3.3v regulators from the ribbon
      Cell #3 when the CAN power has been removed. */
-//  HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13,GPIO_PIN_SET);
-HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13,GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13,GPIO_PIN_SET); // ON
+//HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13,GPIO_PIN_RESET); // OFF
 
   /* USER CODE END RTOS_EVENTS */
 
@@ -1320,28 +1320,45 @@ uint32_t adcdiff;
   {  
     vTaskDelayUntil( &tickcnt, xPeriod );
 
+#if 1 // Processor ADC display
     adcctr += 1;
     if (adcctr > 20)
     {
       adcctr = 0;
+extern uint32_t dwtdiff;      
 #if 1
-      yprintf(&pbuf1,"\n\rADCf: %4d",(adc1.ctr-adc1_ctr_prev));
+      yprintf(&pbuf1,"\n\rADCf: %4d %6d",(adc1.ctr-adc1_ctr_prev),dwtdiff);
       adc1_ctr_prev = adc1.ctr;
       for (i = 0; i < 9; i++)
       {
-        yprintf(&pbuf2," %6.1f",adcsumfilt[i]);
+        yprintf(&pbuf2," %6.4f",adc1.abs[i].filt);
       }
-#endif   
+      float tcf = adcparams_caltemp();
+      yprintf(&pbuf1," temp: %4.1f",tcf);
+#endif 
+
+#if 1      
+      float tcf1 = adcparams_caltemp();
+      yprintf(&pbuf1,"\n\r temp: %6.4f vref %0.5f cal1 %0.1f cal2 %0.1f caldiff %0.4f calrate %0.5f",tcf1,
+adc1.common.ts_vref,
+adc1.common.ts_cal1,      /* (float)(*PTS_CAL1); // Factory calibration */
+adc1.common.ts_cal2,      /* (float)(*PTS_CAL2); // Factory calibration */
+adc1.common.ts_caldiff,   /* (padccommon->ts_cal2 - padccommon->ts_cal1); */
+adc1.common.ts_calrate );
+
+#endif      
+
 #if 1
-      adcdiff = (adc1.ctr-adc1_ctr_prev);
-      adc1_ctr_prev = adc1.ctr;
-      yprintf(&pbuf1,"\n\rADCi: %4d",adcdiff);     
+      yprintf(&pbuf1,"\n\rADCi: %4d %6d",(adc1.ctr-adc1_ctr_prev),dwtdiff);     
     extern uint32_t dbg_adcsum[ADCDIRECTMAX];        
       yprintf(&pbuf1," %6d %6d %6d %6d %6d %6d %6d %6d %6d",
           dbg_adcsum[0],dbg_adcsum[1],dbg_adcsum[2],dbg_adcsum[3],dbg_adcsum[4],
           dbg_adcsum[5],dbg_adcsum[6],dbg_adcsum[7],dbg_adcsum[8]);
 #endif 
+      adc1_ctr_prev = adc1.ctr;
     }
+#endif    
+
 
 #if 0
 //    bq_items();

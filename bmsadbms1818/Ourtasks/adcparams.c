@@ -16,12 +16,6 @@ Not thread safe.
 
 #include "DTW_counter.h"
 
-/* Map ADC reading sequence index to Calibration type index 
-   Given: ADC seq index, lookup calibration type array index. */
-const int8_t adcmapabs[4]   = {  0,  1,  2, -1}; // Absolute
-const int8_t adcmapratio[4] = { -1, -1, -1,  0}; // Ratiometric
-
-
 /*
 AN3964
 https://www.st.com/resource/en/application_note/dm00035957.pdf
@@ -79,55 +73,12 @@ void adcparams_init(void)
 	return;
 }
 /* *************************************************************************
- * void adcparams_calibadc(void);
- *	@brief	: calibrate and filter ADC channel readings (from ADCTask.c)
+ * float adcparams_caltemp(void);
+ *	@brief	: calibrate processor internal temperature reading
+ *  @return : Internal temperature (deg C)
  * *************************************************************************/
-void adcparams_calibadc(void)
+float adcparams_caltemp(void)
 {
-	struct ADCFUNCTION* p = &adc1; // Convenience pointer
-	struct ADCABS* pabs = &p->abs[0]; // Absolute readings
-	struct ADCABS* pabs_end = &p->abs[ADCDIRECTMAX]; // Absolute readings
-	struct ADCCALABS* pcabsadc = &p->lc.cabs[0]; // Absolute readings [2]
-
-	/* First update temperature compensated internal reference readings
-	   Internal voltage reference and temperature are the first two in
-	   the scan seqeunce. */
-
-	/* Calibrate Vref and filter */
-	pabs->f = (float)(pabs->sum + pcabsadc->ioffset) * pcabsadc->scale;
-	pabs->filt = iir_f1_f(&pcabsadc->iir_f1,pabs->f);
-
-	/* Calibrate internal temperature reading and filter. */
-	(pabs+1)->f = (float)((pabs+1)->sum + (pcabsadc+1)->ioffset) * (pcabsadc+1)->scale;
-	(pabs+1)->filt = iir_f1_f(&(pcabsadc+1)->iir_f1,(pabs+1)->f);
-
 	/* Compute temperature */
-	p->common.degC = p->common.ts_calrate * ((pabs+1)->filt - p->common.ts_cal1) + 30.0f;
-
-	/* Vref temperature compensation TODO */
-	p->common.fvrefajd = 1.0f; // Adjust calibration based on Vref for temperature
-
-	(pabs+0)->sumsave = (pabs+0)->sum;
-	(pabs+0)->sum = 0;
-
-	(pabs+1)->sumsave = (pabs+1)->sum;
-	(pabs+1)->sum = 0;
-
-	/* Calibrate remainder of ADC channel readings */
-	// Skip over Vref and temperature
-	pabs     += 2;
-	pcabsadc += 2;
-
-	while (pabs != pabs_end)
-	{
-		/* Calibrate: apply offset, convert to float, scale, and filter. */
-		pabs->f = (float)(pabs->sum + pcabsadc->ioffset) * pcabsadc->scale * p->common.fvrefajd;
-		pabs->filt = iir_f1_f(&pcabsadc->iir_f1,pabs->f);
-
-		pabs->sumsave = pabs->sum; // Save so other's can ruminate on the data
-		pabs->sum = 0; // Yes!. We are ready for next round of accumulation.
-		/* Point to next reading and calibration. */
-		pabs += 1; 
-		pcabsadc += 1;
-	}
+	return (adc1.common.ts_calrate * (adc1.abs[7].filt - adc1.common.ts_cal1) + 30.0f);
 }	
