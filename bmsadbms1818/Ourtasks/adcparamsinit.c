@@ -30,10 +30,14 @@ void adcparamsinit_init(struct ADCFUNCTION* p)
 	padccommon->ts_vref      = *PVREFINT_CAL; // Factory calibration
 	padccommon->tcoef        = 30E-6; // 30 typ, 50 max, (ppm/deg C)
 
-	padccommon->ts_cal1      = (float)(*PTS_CAL1); // Factory calibration
-	padccommon->ts_cal2      = (float)(*PTS_CAL2); // Factory calibration
+	float tmpf = 3.0f/adc1.lc.calintern.vcc; // Adjust for factory cal voltage
+
+	padccommon->ts_cal1      = tmpf * (float)(*PTS_CAL1); // Factory calibration
+	padccommon->ts_cal2      = tmpf * (float)(*PTS_CAL2); // Factory calibration
 	padccommon->ts_caldiff   = (padccommon->ts_cal2 - padccommon->ts_cal1); // Pre-compute
 	padccommon->ts_calrate = ((float)(PTS_CAL2_TEMP - PTS_CAL1_TEMP) / (padccommon->ts_caldiff)); // Pre-compute
+
+
 
 	/* Data sheet gave these values.  May not need them. */
 	padccommon->v25     = 0.76; // Voltage at 25 °C, typ

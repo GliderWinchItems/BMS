@@ -41,6 +41,7 @@ int adc_idx_v_struct_hardcode_params(struct ADCLC* p)
 	p->calintern.fvreftmpco= 15.0f;    // Vref temp coefficient (15 is based on similar parts)
 	p->calintern.fvtemp    =  1.40f;  // Vtemp voltage at 25 degC
 
+	p->calintern.vcc = 3.3033; // 3.3v regulator measured voltage
 	p->powergone = 13.0f; // Below this dc-dc converter voltge assume CAN power is gone
 
 

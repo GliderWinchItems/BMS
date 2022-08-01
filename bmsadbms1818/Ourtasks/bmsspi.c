@@ -528,7 +528,7 @@ if (pdata == NULL) morse_trap(260);
 //	hdma_spi1_tx.Instance->CCR |= 1;  // Enable channel 	
 
 	/* Allow 5 us CSB (chip select) delay. Before enabling SPI. */
-	TIM15->CCR1 = (uint16_t)((TIM15->CNT & 0xFFFF) + CSBDELAYFALL); 
+	TIM15->CCR1 = (uint16_t)(TIM15->CNT + CSBDELAYFALL); 
 	timstate = TIMSTATE_1;
 
 	/* Wait for interrupt driven sequence to complete. */
@@ -589,7 +589,7 @@ void bmsspi_tim15_IRQHandler(void)
 			else
 			{ // Remaining wait_isr count is less than one timer turnover
 				if (wait_isr < 48) wait_isr = 48; // Allow enough to assure next instruction
-				TIM15->CCR1 = (uint16_t)((TIM15->CNT & 0xFFFF) + wait_isr); 
+				TIM15->CCR1 = (uint16_t)(TIM15->CNT + wait_isr); 
 				break;
 			}
 		}
@@ -660,7 +660,7 @@ if (wait_isr == 0) morse_trap(801); // What!!
 		// Time counts greater than 65535 must count turnovers
 		if ((wait_isr >> 16) > 0)
 		{ // Overflow counting required.
-			TIM15->CCR1 = (uint16_t)(TIM15->CNT & 0xFFFF); // Time OV from "now"
+			TIM15->CCR1 = (uint16_t)TIM15->CNT; // Time OV from "now"
 			return;
 		}
 
@@ -668,12 +668,12 @@ if (wait_isr == 0) morse_trap(801); // What!!
 		// Allow a minimum timeout JIC
 		if (wait_isr > DELAYCONVERTMIN) 
 		{
-			TIM15->CCR1 = (uint16_t)((TIM15->CNT & 0xFFFF) + wait_isr); 
+			TIM15->CCR1 = (uint16_t)(TIM15->CNT + wait_isr); 
 		}
 		else
 		{ // Who would set such a low conversion timerout?
 			morse_trap(802); // Likely bogus
-			TIM15->CCR1 = (uint16_t)((TIM15->CNT & 0xFFFF) + DELAYCONVERTMIN); 
+			TIM15->CCR1 = (uint16_t)(TIM15->CNT + DELAYCONVERTMIN); 
 		}
 
 		/* For detecting end-of-conversion using SDO 
@@ -692,7 +692,7 @@ if (wait_isr == 0) morse_trap(801); // What!!
 
 	// Assure CSB minimum pulse width before next SPI operation.
 	timstate = TIMSTATE_2;
-	TIM15->CCR1 = (uint16_t)((TIM15->CNT & 0xFFFF) + CSBDELAYRISE); 
+	TIM15->CCR1 = (uint16_t)(TIM15->CNT + CSBDELAYRISE); 
 
 	return;
 }
@@ -733,7 +733,7 @@ dbgexti4ctr += 1;
 
 	// Assure CSB minimum pulse width before next SPI operation.
 	timstate = TIMSTATE_2;
-	TIM15->CCR1 = (uint16_t)((TIM15->CNT & 0xFFFF) + CSBDELAYRISE); 
+	TIM15->CCR1 = (uint16_t)(TIM15->CNT + CSBDELAYRISE); 
 #endif
 	// Next TIM15 interrupt signals completion
 	return;

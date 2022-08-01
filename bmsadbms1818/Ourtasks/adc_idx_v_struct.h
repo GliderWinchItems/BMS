@@ -41,6 +41,7 @@ struct ADC1CALINTERNAL
 	float fvdd;       // (float) measured Vdd (volts)
 	float fslope;     // (float) mv/degC temperature sensor slope
 	float fvreftmpco; // (float) Vref temperature coefficient (ppm/degC)
+	float vcc;        // (float) 3.3v regulator measured
 	uint32_t adcvdd;   // (ADC reading) for calibrating Vdd (3.3v)
 	uint32_t adcrmtmp; // (ADC reading) room temperature temp sensor reading
 };
