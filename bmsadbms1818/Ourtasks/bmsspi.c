@@ -209,6 +209,7 @@ void bmsspi_setfets(void)
 		(1 << 11)); // DTMEN bit
 
 	bmsspiall.configreg[0] |= 0x00F8; // Assure GPIO pulldowns off
+	bmsspiall.configreg[3] |= 0x000F;
 
 	/* Write-back configuration Groups A & B. */
 	bmsspi_writereg(WRITECONFIG);
@@ -434,9 +435,11 @@ void bmsspi_writereg(uint8_t code)
 	switch(code)
 	{
 	case WRITECONFIG: // Write configuration register groups A & B
-//bmsspiall.configreg[0] |= 0x00F8;	// Why are bits going to zero?
+	/* Set pulldown bits OFF since GPIOs are used analog
+	   These bits read out logic level, so they might be zero. */
+		bmsspiall.configreg[0] |= 0x00F8;
 		bmsspi_rw_cmd(WRCFGA, &bmsspiall.configreg[0],1);
-//bmsspiall.configreg[3] |= 0x000F;			
+		bmsspiall.configreg[3] |= 0x000F;			
 		bmsspi_rw_cmd(WRCFGB, &bmsspiall.configreg[3],1);
 		break;
 
