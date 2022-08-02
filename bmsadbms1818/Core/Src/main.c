@@ -82,6 +82,8 @@ uint8_t canflag;
 uint8_t canflag1;
 //uint8_t canflag2;
 
+int8_t rtcregs_ret; // RTC register init return
+
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -326,7 +328,7 @@ int main(void)
   chgr_items_init();
   fanop_init();
   bmsspi_preinit();
-  rtcregs_init();
+  rtcregs_ret = rtcregs_init();
 
   /* This will run the 5 and 3.3v regulators from the ribbon
      Cell #3 when the CAN power has been removed. */
@@ -985,7 +987,6 @@ static void MX_TIM2_Init(void)
   TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
   TIM_OC_InitTypeDef sConfigOC = {0};
-  TIM_IC_InitTypeDef sConfigIC = {0};
 
   /* USER CODE BEGIN TIM2_Init 1 */
 
@@ -1009,10 +1010,6 @@ static void MX_TIM2_Init(void)
   {
     Error_Handler();
   }
-  if (HAL_TIM_IC_Init(&htim2) != HAL_OK)
-  {
-    Error_Handler();
-  }
   sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
   if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
@@ -1024,14 +1021,6 @@ static void MX_TIM2_Init(void)
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sConfigIC.ICPolarity = TIM_INPUTCHANNELPOLARITY_RISING;
-  sConfigIC.ICSelection = TIM_ICSELECTION_DIRECTTI;
-  sConfigIC.ICPrescaler = TIM_ICPSC_DIV1;
-  sConfigIC.ICFilter = 0;
-  if (HAL_TIM_IC_ConfigChannel(&htim2, &sConfigIC, TIM_CHANNEL_3) != HAL_OK)
   {
     Error_Handler();
   }
@@ -1237,6 +1226,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
+  /*Configure GPIO pin : PB10 */
+  GPIO_InitStruct.Pin = GPIO_PIN_10;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
   /*Configure GPIO pin : DUMP2_Pin */
   GPIO_InitStruct.Pin = DUMP2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -1300,7 +1295,7 @@ void StartDefaultTask(void *argument)
   struct SERIALSENDTASKBCB* pbuf2 = getserialbuf(&HUARTMON,128);
   if (pbuf2 == NULL) morse_trap(125);
 
-  yprintf(&pbuf1,"\n\n\rPROGRAM STARTS");
+  yprintf(&pbuf1,"\n\n\rPROGRAM STARTS: rtcregs_ret: %d",rtcregs_ret);
 
   #define MAINFORLOOPDELAY 50 // Delay of 'for' loop in ms
   const TickType_t xPeriod = pdMS_TO_TICKS(MAINFORLOOPDELAY);  
@@ -1320,13 +1315,13 @@ uint32_t adcdiff;
   {  
     vTaskDelayUntil( &tickcnt, xPeriod );
 
-#if 1 // Processor ADC display
+#if 0 // Processor ADC display
     adcctr += 1;
     if (adcctr > 20)
     {
       adcctr = 0;
 extern uint32_t dwtdiff;      
-#if 1
+  #if 1
       yprintf(&pbuf1,"\n\rADCf: %4d %6d",(adc1.ctr-adc1_ctr_prev),dwtdiff);
       adc1_ctr_prev = adc1.ctr;
       for (i = 0; i < 9; i++)
@@ -1335,9 +1330,9 @@ extern uint32_t dwtdiff;
       }
       float tcf = adcparams_caltemp();
       yprintf(&pbuf1," temp: %4.1f",tcf);
-#endif 
+  #endif 
 
-#if 1      
+  #if 0     
       float tcf1 = adcparams_caltemp();
       yprintf(&pbuf1,"\n\r temp: %6.4f vref %0.5f cal1 %0.1f cal2 %0.1f caldiff %0.4f calrate %0.5f",tcf1,
 adc1.common.ts_vref,
@@ -1346,21 +1341,21 @@ adc1.common.ts_cal2,      /* (float)(*PTS_CAL2); // Factory calibration */
 adc1.common.ts_caldiff,   /* (padccommon->ts_cal2 - padccommon->ts_cal1); */
 adc1.common.ts_calrate );
 
-#endif      
+  #endif      
 
-#if 1
+  #if 1
       yprintf(&pbuf1,"\n\rADCi: %4d %6d",(adc1.ctr-adc1_ctr_prev),dwtdiff);     
     extern uint32_t dbg_adcsum[ADCDIRECTMAX];        
       yprintf(&pbuf1," %6d %6d %6d %6d %6d %6d %6d %6d %6d",
           dbg_adcsum[0],dbg_adcsum[1],dbg_adcsum[2],dbg_adcsum[3],dbg_adcsum[4],
           dbg_adcsum[5],dbg_adcsum[6],dbg_adcsum[7],dbg_adcsum[8]);
-#endif 
+  #endif 
       adc1_ctr_prev = adc1.ctr;
     }
 #endif    
 
 
-#if 0
+#if 1
 //    bq_items();
     HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_SET);
     if (dbgka_prev != dbgka)
@@ -1411,8 +1406,12 @@ adc1.common.ts_calrate );
           extractstatreg.va, extractstatreg.vd  );
 
        bms_items_therm_temps(); // Convert thermistor readings to tempature (deg C)
-       yprintf(&pbuf1,"\n\rTEMP:%5.1f %5.1f %5.1f FSPD: %d",bqfunction.lc.thermcal[0].temp,
-          bqfunction.lc.thermcal[1].temp,bqfunction.lc.thermcal[2].temp, bqfunction.fanspeed);
+       extern float fanrpm;
+      extern uint32_t deltaN;
+      extern float fdeltaT;        
+       yprintf(&pbuf1,"\n\rTEMP:%5.1f %5.1f %5.1f Fanpwm: %d Fanrpm: %0.3f %d %0.1f",bqfunction.lc.thermcal[0].temp,
+          bqfunction.lc.thermcal[1].temp,bqfunction.lc.thermcal[2].temp, 
+          bqfunction.fanspeed, fanrpm, deltaN, fdeltaT);
 
        break;
 
@@ -1425,6 +1424,7 @@ adc1.common.ts_calrate );
 
 #if 1
     /* Update FAN control. (4/sec) */
+    bms_items_therm_temps(); // Convert thermistor readings to tempature (deg C)
     fanop();
 #endif
 

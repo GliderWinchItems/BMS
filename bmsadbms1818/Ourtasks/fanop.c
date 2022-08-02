@@ -17,7 +17,7 @@
 
 extern TIM_HandleTypeDef htim2;
 
-#define TICKUPDATE 25 // 250 ms between updates
+#define TICKUPDATE 5 // 250 ms between updates
 
 /* Sets fan speed. */
 static uint8_t compute_fanspeed(void);
@@ -27,7 +27,7 @@ float fanrpm;
 TIM_TypeDef  *pT2base; // Register base address 
 
  uint32_t T2C3ctr;
-static uint64_t T2C3cum;
+static uint32_t T2C3cum;
 
 static uint32_t tickctr;
 
@@ -48,12 +48,20 @@ void fanop_init(void)
 	pT2base  = htim2.Instance;
 	/* TIM2 Fan tach input capture & PWM output. */
    pT2base->ARR   = (640 - 1); // Count to give 25 KHz with 16MHz clock
-   pT2base->EGR  |= 0x0A; // Input capture active: CH3
-   pT2base->DIER  = 0x08; // CH3 interrupt enable
-   pT2base->CCER |= 0x0101; // CH3 IC & CH1 PWM 
+   pT2base->CCER |= 0x0001; // CH1 PWM 
+   pT2base->CR1  |= 1; // Start counter
 
-   /* Start counter */
-   pT2base->CR1 |= 1;
+   	/* Enable limit and overrun switch interrupts EXTI15_10. */
+   	EXTI->IMR1  |= (1 << 10); // Interrupt mask reg: enable line 10
+//   	EXTI->EMR1  |= (1 << 10);
+	EXTI->RTSR1 |= (1 << 10); // Rising edge
+
+ 	/* Px4 EXTI selection clear. */
+//	SYSCFG->EXTICR[1] &= ~(0x7 << 0);	
+
+	/* EXTI4 ('1818 SDO conversion complete) interrupt initialize*/
+  	HAL_NVIC_SetPriority(EXTI15_10_IRQn, 5, 0);
+  	HAL_NVIC_EnableIRQ  (EXTI15_10_IRQn);  	   
    return;
 }
 /* *************************************************************************
@@ -94,9 +102,10 @@ float fanop(void)
 		fanrpm = K * (float)deltaN / fdeltaT;
 
 		/* Update FAN pwm. */
-//bqfunction.fanspeed = 18; // 14 = minimum; 100+ = full speed
 		bqfunction.fanspeed = compute_fanspeed();
+// Debug: bqfunction.fanspeed = 14; // 14 = minimum; 100+ = full speed		
 
+		/* Set TIM2CH1 PWM to control fan speed. */
 		pT2base->CCR1 = (640 * bqfunction.fanspeed)/100;
 
 		return fanrpm;
@@ -104,23 +113,19 @@ float fanop(void)
 	return 0;
 }
 /* *************************************************************************
- * void FanTask_TIM2_IRQHandler(void);
- * @brief	: TIM2 IRQ (see stm32l4xx_it.c)
+ * void EXTI15_10_IRQHandler(void);
+ * @brief	: Fan Tach--PB10 EXTI interrupt
  * *************************************************************************/
-void FanTask_TIM2_IRQHandler(void)
+void EXTI15_10_IRQHandler(void)
 {
-	pT2base->SR = 0x01; // Reset interrupt flag: UI
-	if ((pT2base->SR & 0x08) != 0)
-	{ // Here, input capture of tach pulse edge
-		T2C3ctr += 1;
-		T2C3cum  = DTWTIME;
-		pT2base->SR = 0x08; // Reset interrupt flag: CC3IF
-	}	
+	EXTI->PR1 |=  (1<<10); // Reset request: PB10
+	T2C3ctr += 1;
+	T2C3cum  = DTWTIME;
 	return;
 }
 /* *************************************************************************
  * static uint8_t compute_fanspeed(void);
- * @brief	: Compute a fanspeed setting based on thermistor temperature readings
+ * @brief	: Compute a fanspeed pwm setting based on thermistor temperature readings
  * *************************************************************************/
 static uint8_t compute_fanspeed(void)
 {
@@ -128,6 +133,7 @@ static uint8_t compute_fanspeed(void)
 	uint8_t tmp = 0;
 	float tmpf;
 	int i;
+	/* Check each thermistor position. */
 	for (i = 0; i < 3; i++)
 	{ 
 		if (bqfunction.lc.thermcal[0].installed == 1)

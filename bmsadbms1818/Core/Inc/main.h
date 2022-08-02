@@ -82,8 +82,6 @@ void Error_Handler(void);
 #define LED_RED_GPIO_Port GPIOB
 #define HV_div2_Pin GPIO_PIN_2
 #define HV_div2_GPIO_Port GPIOB
-#define FAN_TACH_Pin GPIO_PIN_10
-#define FAN_TACH_GPIO_Port GPIOB
 #define PADxx_Pin GPIO_PIN_12
 #define PADxx_GPIO_Port GPIOB
 #define PAD7_Pin GPIO_PIN_15
