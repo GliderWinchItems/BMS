@@ -145,6 +145,13 @@ void bmsspi_readstuff(uint8_t code)
 {
 	switch (code)
 	{
+	/* readreg args:
+	  1 - command that "starts" a conversion;, 0 = skip
+	  2 - TIM15 wait time count for conversion command
+	  3 - pointer to store, or send, 6 byte register group
+	  4 - pointer to command array for read or write group
+	  5 - number of reads or writes of a group
+	*/
 	case READCELLSGPIO12: // ADC cell voltages + GPIO1 & GPIO2
 		readreg(ADCVAX,(3140*16),bmsspiall.cellreg, cmdv, 6); // ADC and Read cell volts
 		readreg(     0,        0,bmsspiall.auxreg, &cmdv[6], 1); // Read AUX reg A GPIOs 1-3
@@ -292,6 +299,8 @@ uint8_t bmsspi_keepawake(void)
  * *************************************************************************/
  void bmsspi_preinit(void)
 {
+	 bmsspiall.err1ct = 0; // Extra loop err ct
+
 	/* DMA1 CH3 (SPI write) peripheral aand memory addresses: */
 	hdma_spi1_tx.Instance->CPAR = (uint32_t)hspi1.Instance + 0x0C; // SPI DR adddress
 	hdma_spi1_tx.Instance->CMAR = (uint32_t)&spitx12.u8[0]; // DMA stores from this array
@@ -374,7 +383,6 @@ uint16_t loopctr;
 uint32_t wait_isr;
 static uint16_t readreg(uint16_t cmdx, uint32_t wait, uint16_t* p, const uint16_t* pcmdr, uint8_t n)
 {
-	uint16_t dbcrc2;
 	uint16_t i;
 
 	/* Check if a start conversion command */
@@ -403,7 +411,11 @@ dbstat2 = DTWTIME - dbstat1;
 			     (spirx12.u32[2] == 0xffffFFFF) && 
 			     (loopctr < QQQCTR) );
 		if (loopctr >= QQQCTR) morse_trap(58); // Loop reached limit
-		if (loopctr >       2) morse_trap(59); // More than one pass
+		if (loopctr >       1) 
+		{
+			bmsspiall.err1ct += 1;
+//			morse_trap(59); // More than one pass
+		}
 
 		/* Check PEC15 matches. */
 		// Compute PEC15 in received data
@@ -412,8 +424,7 @@ dbstat2 = DTWTIME - dbstat1;
 		*(__IO uint16_t*)CRC_BASE = (uint16_t)__REV16 (spirx12.u16[4]); 
 
 		// Compare received PEC to computed PEC
-		dbcrc2 = (uint16_t)__REV16 (CRC->DR); // Why is this needed!?
-		if (dbcrc2 != spirx12.u16[5]) 
+		if ((uint16_t)__REV16 (CRC->DR) != spirx12.u16[5]) 
 			morse_trap(68); 
 	
 		/* Copy 6 byte spi rx to memory array. */
@@ -544,6 +555,7 @@ if (pdata == NULL) morse_trap(260);
  * void bmsspi_tim15_IRQHandler(void);
  * @brief	: TIM15 interrupt shares with TIM1 break;
    ####################################################################### */
+uint32_t dbgTO; // TIMSTATE_TO time check
 void bmsspi_tim15_IRQHandler(void)
 {
 //	struct BMSSPIALL* p = &bmsspiall; // Convenience pointer
@@ -560,17 +572,19 @@ void bmsspi_tim15_IRQHandler(void)
 
  	case TIMSTATE_1: // CSB falling delay expired. Read to send
  	 	// Start sending write command + data
- 		SPI1->CR2 |= 0x3; // Enable DMA: TXDMAEN | RXDMAEN
+ 		SPI1->CR2 |= 0x1; // Enable DMA: RXDMAEN
 		hdma_spi1_rx.Instance->CCR |= 1;  // Enable DMA rx channel
+		SPI1->CR2 |= 0x2; // Enable DMA: TXDMAEN
  		hdma_spi1_tx.Instance->CCR |= 1;  // Enable DMA tx channel 	
 		SPI1->CR1 |= (1 << 6); // Enable SPE: SPI enable
 		// SPI rx interrupt expected next.	
-
 		timstate = TIMSTATE_TO; // JIC: AND it happened!
+dbgTO = DTWTIME;		
  	 	return;
 
-	case TIMSTATE_TO:
-	morse_trap(41);
+	case TIMSTATE_TO: // One register rollover time delay.
+dbgTO = DTWTIME - dbgTO; 	
+	morse_trap(41); // ARGH! No SPI/DMA rx interrupt.
 		break; 	 	
 
  	case TIMSTATE_2: // CSB rising delay expired

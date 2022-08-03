@@ -1309,11 +1309,15 @@ extern uint8_t dbgka;
 uint8_t dbgka_prev = dbgka;
 extern uint32_t bshift;  
 extern uint32_t dbstat2;
-uint32_t adcdiff;
 
   for(;;) /* Loop polls various operations. */
   {  
     vTaskDelayUntil( &tickcnt, xPeriod );
+
+    if (bmsspiall.err1ct != 0)
+    {
+      yprintf(&pbuf1,"\n\n\r############ LOOPCTR ERR: %d\n\r",bmsspiall.err1ct);
+    }
 
 #if 0 // Processor ADC display
     adcctr += 1;
@@ -1372,20 +1376,24 @@ adc1.common.ts_calrate );
           bmsspiall.configreg[0],bmsspiall.configreg[1],bmsspiall.configreg[2],
           bmsspiall.configreg[3],bmsspiall.configreg[4],bmsspiall.configreg[5],bshift+1);
         break;
+
       case 1: // Stat regs
        yprintf(&pbuf2,"\n\r%5d STAT   %04X %04X %04X : %04X %04X %04X %d ",dbgka,
           bmsspiall.statreg[0],bmsspiall.statreg[1],bmsspiall.statreg[2],
           bmsspiall.statreg[3],bmsspiall.statreg[4],bmsspiall.statreg[5],dbstat2/16);      
         break;
+
       case 2:
        yprintf(&pbuf2,"\n\r%5d SREG   %04X %04X %04X",dbgka,
           bmsspiall.sreg[0],bmsspiall.sreg[1],bmsspiall.sreg[2]);
         break;
+
       case 3:
        yprintf(&pbuf2,"\n\r%5d WFGR   %04X %04X %04X : %04X %04X %04X",dbgka,
           bmsspiall.configreg[0],bmsspiall.configreg[1],bmsspiall.configreg[2],
           bmsspiall.configreg[3],bmsspiall.configreg[4],bmsspiall.configreg[5]);
         break;
+
       case 4:
        yprintf(&pbuf1,"\n\r                 1      2      3      4      5      6      7      8      9     10"
         "     11     12     13     14     15     16     17     18");
@@ -1393,6 +1401,7 @@ adc1.common.ts_calrate );
        for (i = 0; i < 18; i++) yprintf(&pbuf1," %6d",bmsspiall.cellreg[i]);
        yprintf(&pbuf1," %d",dbstat2/16);
         break;
+
       case 5: // Temperature (AUX reg)
        yprintf(&pbuf2,"\n\r%5d AUX    %6d %6d %6d %6d",dbgka,
         bmsspiall.auxreg[0],bmsspiall.auxreg[1],bmsspiall.auxreg[2],bmsspiall.auxreg[3]);
@@ -1400,20 +1409,19 @@ adc1.common.ts_calrate );
         bmsspiall.auxreg[4],bmsspiall.auxreg[5],bmsspiall.auxreg[6],bmsspiall.auxreg[7],bmsspiall.auxreg[8],
         dbstat2/16);
 
-       bms_items_extract_statreg();
-       yprintf(&pbuf2,"\n\r%5d        TS:%6.2f TMP:%5.1f VA:%6.3f VG:%6.3f",dbgka,
+      bms_items_extract_statreg();
+      yprintf(&pbuf2,"\n\r%5d        TS:%6.2f TMP:%5.1f VA:%6.3f VG:%6.3f",dbgka,
           extractstatreg.sc, extractstatreg.itmp,
           extractstatreg.va, extractstatreg.vd  );
 
-       bms_items_therm_temps(); // Convert thermistor readings to tempature (deg C)
-       extern float fanrpm;
-      extern uint32_t deltaN;
-      extern float fdeltaT;        
-       yprintf(&pbuf1,"\n\rTEMP:%5.1f %5.1f %5.1f Fanpwm: %d Fanrpm: %0.3f %d %0.1f",bqfunction.lc.thermcal[0].temp,
-          bqfunction.lc.thermcal[1].temp,bqfunction.lc.thermcal[2].temp, 
-          bqfunction.fanspeed, fanrpm, deltaN, fdeltaT);
-
-       break;
+      bms_items_therm_temps(); // Convert thermistor readings to tempature (deg C)
+      extern float fanrpm;
+        yprintf(&pbuf1,"\n\rTEMP:%5.1f %5.1f %5.1f Fanpwm: %d Fanrpm: %0.3f",
+          bqfunction.lc.thermcal[0].temp,
+          bqfunction.lc.thermcal[1].temp,
+          bqfunction.lc.thermcal[2].temp, 
+          bqfunction.fanspeed, fanrpm);
+        break;
 
       default:
         yprintf(&pbuf2,"\n\r%d %5d BOGUS",dbgka, mctr);

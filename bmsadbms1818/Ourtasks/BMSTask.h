@@ -70,6 +70,7 @@ struct BMSSPIALL
 	uint16_t commreg[1*3]; // COMM register
 	uint16_t sreg[1*3];    // S register
 	uint16_t pwmreg[2*3];  // PWM regs: A & B
+	uint8_t  err1ct;       // Count number of times readreg loop required extra pass
 	uint8_t  err;          // TODO?
 };
 /* Queue holds pointers to the following struct for requesting a "service". */

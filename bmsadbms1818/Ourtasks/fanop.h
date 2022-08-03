@@ -17,6 +17,10 @@
 void fanop_init(void);
 /*	@brief	: Init fan operation
  * *************************************************************************/
+float fanop(void);
+/*	@brief	: Update 
+ *  @return : 0 = nothing done; not 0 = rpm
+ * *************************************************************************/
 void EXTI15_10_IRQHandler(void);
 /* @brief	: Fan Tach--PB10 EXTI interrupt
  * *************************************************************************/
