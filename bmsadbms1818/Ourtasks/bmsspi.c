@@ -555,7 +555,8 @@ if (pdata == NULL) morse_trap(260);
  * void bmsspi_tim15_IRQHandler(void);
  * @brief	: TIM15 interrupt shares with TIM1 break;
    ####################################################################### */
-uint32_t dbgTO; // TIMSTATE_TO time check
+uint32_t dbgTO; // TIMSTATE_TO: TIM15 duration versus DTWTIME
+uint32_t dbgTO_SR; // TIMSTATE_TO: Save SPI status reg 
 void bmsspi_tim15_IRQHandler(void)
 {
 //	struct BMSSPIALL* p = &bmsspiall; // Convenience pointer
@@ -574,8 +575,10 @@ void bmsspi_tim15_IRQHandler(void)
  	 	// Start sending write command + data
  		SPI1->CR2 |= 0x1; // Enable DMA: RXDMAEN
 		hdma_spi1_rx.Instance->CCR |= 1;  // Enable DMA rx channel
+
 		SPI1->CR2 |= 0x2; // Enable DMA: TXDMAEN
  		hdma_spi1_tx.Instance->CCR |= 1;  // Enable DMA tx channel 	
+
 		SPI1->CR1 |= (1 << 6); // Enable SPE: SPI enable
 		// SPI rx interrupt expected next.	
 		timstate = TIMSTATE_TO; // JIC: AND it happened!
@@ -583,7 +586,8 @@ dbgTO = DTWTIME;
  	 	return;
 
 	case TIMSTATE_TO: // One register rollover time delay.
-dbgTO = DTWTIME - dbgTO; 	
+dbgTO = DTWTIME - dbgTO; 
+dbgTO_SR = SPI1->SR;	
 	morse_trap(41); // ARGH! No SPI/DMA rx interrupt.
 		break; 	 	
 
@@ -647,15 +651,16 @@ void bmsspi_spidmarx_IRQHandler(DMA_HandleTypeDef* phdma_spi1_rx)
 	SPI1->CR1 &= ~(1 << 6); // Disable SPI
 	SPI1->CR2 &= ~0x3; // // Disable DMA: TXDMAEN | RXDMAEN
 
-	// Reset DMA interrupt flags	
-	hdma_spi1_rx.DmaBaseAddress->IFCR = 0xfff;
+	// Reset DMA SPI1 interrupt flags: DMA1: CH2,CH3
+	// Note: DMA1: CH1 is ADC1 DMA channel, but interrupt not used
+	hdma_spi1_rx.DmaBaseAddress->IFCR = 0xff0;
 
 // Pin for 'scope triggering
 GPIOC->BSRR = (1<<(4+16)); // Set PC4 pin low
 
-	/* ADC conversion cmmands require end-of-conversion handling. */
+	/* ADC conversion cmmands require wait for end-of-conversion handling. */
 	if (rwtype == 3)
-	{ // Here, end of commands that starts conversions. 
+	{ // Here, end of sending command that started a conversion. 
 
 /*  Use rising SDO to signal end of conversions. */		
 #ifdef USESDOTOSIGNALENDCONVERSION 
