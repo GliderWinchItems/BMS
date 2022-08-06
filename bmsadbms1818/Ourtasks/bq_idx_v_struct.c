@@ -32,12 +32,12 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->modulenum    = 2; // Module number on string (1-16)
    if ((p->modulenum == 0) || (p->modulenum > 16)) morse_trap(702);
 
-   p->hbct_t       = 64;//1001;   // Heartbeat ct: milliseconds between sending 
+   p->hbct_t       = 1000; // Heartbeat ct: milliseconds between sending 
    p->hbct         = 64;    // Number of swctr ticks between heartbeats
 
 //   p->adc_hb       = 64;     // Number of ticks for heartbeat ADC readout
 
-   p->CanComm_hb = 24; // CanCommTask 'wait' counts per heartbeat sending
+   p->CanComm_hb = 1000; // CanCommTask 'wait' RTOS ticks per heartbeat sending
  
             /* Initial test settings. */
    p->dac1_hv_setting  = 3500; // HV volt limit (DAC setting)

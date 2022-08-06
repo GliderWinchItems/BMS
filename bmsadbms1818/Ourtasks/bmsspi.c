@@ -555,8 +555,12 @@ if (pdata == NULL) morse_trap(260);
  * void bmsspi_tim15_IRQHandler(void);
  * @brief	: TIM15 interrupt shares with TIM1 break;
    ####################################################################### */
+// TIMSTATE_TO; morse_trap(41) debugging helpers:
 uint32_t dbgTO; // TIMSTATE_TO: TIM15 duration versus DTWTIME
 uint32_t dbgTO_SR; // TIMSTATE_TO: Save SPI status reg 
+uint32_t dbgTO_CNT;
+uint32_t dbgTO_CCR1;
+
 void bmsspi_tim15_IRQHandler(void)
 {
 //	struct BMSSPIALL* p = &bmsspiall; // Convenience pointer
@@ -585,7 +589,10 @@ void bmsspi_tim15_IRQHandler(void)
 dbgTO = DTWTIME;		
  	 	return;
 
+ 	 /* Trap: SPI started, but wait for interrupt timed out. */
 	case TIMSTATE_TO: // One register rollover time delay.
+dbgTO_CNT = TIM15->CNT;
+dbgTO_CCR1 = TIM15->CCR1;
 dbgTO = DTWTIME - dbgTO; 
 dbgTO_SR = SPI1->SR;	
 	morse_trap(41); // ARGH! No SPI/DMA rx interrupt.

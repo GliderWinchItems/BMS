@@ -136,10 +136,9 @@ dwt1 = DTWTIME;
 	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 	struct ADCDMATSKBLK* ptmp = &adc1dmatskblk[0];
 
-	/* Trigger Recieve Task to poll dma uarts */
 	if( ptmp->adctaskHandle == NULL) return; // Skip task has not been created
 	xTaskNotifyFromISR(ptmp->adctaskHandle, 
-		ptmp->notebit1,	/* 'or' bit assigned to buffer to notification value. */
+		ptmp->notebit1,	/* 'or' bit assigned to first half buffer to notification value. */
 		eSetBits,      /* Set 'or' option */
 		&xHigherPriorityTaskWoken ); 
 
@@ -158,10 +157,9 @@ dwtdiff =  DTWTIME - dwt1;
 	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 	struct ADCDMATSKBLK* ptmp = &adc1dmatskblk[0];
 
-	/* Trigger Recieve Task to poll dma uarts */
 	if( ptmp->adctaskHandle == NULL) return; // Skip task has not been created
 	xTaskNotifyFromISR(ptmp->adctaskHandle, 
-		ptmp->notebit2,	/* 'or' bit assigned to buffer to notification value. */
+		ptmp->notebit2,	/* 'or' bit assigned to last half DMA buffer to notification value. */
 		eSetBits,      /* Set 'or' option */
 		&xHigherPriorityTaskWoken ); 
 

@@ -89,8 +89,6 @@ struct BQFUNCTION
 	/* Timings in milliseconds. Converted later to timer ticks. */
 	uint32_t hbct_k;      // Heartbeat ct: ticks between sending
 
-	uint32_t CanComm_hb_ctr;   // Cell readings heartbeat tick counter
-
 	uint8_t ident_string; // Packed: string
 	uint8_t ident_onlyus; // Packed: string and module numbers
 	/*  payload [0-1] U16 – Payload Identification
