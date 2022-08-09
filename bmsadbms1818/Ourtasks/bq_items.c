@@ -170,26 +170,26 @@ void bq_items_selectfet(void)
 	/* Check each cell reading. */
 	for (i = 0; i < NCELLMAX; i++)
 	{
+		idata = (*p * 0.1f); // Convert calibrated float (100uv) to uint16_t (1mv)
 		if ((pbq->cellspresent & (1<<i)) != 0)
 		{ // Here, cell position is installed
-			if  ((*p <= pbq->lc.cellopen_lo)||(*p > pbq->lc.cellopen_hi))
+			if  ((idata <= pbq->lc.cellopen_lo)||(idata > pbq->lc.cellopen_hi))
 			{ // Here, likely unexpected open wire
 				pbq->battery_status |= BSTATUS_OPENWIRE;
 			}
 			else
 			{ // Here, cell voltage reading looks valid
-				idata = *p; // Convert calibrated float to uint16_t
 				if (idata > pbq->cellv_high)
 				{ // Find max cell reading
-					pbq->cellv_high = *p; // Save voltage
+					pbq->cellv_high = idata; // Save voltage
 					pbq->cellx_high = i;  // Save cell index
 				} 
 				if (idata < pbq->cellv_low)
 				{ // Find lowest cell reading
-					pbq->cellv_low = *p; // Save voltage
+					pbq->cellv_low = idata; // Save voltage
 					pbq->cellx_low = i;  // Save cell index
 				} 
-				if (idata > pbq->targetv) 
+				if (idata > pbq->lc.cellv_max) 
 				{ // Cell higher than target voltage
 					pbq->cellbal       |=  (1 << i); // Set bit for discharge FET
 					pbq->hysterbits_hi |=  (1 << i); // Hysteresis high set
@@ -288,11 +288,6 @@ void bq_items_selectfet(void)
 			pbq->hyster_sw  = 0; // Set hysteresis switch off
 		}
 	}
-
-
-	/* Here, balancing is permitted. Make cell selections.
-	Goal: Build a 32b word with bits set for setting cell 
-	discharge FETs. BQ97952 uses 16b, ADBMS1818 uses 18b. */
 
 #ifdef  USESORTCODE
 	/* Sort on Cell voltages. (qsort does ascending) */

@@ -127,7 +127,7 @@ struct BQFUNCTION
 	float temperature[3]; // Thermistors: Deg C temperature
 
 	// Cell balancing & relaxation hysteresis
-	uint32_t targetv;       // Balance voltage target
+//	uint32_t targetv;       // Balance voltage target
 	float    hysterv_lo;    // Hysteresis bottom voltage.
 	uint32_t hysterbits_hi; // Bits for cells that reached cellv_max (target)
 	uint32_t hysterbits_lo; // Bits for cells that fell below hysterv_lo

@@ -128,8 +128,10 @@ void bmsspi_readbms(void)
 		pf +=1;
 	}
 	// Restore status of FETs
-	bmsspi_setfets();
+//	bmsspi_setfets();
 
+	// Restore heater, dump, dump2, trickle chgr
+	fetonoff_status_set(bqfunction.fet_status);
 	return;
 }
 /* *************************************************************************

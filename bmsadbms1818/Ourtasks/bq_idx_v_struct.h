@@ -66,8 +66,8 @@ struct BQLC
 
    uint32_t CanComm_hb; // CanCommTask 'wait' RTOS ticks per heartbeat sending
 
-   uint16_t dac1_hv_setting;  // 65.2 volt limit
-   uint16_t dac2_ix_setting;  //62;   // Current sense level setting
+   uint16_t dac1_hv_setting;  // DAC setting for 65.2 volt limit
+   uint16_t dac2_ix_setting;  // DAC setting for 62 ma current sense level setting
    uint16_t tim1_ccr1_on;     // PWM ON count: Normal charge rate
    uint16_t tim1_ccr1_on_vlc; // PWM ON count: Very Low Charge rate required
    uint16_t tim1_arr_init;    // Initial ARR (PWM frame) count - 1
@@ -76,8 +76,8 @@ struct BQLC
    uint32_t modulev_min; // Battery module min limit
    uint16_t cellopen_lo; // Below this cell volatge wire is assumed open (mv)
    uint16_t cellopen_hi; // Above this cell volatge wire is assumed open (mv)
-   int16_t cellv_max;    // Max limit for charging any cell
-   int16_t cellv_min;    // Min limit for any discharging
+   int16_t cellv_max;    // Max limit for charging any cell (mv)
+   int16_t cellv_min;    // Min limit for any discharging (mv)
    int16_t cellv_vlc;    // Below this Very Low Charge (_vlc)required
 
    int16_t cellv_hyster; // Relax-to-voltage = (cellv_max - cellv_hyster)

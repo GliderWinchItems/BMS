@@ -1442,7 +1442,7 @@ adc1.common.ts_calrate );
 
 #endif
 
-#if 0
+#if 1
     /* Cell balance & control. */
     uint32_t dcc = extractconfigreg.dcc;
     char cline[96];
@@ -1469,13 +1469,29 @@ extern struct BMSREQ_Q  bmstask_q_readbms;
       cline[18*4] = 0;
       yprintf(&pbuf2,"%s",cline);
 
+yprintf(&pbuf1,"\n\rcellv[i]       : ");
+for (i = 0; i < 18; ++i) yprintf(&pbuf2," %5.0f",bqfunction.cellv[i]);
+yprintf(&pbuf1,"\n\rcellv_latest[i]: ");
+for (i = 0; i < 18; ++i) yprintf(&pbuf2," %5d",bqfunction.cellv_latest[i]);
+yprintf(&pbuf2,"\n\rcellspresent: %05X",bqfunction.cellspresent); 
+
+      yprintf(&pbuf1,"\n\rcellv_hi: x %2d v %5d",bqfunction.cellx_high,bqfunction.cellv_high);
+      yprintf(&pbuf2,"\n\rcellv_lo: x %2d v %5d",bqfunction.cellx_low, bqfunction.cellv_low);
+      yprintf(&pbuf1,"\n\rhyster_sw: %d hysterbits hi %05X lo %05X",
+        bqfunction.hyster_sw, bqfunction.hysterbits_hi,bqfunction.hysterbits_lo);
+      yprintf(&pbuf2,"\n\rcellv_max: %5d cellv_max: %05X",bqfunction.lc.cellv_max, bqfunction.cellv_max_bits);
+      yprintf(&pbuf1,"\n\rcellv_min: %5d cellv_min: %05X",bqfunction.lc.cellv_min, bqfunction.cellv_min_bits);
+
+      yprintf(&pbuf2,"\n\rcellv_vls: %5d cellv_vlc_bits: %05X",bqfunction.lc.cellv_vlc, bqfunction.cellv_vlc_bits);
+      yprintf(&pbuf1,"\n\rcallbal: %05X",bqfunction.cellbal);
+
       yprintf(&pbuf1,"\n\r config:");
       for (i=0; i < 6; i++)
       {
         yprintf(&pbuf2," %04X",bmsspiall.configreg[i]);
       }
 
-  #if 1 /* RTC register check. */
+  #if 0 /* RTC register check. */
       switch (state_defaultTask)
       {
         case 0:
