@@ -46,7 +46,7 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->tim1_ccr1_on_vlc =   2;  // PWM ON count: Very Low Charge rate required
    p->tim1_arr_init    =  79;  // At 16 MHz: count of 80 = 5 us PWM frame
 
-   p->cellv_max   = 3850; // Max limit (mv) for charging any cell
+   p->cellv_max   = 3900; // Max limit (mv) for charging any cell
    p->cellv_min   = 2800; // Min limit (mv) for any discharging
    p->cellv_vlc   = 2550; // Below this (mv) Very Low Charge (vlc)required
    p->cellopen_hi = 4300; // Above this voltage cell wire is assumed open (mv)
@@ -60,14 +60,39 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->cellbal_del  = 2; // Legacy
 
   /* Arrays compiled using NCELLMAX [18] */
-   p->ncell = 16; // Number of series cells in this module
+   p->ncell = 18; // Number of series cells in this module
 
    if (p->ncell > NCELLMAX) morse_trap(702); // Error trap as it needs fixing
    p->npositions  = 18;  // Number of cell =>positions<= in module "box"
 
    /* Relate cell numbers to cell positions. (indices are ("number"-1) */
+#define EighteenPositionBox
+  #define EighteenCellsInEighteenBox
+   
 #ifdef EighteenPositionBox
 
+ #ifdef EighteenCellsInEighteenBox
+   /* 18 cells installed in 18 position box. */
+   p->cellpos[ 0]  =  0; // Cell #1 installed in cell position #1
+   p->cellpos[ 1]  =  1; // ...
+   p->cellpos[ 2]  =  2; // 
+   p->cellpos[ 3]  =  3; // 
+   p->cellpos[ 4]  =  4; // 
+   p->cellpos[ 5]  =  5; // 
+   p->cellpos[ 6]  =  6; // 
+   p->cellpos[ 7]  =  7; // 
+   p->cellpos[ 8]  =  8; 
+   p->cellpos[ 9]  =  9;
+   p->cellpos[10]  = 10; 
+   p->cellpos[11]  = 11; 
+   p->cellpos[12]  = 12; 
+   p->cellpos[13]  = 13; 
+   p->cellpos[14]  = 14; 
+   p->cellpos[15]  = 15; 
+   p->cellpos[16]  = 16; 
+   p->cellpos[17]  = 17; // Cell #18 is installed in cell position #18
+
+ #else  
    /* 16 cells installed in 18 position box. */
    p->cellpos[ 0]  =  0; // Cell #1 installed in cell position #1
    p->cellpos[ 1]  =  1; // ...
@@ -87,6 +112,7 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->cellpos[15]  = 13; 
    p->cellpos[16]  = 14; 
    p->cellpos[17]  = 15; // Cell #16 is installed in cell position #18
+ #endif
 
 #else
 

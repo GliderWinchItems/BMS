@@ -11,6 +11,15 @@ See ADCVAX command.
 
 Use 10K?
 
+08/13/2022
+
+3. Zener vs resistor divider for P-FETs
+
+- Vgs +/- 20v is one solution
+- 1M:2M divider
+
+
+
 
 
 

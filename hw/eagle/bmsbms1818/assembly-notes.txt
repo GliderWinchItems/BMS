@@ -74,7 +74,7 @@ H11L1 (three opto's)
 
 Software
 
-Hacked version of the '14921 
+Hacked version of the '14921 sw
 
 1. Compiled program should load
 
@@ -127,5 +127,14 @@ check the board output.
 - Jumper JP1 with ribbon power and see if boots up
 
 - 
+
+08/13/2022
+
+Build-out of two more '1818 boards
+
+1. P-FETs
+
+- PMV65XPVL
+Vgs not sufficient (+/- 12v)
 
 

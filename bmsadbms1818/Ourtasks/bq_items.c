@@ -100,7 +100,6 @@ uint8_t bq_items(void)
 	 /* Fall through. */
 	case 2: /* Get read & get current register settings. (REQ_READBMS) */
 		bq_items_q(REQ_READBMS); // Queue request
-//while(1==1){HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_1);osDelay(125);}		
 		state = 3;
 		break;
 
@@ -108,7 +107,7 @@ uint8_t bq_items(void)
 		if (bmstask_q_readbms.done != 0)		
 			break;
 		retx = 1;
-	     /* Setup discharge FET bits, and update other FETs. */
+	     /* Select discharge FETs, and update other FET selections. */
 		bq_items_selectfet(); // Determine on/off for all FETs
 
 #if 0 // Testing discharge FET bit operation
@@ -123,6 +122,7 @@ dbgf = 1; // Set & compile for each
 #endif
 		/* Activate the settings from the foregoing logic. */
 		// Update discharge FETs
+		bmstask_q_readbms.setfets = bqfunction.cellbal;
 		bq_items_q(REQ_SETFETS); // Queue BMS request
 		// Other FETs
 		fetonoff_status_set(bqfunction.fet_status);
@@ -143,6 +143,8 @@ dbgf = 1; // Set & compile for each
  * void bq_items_selectfet(void);
  * @brief	: Go thought a sequence of steps to determine balancing
  * *************************************************************************/
+uint32_t dbgcell[18];
+uint32_t dbgcellbal;
 void bq_items_selectfet(void)
 {
 	struct BQFUNCTION* pbq = &bqfunction; // Convenience pointer
@@ -171,6 +173,7 @@ void bq_items_selectfet(void)
 	for (i = 0; i < NCELLMAX; i++)
 	{
 		idata = (*p * 0.1f); // Convert calibrated float (100uv) to uint16_t (1mv)
+dbgcell[i] = idata*10;
 		if ((pbq->cellspresent & (1<<i)) != 0)
 		{ // Here, cell position is installed
 			if  ((idata <= pbq->lc.cellopen_lo)||(idata > pbq->lc.cellopen_hi))
@@ -227,17 +230,20 @@ void bq_items_selectfet(void)
 		}
 		p += 1; // Next cellv array
 	}
-
+dbgcellbal = pbq->cellbal;
 	/* Set FET status.  */
 
+#if 1
 	/* Unusual situation check. */
 	if (((pbq->battery_status & BSTATUS_NOREADING) != 0) ||
 	    ((pbq->battery_status & BSTATUS_OPENWIRE)  != 0) )
 	{ // Here serious problem, so no charging, or discharging
 		pbq->fet_status &= ~(FET_DUMP|FET_HEATER|FET_DUMP2|FET_CHGR|FET_CHGR_VLC);
 		pbq->cellbal = 0; // All cell balancing FETS off
+//morse_trap(1);
 		return;
 	}
+#endif	
 	// Here it looks like we have a normal situation with good readings
 	/* Check for out-of-limit voltages */
 
@@ -247,6 +253,7 @@ void bq_items_selectfet(void)
 		pbq->fet_status &= ~(FET_DUMP|FET_HEATER); // Disable discharge
 		// The following assumes DUMP2 FET controls an external charger
 		pbq->cellbal = 0; // All cell balancing FET bits off
+//morse_trap(2);		
 		// Here, one or more are too low, but are any still too high?
 		if (pbq->cellv_high > pbq->lc.cellv_max)
 		{ // EGADS YES! We cannot charge, but can selectively discharge
@@ -279,6 +286,7 @@ void bq_items_selectfet(void)
 	{ // Relaxation hysteresis is in effect
 		// Everything off
 		pbq->cellbal   = 0;
+//morse_trap(3);
 		pbq->fet_status &= ~(FET_DUMP|FET_HEATER|FET_DUMP2|FET_CHGR|FET_CHGR_VLC);
 
 		// Stop relaxation when one or more cells hits hysteresis low end

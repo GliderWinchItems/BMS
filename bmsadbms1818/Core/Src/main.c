@@ -1054,7 +1054,7 @@ static void MX_TIM15_Init(void)
 
   /* USER CODE END TIM15_Init 1 */
   htim15.Instance = TIM15;
-  htim15.Init.Prescaler = 0;
+  htim15.Init.Prescaler = 16;
   htim15.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim15.Init.Period = 65535;
   htim15.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -1279,6 +1279,9 @@ uint8_t state_defaultTask = 0;
 static struct BMSREQ_Q bmsreq_1;
 struct BMSREQ_Q* pbmsreq_1 = &bmsreq_1;
 
+char* pcheader =
+"\n\r                 1      2      3      4      5      6      7      8      9     10     11     12     13     14     15     16     17     18";
+
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void *argument)
 {
@@ -1313,11 +1316,6 @@ extern uint32_t dbstat2;
   for(;;) /* Loop polls various operations. */
   {  
     vTaskDelayUntil( &tickcnt, xPeriod );
-
-    if (bmsspiall.err1ct != 0)
-    {
-      yprintf(&pbuf1,"\n\n\r############ LOOPCTR ERR: %d\n\r",bmsspiall.err1ct);
-    }
 
 #if 0 // Processor ADC display
     adcctr += 1;
@@ -1395,8 +1393,7 @@ adc1.common.ts_calrate );
         break;
 
       case 4:
-       yprintf(&pbuf1,"\n\r                 1      2      3      4      5      6      7      8      9     10"
-        "     11     12     13     14     15     16     17     18");
+       yprintf(&pbuf1,"%s",pcheader);
        yprintf(&pbuf2,"\n\r%5d ADCVAX",dbgka);
        for (i = 0; i < 18; i++) yprintf(&pbuf1," %6d",bmsspiall.cellreg[i]);
        yprintf(&pbuf1," %d",dbstat2/16);
@@ -1445,7 +1442,8 @@ adc1.common.ts_calrate );
 #if 1
     /* Cell balance & control. */
     uint32_t dcc = extractconfigreg.dcc;
-    char cline[96];
+    #define LSPC 7 // column spacing
+    char cline[LSPC*18+2];
 
     /* Check cell balance. */
     uint8_t ret8 = bq_items(); 
@@ -1454,26 +1452,48 @@ adc1.common.ts_calrate );
       bms_items_extract_configreg();
 extern uint8_t dbgf;
 extern struct BMSREQ_Q  bmstask_q_readbms;
-      yprintf(&pbuf1,"\n\r    %05X   ",bmstask_q_readbms.setfets);
-      for (i=0; i < 18; i++) yprintf(&pbuf2,"%4d",(1+i));
+//      yprintf(&pbuf1,"\n\r    %05X   ",bmstask_q_readbms.setfets);
+//      for (i=0; i < 18; i++) yprintf(&pbuf2,"%4d",(1+i));
+      yprintf(&pbuf1,"%s",pcheader);
 
-      yprintf(&pbuf1,"\n\r%5d %02d FETS  ",fctr++,dbgf+1);\
-      memset(cline,' ',(4*18));
+      yprintf(&pbuf2,"\n\r%5d %02d FETS    ",fctr++,dbgf+1);
+      memset(cline,' ',(LSPC*18));
+      // Build a nice ASCII line whilst previous line prints
       for (i=0; i < 18; i++)
       {
         if ((dcc & (1<<i)) != 0)
-          cline[i*4] = '#';
+          cline[i*LSPC] = '#';
         else
-          cline[i*4] = '.';
+          cline[i*LSPC] = '.';
       }
-      cline[18*4] = 0;
-      yprintf(&pbuf2,"%s",cline);
+      cline[18*LSPC] = 0;
+      yprintf(&pbuf1,"%s",cline);
 
-yprintf(&pbuf1,"\n\rcellv[i]       : ");
-for (i = 0; i < 18; ++i) yprintf(&pbuf2," %5.0f",bqfunction.cellv[i]);
-yprintf(&pbuf1,"\n\rcellv_latest[i]: ");
-for (i = 0; i < 18; ++i) yprintf(&pbuf2," %5d",bqfunction.cellv_latest[i]);
-yprintf(&pbuf2,"\n\rcellspresent: %05X",bqfunction.cellspresent); 
+      yprintf(&pbuf2,"\n\rcellv[i] : ");
+      for (i = 0; i < 18; ++i) yprintf(&pbuf2," %6.0f",bqfunction.cellv[i]);
+
+      extern uint32_t dbgcell[18];
+      yprintf(&pbuf2,"\n\rdbgcellv : ");
+      for (i = 0; i < 18; ++i) yprintf(&pbuf2," %6d",dbgcell[i]);
+
+      yprintf(&pbuf1,"\n\r%5d %02d MAX|MIN ",fctr++,dbgf+1);
+      memset(cline,' ',(LSPC*18));
+      // Build a nice ASCII line whilst previous line prints
+      for (i=0; i < 18; i++)
+      {
+        if ((bqfunction.cellv_max_bits & (1<<i)) != 0)
+          cline[i*LSPC] = '+';
+        if ((bqfunction.cellv_min_bits & (1<<i)) != 0)
+          cline[i*LSPC] = '-';
+      }
+      cline[18*LSPC] = 0;
+      yprintf(&pbuf2,"%s",cline);        
+
+#if 0  
+      yprintf(&pbuf1,"\n\rcellv_latest[i]: ");
+      for (i = 0; i < 18; ++i) yprintf(&pbuf2," %5d",bqfunction.cellv_latest[i]);
+#endif
+      yprintf(&pbuf2,"\n\rcellspresent: %05X",bqfunction.cellspresent); 
 
       yprintf(&pbuf1,"\n\rcellv_hi: x %2d v %5d",bqfunction.cellx_high,bqfunction.cellv_high);
       yprintf(&pbuf2,"\n\rcellv_lo: x %2d v %5d",bqfunction.cellx_low, bqfunction.cellv_low);
@@ -1483,13 +1503,22 @@ yprintf(&pbuf2,"\n\rcellspresent: %05X",bqfunction.cellspresent);
       yprintf(&pbuf1,"\n\rcellv_min: %5d cellv_min: %05X",bqfunction.lc.cellv_min, bqfunction.cellv_min_bits);
 
       yprintf(&pbuf2,"\n\rcellv_vls: %5d cellv_vlc_bits: %05X",bqfunction.lc.cellv_vlc, bqfunction.cellv_vlc_bits);
-      yprintf(&pbuf1,"\n\rcallbal: %05X",bqfunction.cellbal);
 
-      yprintf(&pbuf1,"\n\r config:");
-      for (i=0; i < 6; i++)
-      {
-        yprintf(&pbuf2," %04X",bmsspiall.configreg[i]);
-      }
+      yprintf(&pbuf1,"\n\rcallbal:   %05X  fet_status: %04X FET_CHRG: %01X",bqfunction.cellbal,
+          bqfunction.fet_status,(bqfunction.fet_status & FET_CHGR));
+
+      extern uint32_t dbgcellbal;
+      yprintf(&pbuf1,"\n\rdbgcellbal:%05X",dbgcellbal);
+
+      yprintf(&pbuf1,"\n\r config:   %04X %04X %04X %04X %04X %04X",
+        bmsspiall.configreg[0],bmsspiall.configreg[1],bmsspiall.configreg[2],
+        bmsspiall.configreg[3],bmsspiall.configreg[4],bmsspiall.configreg[5]);
+
+    if (bmsspiall.err1ct != 0)
+    {
+      yprintf(&pbuf1,"\n\n\r### LOOPCTR ERR: %d\n\r",bmsspiall.err1ct);
+      bmsspiall.err1ct = 0;
+    }      
 
   #if 0 /* RTC register check. */
       switch (state_defaultTask)

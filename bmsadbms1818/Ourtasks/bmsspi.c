@@ -52,9 +52,9 @@ enum TIMSTATE
 	TIMSTATE_TO,
 };
 
-#define CSBDELAYFALL (6*16) // CSB falling delay: 6 us with 16 MHz sysclock
-#define CSBDELAYRISE (5*16) // CSB rising delay: 5 us with 16 MHz sysclock
-#define DELAYCONVERTMIN (55*16) // Minimum end of conversion command delay
+#define CSBDELAYFALL (6+10) // CSB falling delay: 6 us with 1 MHz timer clock
+#define CSBDELAYRISE (5+10) // CSB rising delay: 5 us with 1 MHz timerclock
+#define DELAYCONVERTMIN (55+10) // Minimum end of conversion command delay
 
 static uint8_t rwtype; // code: command, command + data, etc.
 
@@ -155,16 +155,16 @@ void bmsspi_readstuff(uint8_t code)
 	  5 - number of reads or writes of a group
 	*/
 	case READCELLSGPIO12: // ADC cell voltages + GPIO1 & GPIO2
-		readreg(ADCVAX,(3140*16),bmsspiall.cellreg, cmdv, 6); // ADC and Read cell volts
+		readreg(ADCVAX,(3140+500),bmsspiall.cellreg, cmdv, 6); // ADC and Read cell volts
 		readreg(     0,        0,bmsspiall.auxreg, &cmdv[6], 1); // Read AUX reg A GPIOs 1-3
 		break;
 
 	case READGPIO: // ADC and Read all 9 GPIOs voltage registers: A B C D 
-		readreg(  ADAX,(3862*16),bmsspiall.auxreg, cmdaux, 4);
+		readreg(  ADAX,(3862+500),bmsspiall.auxreg, cmdaux, 4);
 		break;
 
 	case READSTAT: // ADC and Read status regs: A B
-		readreg(ADSTAT,(1556*16),bmsspiall.statreg, cmdstat, 2);
+		readreg(ADSTAT,(1556+500),bmsspiall.statreg, cmdstat, 2);
 		break;
 
 	case READCONFIG: // Read configuration
@@ -175,7 +175,7 @@ void bmsspi_readstuff(uint8_t code)
 		break;	
 
 	case READAUX: // ADC and Read all 9 GPIOs voltage registers: A B C D 
-		readreg(  ADAX,(3900*16),bmsspiall.auxreg, cmdaux,4);
+		readreg(  ADAX,(3900+500),bmsspiall.auxreg, cmdaux,4);
 		break;			
 
 	default: 
@@ -618,7 +618,7 @@ dbgTO_SR = SPI1->SR;
 			}
 			else
 			{ // Remaining wait_isr count is less than one timer turnover
-				if (wait_isr < 48) wait_isr = 48; // Allow enough to assure next instruction
+				if (wait_isr < 6) wait_isr = 6; // Allow enough to assure next instruction
 				TIM15->CCR1 = (uint16_t)(TIM15->CNT + wait_isr); 
 				break;
 			}
