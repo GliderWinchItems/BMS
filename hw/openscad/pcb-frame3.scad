@@ -128,8 +128,8 @@ xx = 0; // Hole centering adjustment
     
     translate([0,0,0])
     {
-cc = (141-6)/2;
-bb = (51-4.3)/2;        
+cc = (141-5)/2;
+bb = (51-3.3)/2;        
     postsq([-cc,-bb,0],[0,0, 0]);
     postsq([+cc,-bb,0],[0,0, 90]);
     postsq([-cc,+bb,0],[0,0,-90]);
