@@ -47,6 +47,9 @@ TaskHandle_t CanCommHandle = NULL;
 #define CANCOMMBIT04 (1 << 4) // BMSREQ_Q [1] complete: Send cell voltage
 #define CANCOMMBIT05 (1 << 5) // BMSREQ_Q [2] complete: Send misc reading command
 #define CANCOMMBIT06 (1 << 6) // BMSREQ_Q [3] complete: Multi-purpose incoming command
+#define CANCOMMBIT07 (1 << 7) // Send cell voltage  command
+#define CANCOMMBIT08 (1 << 8) // Send misc reading command
+#define CANCOMMBIT09 (1 << 9) // Multi-purpose incoming command
 
 struct CANRCVBUF  can_hb; // Dummy heart-beat request CAN msg
 uint8_t hbseq; // heartbeat CAN msg sequence number
@@ -80,17 +83,28 @@ void CanComm_init(struct BQFUNCTION* p )
 	uint8_t i;
 
 	/* Add CAN Mailboxes                               CAN     CAN ID             TaskHandle,Notify bit,Skip, Paytype */
-    p->pmbx_cid_cmd_bms_cellvq = MailboxTask_add(pctl0,p->lc.cid_cmd_bms_cellvq, NULL, CANCOMMBIT00,0,U8); // Command: send cell voltages
-    if (p->pmbx_cid_cmd_bms_cellvq == NULL) morse_trap(620);
-    p->pmbx_cid_cmd_bms_miscq  = MailboxTask_add(pctl0,p->lc.cid_cmd_bms_miscq,  NULL, CANCOMMBIT01,0,U8); // Command: many options	
-    if (p->pmbx_cid_cmd_bms_miscq == NULL) morse_trap(621);
-    p->pmbx_cid_uni_bms_i      = MailboxTask_add(pctl0,p->lc.cid_uni_bms_i,      NULL, CANCOMMBIT02,0,U8); // muli-purpose BQ76952  #01
-    if (p->pmbx_cid_uni_bms_i == NULL) morse_trap(622);
+    p->pmbx_cid_cmd_bms_cellvq_emc = MailboxTask_add(pctl0,p->lc.cid_cmd_bms_cellvq_emc, NULL, CANCOMMBIT00,0,U8); // Command: send cell voltages
+    if (p->pmbx_cid_cmd_bms_cellvq_emc == NULL) morse_trap(620);
+    p->pmbx_cid_cmd_bms_miscq_emc  = MailboxTask_add(pctl0,p->lc.cid_cmd_bms_miscq_emc,  NULL, CANCOMMBIT01,0,U8); // Command: many options	
+    if (p->pmbx_cid_cmd_bms_miscq_emc == NULL) morse_trap(621);
+    p->pmbx_cid_uni_bms_emc_i      = MailboxTask_add(pctl0,p->lc.cid_uni_bms_emc_i,      NULL, CANCOMMBIT02,0,U8); // universal
+    if (p->pmbx_cid_uni_bms_emc_i == NULL) morse_trap(622);
 
-    /* Add CAN msgs to incoming CAN filter. */
- //   canfilt(601, p->pmbx_cid_cmd_bms_cellvq);
- //   canfilt(602, p->pmbx_cid_cmd_bms_miscq);
- //   canfilt(603, p->pmbx_cid_uni_bms_i);
+    p->pmbx_cid_cmd_bms_cellvq_pc = MailboxTask_add(pctl0,p->lc.cid_cmd_bms_cellvq_pc, NULL, CANCOMMBIT07,0,U8); // Command: send cell voltages
+    if (p->pmbx_cid_cmd_bms_cellvq_pc == NULL) morse_trap(620);
+    p->pmbx_cid_cmd_bms_miscq_pc  = MailboxTask_add(pctl0,p->lc.cid_cmd_bms_miscq_pc,  NULL, CANCOMMBIT08,0,U8); // Command: many options	
+    if (p->pmbx_cid_cmd_bms_miscq_pc == NULL) morse_trap(621);
+    p->pmbx_cid_uni_bms_pc_i      = MailboxTask_add(pctl0,p->lc.cid_uni_bms_pc_i,      NULL, CANCOMMBIT09,0,U8); // universal
+    if (p->pmbx_cid_uni_bms_pc_i == NULL) morse_trap(622);
+
+
+    /* Add CAN msgs to incoming CAN hw filter. (Skip to allow all incoming msgs. */
+ //   canfilt(601, p->pmbx_cid_cmd_bms_cellvq_emc);
+ //   canfilt(602, p->pmbx_cid_cmd_bms_miscq_emc);
+ //   canfilt(603, p->pmbx_cid_uni_bms_emc_i);
+ //   canfilt(601, p->pmbx_cid_cmd_bms_cellvq_pc);
+ //   canfilt(602, p->pmbx_cid_cmd_bms_miscq_pc);
+ //   canfilt(603, p->pmbx_cid_uni_bms_pc_i);
 
     	/* Pre-load fixed data in all possible CAN msgs */
 	for (i = 0; i < NUMCANMSGS; i++)
@@ -119,8 +133,8 @@ void CanComm_init(struct BQFUNCTION* p )
 	p->canmsg[CID_CMD_MISC].can.id = p->lc.cid_msg_bms_cellvsmr;
 	p->canmsg[CID_CMD_MISC].can.cd.uc[2] = p->ident_onlyus;
 
-	/* Pre-load a dummy CAN msg request for sending heartbeat CAN msg. */
-	can_hb.id       = p->lc.cid_uni_bms_i;
+	/* Pre-load a dummy CAN msg request (from EMC) for sending heartbeat CAN msg. */
+	can_hb.id       = p->lc.cid_uni_bms_emc_i;
 	can_hb.cd.ull   = 0; // Clear entire payload
 	can_hb.cd.uc[0] = CMD_CMD_TYPE1;  // request code (initial, changed later)
 	can_hb.cd.uc[4] = p->lc.cid_msg_bms_cellvsmr >>  0; // Our CAN ID
@@ -170,10 +184,23 @@ osDelay(20); // Wait for ADCTask to get going.
        		// 10 = All modules on identified string respond
        		// 01 = Only identified string and module responds
        		// 00 = spare; no response expected
-		if ((noteval & CANCOMMBIT00) != 0) // cid_cmd_bms_cellvq
-		{  // Send cell voltages, bu first get present readings
+		if ((noteval & CANCOMMBIT00)  != 0) // cid_cmd_bms_cellvq
+		{  // Send cell voltages, but first get present readings
 morse_trap(6666);			
-			pcan = &p->pmbx_cid_cmd_bms_cellvq->ncan.can;
+			pcan = &p->pmbx_cid_cmd_bms_cellvq_emc->ncan.can;
+			code = pcan->cd.uc[0] & 0xC0; // Extract identification code
+			if (((code == (3 << 6))) ||
+				((code == (2 << 6)) && ((pcan->cd.uc[0] & 0x30) == p->ident_string)) ||
+				((code == (1 << 6)) && ((pcan->cd.uc[0] & 0x3F) == p->ident_onlyus)) )
+			{ // Here, respond to request, otherwise, ignore
+				// But get readings before sending msgs.
+				CanComm_qreq(REQ_READBMS, 1, CANCOMMBIT04); // Queue request
+			}			
+		}
+		if ((noteval & CANCOMMBIT07)!= 0)
+		{
+morse_trap(6661);			
+			pcan = &p->pmbx_cid_cmd_bms_cellvq_pc->ncan.can;
 			code = pcan->cd.uc[0] & 0xC0; // Extract identification code
 			if (((code == (3 << 6))) ||
 				((code == (2 << 6)) && ((pcan->cd.uc[0] & 0x30) == p->ident_string)) ||
@@ -193,7 +220,7 @@ morse_trap(6666);
 		{
 morse_trap(5555);
 			/* Get present readings. */
-			pcan = &p->pmbx_cid_cmd_bms_miscq->ncan.can;
+			pcan = &p->pmbx_cid_cmd_bms_miscq_emc->ncan.can;
 			code = pcan->cd.uc[0] & 0xC0; // Extract identification code
 			if (((code == (3 << 6))) ||
 				((code == (2 << 6)) && ((pcan->cd.uc[0] & 0x30) == p->ident_string)) ||
@@ -203,8 +230,22 @@ morse_trap(5555);
 				CanComm_qreq(REQ_READBMS, 2, CANCOMMBIT05); // Queue request
 			}
 		}
+		if ((noteval & CANCOMMBIT08) != 0) // cid_cmd_bms_miscq
+		{
+morse_trap(5551);
+			/* Get present readings. */
+			pcan = &p->pmbx_cid_cmd_bms_miscq_pc->ncan.can;
+			code = pcan->cd.uc[0] & 0xC0; // Extract identification code
+			if (((code == (3 << 6))) ||
+				((code == (2 << 6)) && ((pcan->cd.uc[0] & 0x30) == p->ident_string)) ||
+				((code == (1 << 6)) && ((pcan->cd.uc[0] & 0x3F) == p->ident_onlyus)) )
+			{ // Here, respond to request, but get readings before sending msgs.
+				can05 = *pcan; // Save while BMSTask request take place
+				CanComm_qreq(REQ_READBMS, 2, CANCOMMBIT05); // Queue request
+			}
+		}		
 /* ******* CAN msg request for sending MISC READINGS. */
-		if ((noteval & CANCOMMBIT02) != 0) // cid_uni_bms_i
+		if ((noteval & (CANCOMMBIT02 || CANCOMMBIT09)) != 0) // cid_uni_bms_i
 		{
             CanComm_qreq(REQ_READBMS, 3, CANCOMMBIT06); // Queue request		
 		}
@@ -241,7 +282,7 @@ morse_trap(5555);
 		}		
 		if ((noteval & CANCOMMBIT06) != 0) // BMSREQ_Q complete: Multi-purpose incoming command		
 		{
-			cancomm_items_uni_bms(&p->pmbx_cid_uni_bms_i->ncan.can, NULL);
+			cancomm_items_uni_bms(&p->pmbx_cid_uni_bms_emc_i->ncan.can, NULL);
 
 		}		
 	} 	

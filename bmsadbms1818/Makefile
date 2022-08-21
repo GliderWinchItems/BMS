@@ -104,12 +104,15 @@ C_SOURCES += Ourwares/ADCTask.c
 C_SOURCES += Ourtasks/adcfastsum16.c
 C_SOURCES += Ourtasks/adcparams.c
 C_SOURCES += Ourtasks/adcparamsinit.c
-C_SOURCES += Ourtasks/adc_idx_v_struct.c
+
+#C_SOURCES += Ourtasks/adc_idx_v_struct.c
+C_SOURCES += params/$(ADC_PARAM)
+C_SOURCES += params/$(BQ_PARAM)
+
 C_SOURCES += Ourtasks/iir_f1.c
 C_SOURCES += Ourtasks/iir_filter_lx.c
 C_SOURCES += Ourtasks/fetonoff.c
 C_SOURCES += Ourtasks/bqview.c
-C_SOURCES += Ourtasks/bq_idx_v_struct.c
 C_SOURCES += Ourtasks/bq_func_init.c
 #C_SOURCES += Ourtasks/LedTask.c
 C_SOURCES += Ourtasks/bq_items.c

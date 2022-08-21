@@ -1,8 +1,8 @@
 /******************************************************************************
-* File Name          : bq_idx_v_struct.c
-* Date First Issued  : 10/01/2021
-* Board              :
-* Description        : Load parameter struct
+* File Name          : B0C00000-bq_idx_v_struct.c
+* Date First Issued  : 08/20/2022
+* Board              : bmsadbms1818
+* Description        : Load BQ parameter struct: B0C00000 ADBMS1818 board #2
 *******************************************************************************/
 
 #include "bq_idx_v_struct.h"
@@ -330,19 +330,20 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->temp_fan_min = 27.5f; // Between max & min fan proporational
    p->temp_fan_max = 48.0f; // Above max fan is 100%
 
-
-/*
-('CANID_UNIT_BMS03','B0A00000','UNIT_BMS03', 1,1,'U8_U8_U8_X4','BMS ADBMS1818 #01');
-*/
 // List of CAN ID's for setting up hw filter for incoming msgs
    //                      CANID_HEX      CANID_NAME             CAN_MSG_FMT     DESCRIPTION
    	// We receive: EMC
-   p->cid_cmd_bms_cellvq = CANID_CMD_BMS_CELLVQ; // B0200000 
-   p->cid_cmd_bms_miscq  = CANID_CMD_BMS_MISCQ;  // B0400000 request reading for many options
-   p->cid_unit_bms01     = CANID_UNIT_BMS01;     // B0600000 universal, multi-purpose BQ76952  #01
-   p->cid_uni_bms_i      = CANID_UNI_BMS_I;      // B0000000 UNIversal BMS Incoming msg to BMS: X4=target CANID
+   p->cid_cmd_bms_cellvq_emc= CANID_CMD_BMS_CELLVQ_EMC;// B0200000 EMC requests to BMS to send cellv, cmd code
+   p->cid_cmd_bms_cellvq_pc = CANID_CMD_BMS_CELLVQ_PC; // B0200004 PC  requests to BMS to send cellv, cmd code
+   p->cid_cmd_bms_miscq_emc = CANID_CMD_BMS_MISCQ_EMC; // B0400000 EMC requests to BMS for value for given cmd code
+   p->cid_cmd_bms_miscq_pc  = CANID_CMD_BMS_MISCQ_PC;  // B0400004 PC  requests to BMS for value for given cmd code
+   p->cid_uni_bms_emc_i     = CANID_UNI_BMS_EMC_I; // B0000000
+   p->cid_uni_bms_pc_i      = CANID_UNI_BMS_PC_I;  // B0200000 UNIversal From PC,  Incoming msg to BMS: X4=target CANID');   
+
 
 // CAN ids BMS sends, others receive
-   p->cid_msg_bms_cellvsmr = CANID_MSG_BMS_CELLV12R; //'B0201124', U16_U16_U16_U16'
+   // BMS sends cell readings with this CAN ID
+   // 03 ADBMS1818 #AD01 U16:id,U16:cellv n+1,U16:cellv n+2');
+   p->cid_msg_bms_cellvsmr = CANID_MSG_BMS_CELLV13R; // B0201134', U16_U16_U16_U16'
 	return;
 }

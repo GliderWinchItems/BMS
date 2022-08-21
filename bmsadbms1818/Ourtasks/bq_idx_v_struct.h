@@ -99,18 +99,18 @@ struct BQLC
 
  // CAN ids ...........................................................................
    //                                  CANID_NAME            CANID       PAYLOAD FORMAT
-    // BMS sends; EMC receives
-   uint32_t cid_msg_bms_cellvsmr; // CANID_MSG_BMS_CELLV11R','B0201114', 'U8_U8_U16_U16_U16'
-   uint32_t cid_cmd_bms_misc11r;  // CANID_CMD_BMS_MISC11R' ,'B0401114', 'U8_U8_U8_X4'
- 
+    // BMS sends; EMC, PC or other receives
+   uint32_t cid_msg_bms_cellvsmr; // 
+   uint32_t cid_cmd_bms_misc11r;  // 
 
  // List of CAN ID's for setting up hw filter for incoming msgs
-   // EMC sends; BMS receives
-   uint32_t cid_cmd_bms_cellvq; // CANID_CMD_BMS_CELLVQ B0200000 request cell voltages
-   uint32_t cid_cmd_bms_miscq;  // CANID_CMD_BMS_MISCQ  B0400000 request reading for many options
-   uint32_t cid_unit_bms01;     // CANID_UNIT_BMS01     B0600000 multi-purpose BQ76952  #01
-   uint32_t cid_uni_bms_i;      // CANID_UNI_BMS_I      B0000000 multi-purpose universal BMS
-
+   // EMC or PC sends; BMS receives
+   uint32_t cid_cmd_bms_cellvq_emc;// CANID_CMD_BMS_CELLVQ_EMC B0200000 request cell voltages
+   uint32_t cid_cmd_bms_cellvq_pc; // CANID_CMD_BMS_CELLVQ_PC  B0200004 request cell voltages
+   uint32_t cid_cmd_bms_miscq_emc; // CANID_CMD_BMS_MISCQ_EMC  B0400000 request reading for many options
+   uint32_t cid_cmd_bms_miscq_pc;  // CANID_CMD_BMS_MISCQ_PC   B0400004 request reading for many options
+   uint32_t cid_uni_bms_emc_i;     // CANID_UNI_BMS_EMC_I      B0000000 multi-purpose universal BMS
+   uint32_t cid_uni_bms_pc_i;      // CANID_UNI_BMS_PC_I       B0200000 multi-purpose universal BMS
  };
 
 /* *************************************************************************/

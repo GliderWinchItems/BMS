@@ -1,11 +1,15 @@
 #!/bin/bash
-
-
-
-export FLOAT_TYPE=hard
+# Example: Specify CAN ID to select parameters
+# e.g. CAN ID = BOA00000
+# ./mm BOA00000 
 
 rm build/bms1818.elf
-make
+export FLOAT_TYPE=hard
+
+# Parameters for CAN ID specified by $1
+export ADC_PARAM=$1-adc_idx_v_struct.c
+export BQ_PARAM=$1-bq_idx_v_struct.c
+echo $ADC_PARAM $BQ_PARAM
 
 ./script-all bms1818
 

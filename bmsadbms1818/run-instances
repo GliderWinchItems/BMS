@@ -1,0 +1,6 @@
+#!/bin/bash
+# run-instances
+
+./mm B0A00000
+./mm B0C00000
+
