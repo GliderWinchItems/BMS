@@ -59,6 +59,8 @@ defined in linker script */
     .section	.text.Reset_Handler
 	.weak	Reset_Handler
 	.type	Reset_Handler, %function
+	.word	_begin_flash
+	.word   _end_prog
 Reset_Handler:
   ldr   sp, =_estack    /* Set stack pointer */
 

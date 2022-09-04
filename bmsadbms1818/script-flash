@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "FILE NAME: $1"
+echo "SCRIPT-FLASH FILE NAME: $1"
 echo
 
 openocd  \

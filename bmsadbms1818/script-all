@@ -1,6 +1,11 @@
 #!/bin/bash
-
-make
+echo "################ COMPILE ##################"
+if make ; then
+	echo "################ SUCCESS ##################"
+else
+	echo "################ FAIL ##################"
+	exit 1;
+fi	
 
 cd build
 
@@ -9,4 +14,14 @@ $ARM_PREFIX/bin/arm-none-eabi-objdump -S $1.elf > $1.list
 
 $ARM_PREFIX/bin/arm-none-eabi-objcopy -O srec $1.elf $1.srec
 
+echo
+echo "################# ADD CRC & CHECKSUM #################"
+~/G*ems/CANloader/PC/crc-srec/crc-srec $1
+
+mv $1.srec-crc $1.srec
+chmod 775 $1.srec
+
+echo "################# SCRIPT-FLASH #################"
 ../script-flash $1
+
+exit 0;

@@ -63,12 +63,18 @@ MEMORY
 {
 RAM (xrw)      : ORIGIN = 0x20000000, LENGTH = 48K
 RAM2 (xrw)      : ORIGIN = 0x10000000, LENGTH = 16K
-FLASH (rx)      : ORIGIN = 0x8000000, LENGTH = 128K
+FLASH (rx)      : ORIGIN = 0x8000000+0x8000, LENGTH = 128K-0x8000
 }
 
 /* Define output sections */
 SECTIONS
 {
+  /* This is used by the startup in order to find the end */
+  .beginof :
+  {
+   _begin_flash = .;   /* define a global symbol for begin of flash */
+  } >FLASH
+
   /* The startup code goes first into FLASH */
   .isr_vector :
   {
@@ -188,7 +194,11 @@ SECTIONS
     . = ALIGN(8);
   } >RAM
 
-  
+  /* This is used by the startup in order to find the end */
+  .endof :
+ {
+   _end_prog = .;   /* define a global symbol at the end of flash */
+ } >FLASH
 
   /* Remove information from the standard libraries */
   /DISCARD/ :
