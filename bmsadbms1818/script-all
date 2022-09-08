@@ -18,8 +18,11 @@ echo
 echo "################# ADD CRC & CHECKSUM #################"
 ~/G*ems/CANloader/PC/crc-srec/crc-srec $1
 
-mv $1.srec-crc $1.srec
+echo "################# SAVE & MOVE FILE   #################"
+cp $1.srec $1.srec.save
+cp $1.srec-crc $1.srec
 chmod 775 $1.srec
+ls -l *srec* 
 
 echo "################# SCRIPT-FLASH #################"
 ../script-flash $1
