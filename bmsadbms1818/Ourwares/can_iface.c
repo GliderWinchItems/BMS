@@ -40,7 +40,7 @@ extern CAN_HandleTypeDef hcan2;
 #define YESABORTCODE
 
 /* Uncomment to cause TX msgs bit set to appear as received after sent. */
-#define CANMSGLOOPBACKALL
+//#define CANMSGLOOPBACKALL
 
 /* subroutine declarations */
 static void loadmbx2(struct CAN_CTLBLOCK* pctl);
@@ -479,6 +479,7 @@ volatile	struct CAN_POOLBLOCK* p = pctl->pxprv->plinknext;//pctl->pend.plinknext
 	pctl->abortflag = 0;
 	loadmbx2(pctl);		// Load mailbox 0.  Mailbox should be available/empty.
 //portYIELD_FROM_ISR( xHigherPriorityTaskWoken ); // Trigger scheduler
+	return;
 }
 
 /* Transmission Mailbox 0 Abort callback. */

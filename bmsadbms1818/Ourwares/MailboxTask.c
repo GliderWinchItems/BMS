@@ -587,7 +587,7 @@ static struct MAILBOXCAN* loadmbx(struct MAILBOXCANNUM* pmbxnum, struct CANRCVBU
 
 	pmbx->ctr    += 1; // Count updates	
 	pmbx->newflag = 1; // Set flag; user resets if desired
-	
+
 	// Traverse linked list making notifications
 	do 
 	{

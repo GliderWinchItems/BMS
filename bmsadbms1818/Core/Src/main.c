@@ -1519,6 +1519,8 @@ extern struct BMSREQ_Q  bmstask_q_readbms;
       yprintf(&pbuf1,"\n\n\r### LOOPCTR ERR: %d\n\r",bmsspiall.err1ct);
       bmsspiall.err1ct = 0;
     }      
+extern uint32_t dbgCanTask1;
+yprintf(&pbuf2,"\n\rdbCanTask1: %d", dbgCanTask1);
 
   #if 0 /* RTC register check. */
       switch (state_defaultTask)

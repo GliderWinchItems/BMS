@@ -70,8 +70,8 @@ static void CanComm_qreq(uint32_t reqcode, uint8_t idx, uint32_t notebit)
     bmsreq_c[idx].tasknote = notebit; // Notification bit for this request
     bmsreq_c[idx].noteyes  = 1; // Wait notification
     // Queue request for BMSTask.c
-    int ret = xQueueSendToBack(BMSTaskReadReqQHandle, &pbmsreq_c[idx], 0);
-    if (ret != pdPASS) morse_trap(650);	
+//   int ret = xQueueSendToBack(BMSTaskReadReqQHandle, &pbmsreq_c[idx], 0);
+//    if (ret != pdPASS) morse_trap(650);	
     return;
 }
 /* *************************************************************************
@@ -176,7 +176,7 @@ osDelay(20); // Wait for ADCTask to get going.
 		/* Keep from accumulating delays in heart beat rate. */
 		timeoutnext += bqfunction.hbct_k; // duration between HB (ticks)
 		timeoutwait = xTaskGetTickCount() - timeoutnext;
-		xTaskNotifyWait(0,0xffffffff, &noteval,timeoutwait);
+		xTaskNotifyWait(0,0xffffffff, &noteval,1000);//timeoutwait);
 
 /* ******* CAN msg request for sending CELL VOLTAGES. */
 			// Code for which modules should respond bits [7:6]
@@ -244,18 +244,36 @@ morse_trap(5551);
 				CanComm_qreq(REQ_READBMS, 2, CANCOMMBIT05); // Queue request
 			}
 		}		
-/* ******* CAN msg request for sending MISC READINGS. */
-		if ((noteval & (CANCOMMBIT02 || CANCOMMBIT09)) != 0) // cid_uni_bms_i
-		{
-            CanComm_qreq(REQ_READBMS, 3, CANCOMMBIT06); // Queue request		
+/* ******* CAN msg to all nodes. */
+		if ((noteval & CANCOMMBIT02) != 0) // CAN id: cid_uni_bms_i
+		{ // 
+			pcan = &p->pmbx_cid_uni_bms_emc_i->ncan.can;
+			if (pcan->cd.uc[0] == LDR_RESET)
+			{ // Execute a RESET
+				#define SCB_AIRCR 0xE000ED0C
+				*(volatile unsigned int*)SCB_AIRCR = (0x5FA << 16) | 0x4;	// Cause a RESET
+				while (1==1);
+			}
+		}
+/* ******* CAN msg to all nodes. */
+		if ((noteval & CANCOMMBIT09) != 0) // CAN id: cid_uni_bms_pc_i
+		{ //           
+			pcan = &p->pmbx_cid_uni_bms_pc_i->ncan.can;
+			if (pcan->cd.uc[0] == LDR_RESET)
+			{ // Execute a RESET
+				#define SCB_AIRCR 0xE000ED0C
+				*(volatile unsigned int*)SCB_AIRCR = (0x5FA << 16) | 0x4;	// Cause a RESET
+				while (1==1);
+morse_trap(5);
+			}
 		}
 
 /* ******* Timeout notification. */
 		if (noteval == 0)
 		{ // Send heartbeat, but first get present readings.
-			CanComm_qreq(REQ_READBMS, 0, CANCOMMBIT03);
+//morse_trap(34);	
+			CanComm_qreq(REQ_READBMS, 0, CANCOMMBIT03);		
  		}	
-
 		if ((noteval & CANCOMMBIT03) != 0) // BMSREQ_Q complete: heartbeat
 		{ // Timeoutout BMS request has been completed.
 			/* Use dummy CAN msg, then it looks the same as a request CAN msg. */
@@ -297,7 +315,7 @@ morse_trap(5551);
 TaskHandle_t xCanCommCreate(uint32_t taskpriority)
 {
 	BaseType_t ret = xTaskCreate(StartCanComm, "CanComm",\
-     (128), NULL, taskpriority,\
+     (128+32), NULL, taskpriority,\
      &CanCommHandle);
 	if (ret != pdPASS) return NULL;
 

@@ -144,7 +144,7 @@ void cancomm_items_uni_bms(struct CANRCVBUF* pcan, float* pf)
 		break;
 
 	case CMD_CMD_TYPE2: // Respond according to the code
-		cancomm_items_sendcmdr(pcan);
+		cancomm_items_sendcmdr(pcan);		
 		break;
 
 	case CMD_CMD_TYPE3: // spare types

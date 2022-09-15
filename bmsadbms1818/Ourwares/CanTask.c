@@ -51,6 +51,7 @@ void canmsg_expand(CAN_TxHeaderTypeDef *phal, uint8_t *pdat, struct CANRCVBUF *p
  * void StartCanTxTask(void const * argument);
  *	@brief	: Task startup
  * *************************************************************************/
+uint32_t dbgCanTask1;
 void StartCanTxTask(void* argument)
 {
    BaseType_t Qret;	// queue receive return
@@ -68,12 +69,13 @@ void StartCanTxTask(void* argument)
 		Qret = xQueueReceive(CanTxQHandle,&txq,portMAX_DELAY);
 		if (Qret == pdPASS) // Break loop if not empty
 		{
+dbgCanTask1 += 1;			
 			ret = can_driver_put(txq.pctl, &txq.can, txq.maxretryct, txq.bits);
 /* ===> Trap errors
  *				: -1 = Buffer overrun (no free slots for the new msg)
  *				: -2 = Bogus CAN id rejected
  *				: -3 = control block pointer NULL */
-//			if (ret == -1) morse_trap(91);
+			if (ret == -1) morse_trap(91);
 			if (ret == -2) morse_trap(92);
 			if (ret == -3) morse_trap(93);
 		}
