@@ -171,7 +171,8 @@ MCU = $(CPU) -mthumb $(FPU) $(FLOAT-ABI)
 
 # macros for gcc
 # AS defines
-AS_DEFS = 
+AS_DEFS = \
+-DI_AM_CANID=$(I_AM_CANID)
 
 # C defines
 C_DEFS =  \
@@ -196,8 +197,6 @@ C_INCLUDES =  \
 
 C_INCLUDES += -IOurwares 
 C_INCLUDES += -IOurtasks
-
-
 
 # compile gcc flags
 ASFLAGS = $(MCU) $(AS_DEFS) $(AS_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections
