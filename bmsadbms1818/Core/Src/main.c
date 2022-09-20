@@ -84,6 +84,8 @@ uint8_t canflag1;
 
 int8_t rtcregs_ret; // RTC register init return
 
+//const uint32_t i_am_canid = I_AM_CANID;
+
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/

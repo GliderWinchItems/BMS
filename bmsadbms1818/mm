@@ -25,6 +25,8 @@ echo $1
 echo "################ PARAMETER FILES ################"
 echo $ADC_PARAM : $BQ_PARAM
 
+export I_AM_CANID=0x$1
+
 ./script-all bms1818
 
 
