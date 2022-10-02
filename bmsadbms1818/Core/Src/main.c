@@ -16,6 +16,9 @@
   *
   ******************************************************************************
   */
+/*Command line to load program over CAN
+:~~/GliderWinchCommons/embed/svn_discoveryf4/PC/sensor/CANldr/trunk$ ./CANldr 127.0.0.1 32123 B0A00000 ~/GliderWinchItems/BMS/bmsadbms1818/build/bms1818.xbin; echo $?
+*/
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
@@ -1299,6 +1302,10 @@ void StartDefaultTask(void *argument)
   if (pbuf1 == NULL) morse_trap(115);
   struct SERIALSENDTASKBCB* pbuf2 = getserialbuf(&HUARTMON,128);
   if (pbuf2 == NULL) morse_trap(125);
+//struct SERIALSENDTASKBCB* pbuf3 = getserialbuf(&HUARTMON,128);
+//if (pbuf3 == NULL) morse_trap(125);
+//struct SERIALSENDTASKBCB* pbuf4 = getserialbuf(&HUARTMON,128);
+//if (pbuf4 == NULL) morse_trap(125);
 
   yprintf(&pbuf1,"\n\n\rPROGRAM STARTS: rtcregs_ret: %d",rtcregs_ret);
 

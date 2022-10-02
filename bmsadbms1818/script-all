@@ -23,8 +23,9 @@ cp $1.srec $1.srec.save
 cp $1.srec-crc $1.srec
 chmod 775 $1.srec
 ls -l *srec* 
+ls -l *bin*
 
-echo "################# SCRIPT-FLASH #################"
-../script-flash $1
+#echo "################# SCRIPT-FLASH #################"
+#../script-flash $1
 
 exit 0;
