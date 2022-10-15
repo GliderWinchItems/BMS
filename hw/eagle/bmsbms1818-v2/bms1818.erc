@@ -1,40 +1,41 @@
 EAGLE Version 4.13 Copyright (c) 1988-2004 CadSoft
 
-Electrical Rule Check for /mnt/home/deh/GliderWinchItems/BMS/hw/eagle/bmsbms1818/bms1818.sch at  6/01/2022 21:17:50 
+Electrical Rule Check for /mnt/home/deh/GliderWinchItems/BMS/hw/eagle/bmsbms1818-v2/bms1818.sch at 10/14/2022 19:55:10 
 
-WARNING: Sheet 1/1: POWER Pin IC102 VDD connected to +15V
-WARNING: Sheet 1/1: POWER Pin U2POWER VDD_1 connected to VCC
-WARNING: Sheet 1/1: POWER Pin U2POWER VDD_2 connected to VCC
-WARNING: Sheet 1/1: POWER Pin U2POWER VDD_3 connected to VCC
-WARNING: Sheet 1/1: POWER Pin U2POWER VSS_1 connected to GND
-WARNING: Sheet 1/1: POWER Pin U2POWER VSS_2 connected to GND
-WARNING: Sheet 1/1: POWER Pin U2POWER VSS_3 connected to GND
-WARNING: Sheet 1/1: POWER Pin U2POWER VDD_4 connected to VCC
-WARNING: Sheet 1/1: POWER Pin U2POWER VSS_4 connected to GND
-WARNING: Sheet 1/1: POWER Pin U2AN_POWER VSSA connected to GND
-WARNING: Sheet 1/1: POWER Pin U2AN_POWER VDDA connected to VDDA1
+WARNING: Sheet 1/1: POWER Pin IC101 VDD connected to +15V
+WARNING: Sheet 1/1: POWER Pin U1POWER VDD_1 connected to VCC
+WARNING: Sheet 1/1: POWER Pin U1POWER VDD_2 connected to VCC
+WARNING: Sheet 1/1: POWER Pin U1POWER VDD_3 connected to VCC
+WARNING: Sheet 1/1: POWER Pin U1POWER VSS_1 connected to GND
+WARNING: Sheet 1/1: POWER Pin U1POWER VSS_2 connected to GND
+WARNING: Sheet 1/1: POWER Pin U1POWER VSS_3 connected to GND
+WARNING: Sheet 1/1: POWER Pin U1POWER VDD_4 connected to VCC
+WARNING: Sheet 1/1: POWER Pin U1POWER VSS_4 connected to GND
+WARNING: Sheet 1/1: POWER Pin U1AN_POWER VBAT connected to VBAT-REG-OUT
+WARNING: Sheet 1/1: POWER Pin U1AN_POWER VSSA connected to GND
+WARNING: Sheet 1/1: POWER Pin U1AN_POWER VDDA connected to VDDA1
 WARNING: Sheet 1/1: POWER Pin IC100G$2 GND connected to GNDA
 WARNING: Sheet 1/1: POWER Pin IC100G$2 VCC connected to +5V/2
 WARNING: Sheet 1/1: POWER Pin IC2A GND21 connected to GNDA
 WARNING: Sheet 1/1: POWER Pin IC2A VCC1 connected to VCC
 WARNING: Sheet 1/1: POWER Pin IC2A GND12 connected to GND
-WARNING: Sheet 1/1: POWER Pin U$3G$4 VREF1 connected to VREF3
-WARNING: Sheet 1/1: POWER Pin U$3G$4 VREF2 connected to VREF4
-WARNING: Sheet 1/1: POWER Pin U$3G$6 V- connected to GND
-WARNING: Sheet 1/1: POWER Pin U$3G$6 V-** connected to GND
-WARNING: Sheet 1/1: POWER Pin U$3G$6 V+ connected to C18
-WARNING: Sheet 1/1: POWER Pin U$3G$6 VPAD connected to GND
-WARNING: Sheet 1/1: POWER Pin U$3G$8 SDO connected to PB4-SP1_MISO-SDO
-WARNING: Sheet 1/1: POWER Pin U$3G$8 SDI connected to PB5-SPI1_MOSI-SDI
-WARNING: Sheet 1/1: POWER Pin U$3G$8 DTEN connected to +5V/1
-WARNING: Sheet 1/1: POWER Pin IC2P VCC connected to +5V/1
-WARNING: Sheet 1/1: POWER Pin U$1 GND2 connected to GNDA
-WARNING: Sheet 1/1: POWER Pin U$1 VCC1 connected to VCC
-WARNING: Sheet 1/1: POWER Pin U$1 GND1 connected to GND
-WARNING: Sheet 1/1: POWER Pin U$2G$2 V+ connected to +5V/1
-WARNING: Sheet 1/1: POWER Pin U$2G$2 V- connected to GND
+WARNING: Sheet 1/1: POWER Pin U$5G$4 VREF1 connected to VREF3
+WARNING: Sheet 1/1: POWER Pin U$5G$4 VREF2 connected to VREF4
+WARNING: Sheet 1/1: POWER Pin U$5G$6 V- connected to GND
+WARNING: Sheet 1/1: POWER Pin U$5G$6 V-** connected to GND
+WARNING: Sheet 1/1: POWER Pin U$5G$6 V+ connected to C18
+WARNING: Sheet 1/1: POWER Pin U$5G$6 VPAD connected to GND
+WARNING: Sheet 1/1: POWER Pin U$5G$8 SDO connected to PB4-SP1_MISO-SDO
+WARNING: Sheet 1/1: POWER Pin U$5G$8 SDI connected to PB5-SPI1_MOSI-SDI
+WARNING: Sheet 1/1: POWER Pin U$5G$8 DTEN connected to +5V/1
+WARNING: Sheet 1/1: POWER Pin IC1P VCC connected to +5V/1
+WARNING: Sheet 1/1: POWER Pin U$8 GND2 connected to GNDA
+WARNING: Sheet 1/1: POWER Pin U$8 VCC1 connected to VCC
+WARNING: Sheet 1/1: POWER Pin U$8 GND1 connected to GND
+WARNING: Sheet 1/1: POWER Pin U$100G$2 V+ connected to +5V/1
+WARNING: Sheet 1/1: POWER Pin U$100G$2 V- connected to GND
 
 Board and schematic are consistent
 
     0 errors
-   31 warnings
+   32 warnings
