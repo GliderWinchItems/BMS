@@ -232,7 +232,7 @@ morse_trap(5555);
 		}
 		if ((noteval & CANCOMMBIT08) != 0) // cid_cmd_bms_miscq
 		{
-morse_trap(5551);
+//morse_trap(5551);
 			/* Get present readings. */
 			pcan = &p->pmbx_cid_cmd_bms_miscq_pc->ncan.can;
 			code = pcan->cd.uc[0] & 0xC0; // Extract identification code
@@ -257,7 +257,7 @@ morse_trap(5551);
 		}
 /* ******* CAN msg to all nodes. */
 		if ((noteval & CANCOMMBIT09) != 0) // CAN id: cid_uni_bms_pc_i
-		{ //           
+		{ //       
 			pcan = &p->pmbx_cid_uni_bms_pc_i->ncan.can;
 			if (pcan->cd.uc[0] == LDR_RESET)
 			{ // Execute a RESET

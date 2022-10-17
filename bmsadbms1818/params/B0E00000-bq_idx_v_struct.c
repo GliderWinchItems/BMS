@@ -2,7 +2,7 @@
 * File Name          : B0C00000-bq_idx_v_struct.c
 * Date First Issued  : 08/20/2022
 * Board              : bmsadbms1818
-* Description        : Load BQ parameter struct: B0C00000 ADBMS1818 board #2
+* Description        : Load BQ parameter struct: B0E00000 ADBMS1818 board #3
 *******************************************************************************/
 
 #include "bq_idx_v_struct.h"
@@ -344,6 +344,6 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
 // CAN ids BMS sends, others receive
    // BMS sends cell readings with this CAN ID
    // 03 ADBMS1818 #AD01 U16:id,U16:cellv n+1,U16:cellv n+2');
-   p->cid_msg_bms_cellvsmr = CANID_MSG_BMS_CELLV14R; // B0201144', U16_U16_U16_U16'
+   p->cid_msg_bms_cellvsmr = CANID_MSG_BMS_CELLV15R; // B0201154', U16_U16_U16_U16'
 	return;
 }
