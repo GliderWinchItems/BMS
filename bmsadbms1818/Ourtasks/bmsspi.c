@@ -104,10 +104,6 @@ void bmsspi_readbms(void)
 	struct BMSCAL* pf;
 	float x;
 
-// Debug/test spi w '1818'
-//bmsspi_readstuff(READCONFIG);	
-//while(1==1) {HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_2);osDelay(125);}
-//morse_trap(679);
 	// Turn heater, dump, dump2, trickle chgr off
 	fetonoff_status_set(0);
 

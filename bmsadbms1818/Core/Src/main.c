@@ -1188,12 +1188,13 @@ static void MX_GPIO_Init(void)
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOC_CLK_ENABLE();
+  __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13|GPIO_PIN_4|DUMP2_Pin|DUMP_NOT_Pin
+  HAL_GPIO_WritePin(GPIOC, RTC_BAT_PWR_Pin|GPIO_PIN_4|DUMP2_Pin|DUMP_NOT_Pin
                           |DUMP_Pin|HEATER_NOT_Pin|HEATER_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
@@ -1208,9 +1209,9 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(BQ_LD_GPIO_Port, BQ_LD_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : PC13 PC4 DUMP_NOT_Pin DUMP_Pin
+  /*Configure GPIO pins : RTC_BAT_PWR_Pin PC4 DUMP_NOT_Pin DUMP_Pin
                            HEATER_NOT_Pin HEATER_Pin */
-  GPIO_InitStruct.Pin = GPIO_PIN_13|GPIO_PIN_4|DUMP_NOT_Pin|DUMP_Pin
+  GPIO_InitStruct.Pin = RTC_BAT_PWR_Pin|GPIO_PIN_4|DUMP_NOT_Pin|DUMP_Pin
                           |HEATER_NOT_Pin|HEATER_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
@@ -1302,6 +1303,7 @@ void StartDefaultTask(void *argument)
 
   yprintf(&pbuf1,"\n\n\rPROGRAM STARTS: rtcregs_ret: %d",rtcregs_ret);
 
+  /* The 'for' loop polls. The following times the loop. */
   #define MAINFORLOOPDELAY 50 // Delay of 'for' loop in ms
   const TickType_t xPeriod = pdMS_TO_TICKS(MAINFORLOOPDELAY);  
   TickType_t tickcnt = xTaskGetTickCount();
@@ -1314,6 +1316,13 @@ extern uint8_t dbgka;
 uint8_t dbgka_prev = dbgka;
 extern uint32_t bshift;  
 extern uint32_t dbstat2;
+
+/* Testint discharge FET bits. */
+#ifdef TEST_WALK_DISCHARGE_FET_BITS // See main.h
+extern uint8_t dischgfet; // Test fet bit (0-17)
+  uint8_t  dischgfet_ctr = 20; 
+#endif
+
 
   for(;;) /* Loop polls various operations. */
   {  
@@ -1440,6 +1449,16 @@ adc1.common.ts_calrate );
 
 
 #endif
+
+/* Testint discharge FET bits. */
+#ifdef TEST_WALK_DISCHARGE_FET_BITS // See main.h
+  if (dischgfet_ctr++ > 3)
+  {
+    yprintf(&pbuf1,"\n\r\t\t\t\t\t\t### TEST: WALK DISCHARGE FET #%02u\n\r",(dischgfet+1));
+    dischgfet_ctr = 0;
+  }
+#endif
+
 
 #if 1
     /* Cell balance & control. */

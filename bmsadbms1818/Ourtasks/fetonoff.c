@@ -43,7 +43,7 @@ uint8_t fetonoff(uint8_t fetnum, uint8_t fetcommand)
 			pbq->fet_status |= FET_HEATER;
 
 		 case FET_CHGR:
-		 		 	TIM1->CCR1 = 0; // FET ON time
+		 	TIM1->CCR1 = 0; // FET ON time
 			pbq->fet_status &= ~FET_CHGR;
 			break;
 

@@ -37,6 +37,12 @@ extern CAN_HandleTypeDef hcan1;
 
 //static void canfilt(uint16_t mm, struct MAILBOXCAN* p);
 
+
+#ifdef TEST_WALK_DISCHARGE_FET_BITS // See main.h
+uint8_t dischgfet; // Test fet bit (0-17)
+uint8_t walkdelay; // noteval = 0 counter delay
+#endif
+
 TaskHandle_t CanCommHandle = NULL;
 
 /* xTaskNotifyWait Notification bits */
@@ -55,14 +61,19 @@ struct CANRCVBUF  can_hb; // Dummy heart-beat request CAN msg
 uint8_t hbseq; // heartbeat CAN msg sequence number
 uint8_t rdyflag_cancomm = 0; // Initialization complete and ready = 1
 
-static struct BMSREQ_Q bmsreq_c[4];
-static struct BMSREQ_Q* pbmsreq_c;
+/* Delayed queue requests. */
+#define BMSTASKQUEUESIZE 4
+static struct BMSREQ_Q bmsreq_c[BMSTASKQUEUESIZE];
+static struct BMSREQ_Q* pbmsreq_c[BMSTASKQUEUESIZE];
 
 static struct CANRCVBUF can05;
 
 /* *************************************************************************
- * static void CanComm_qreq(uint8_t idx, uint32_t notebit);
+ * static void CanComm_qreq(uint32_t reqcode, uint8_t idx, uint32_t notebit);
  *	@brief	: Queue request to BMSTask.c
+ *  @param  : reqcode = see BMSTask.h 
+ *  @param  : idx = this queue request slot
+ *  @param  : notebit = notification bit when BMSTask completes request5
  * *************************************************************************/
 static void CanComm_qreq(uint32_t reqcode, uint8_t idx, uint32_t notebit)
 {
@@ -70,8 +81,8 @@ static void CanComm_qreq(uint32_t reqcode, uint8_t idx, uint32_t notebit)
     bmsreq_c[idx].tasknote = notebit; // Notification bit for this request
     bmsreq_c[idx].noteyes  = 1; // Wait notification
     // Queue request for BMSTask.c
-//   int ret = xQueueSendToBack(BMSTaskReadReqQHandle, &pbmsreq_c[idx], 0);
-//    if (ret != pdPASS) morse_trap(650);	
+ 	int ret = xQueueSendToBack(BMSTaskReadReqQHandle, &pbmsreq_c[idx], 0);
+    if (ret != pdPASS) morse_trap(650);	
     return;
 }
 /* *************************************************************************
@@ -142,6 +153,13 @@ void CanComm_init(struct BQFUNCTION* p )
 	can_hb.cd.uc[6] = p->lc.cid_msg_bms_cellvsmr >> 16;
 	can_hb.cd.uc[7] = p->lc.cid_msg_bms_cellvsmr >> 24;
 
+	/* Pre-load BMS queue. */
+	for (i = 0; i < BMSTASKQUEUESIZE; i++)
+	{
+		bmsreq_c[i].bmsTaskHandle = xTaskGetCurrentTaskHandle();
+		pbmsreq_c[i] = &bmsreq_c[i];
+	}
+
 	return;
 }
 /* *************************************************************************
@@ -176,7 +194,13 @@ osDelay(20); // Wait for ADCTask to get going.
 		/* Keep from accumulating delays in heart beat rate. */
 		timeoutnext += bqfunction.hbct_k; // duration between HB (ticks)
 		timeoutwait = xTaskGetTickCount() - timeoutnext;
-		xTaskNotifyWait(0,0xffffffff, &noteval,1000);//timeoutwait);
+
+/* Using noteval instead of 0xffffffff would take care of the possibility
+of a BMSTask request completing before xTaskNotifyWait was entered. If BMSTask
+completed before xTaskNotifyWait was entere using 0xfffffff would clear the 
+notification and it would be lost. */
+//		xTaskNotifyWait(0,0xffffffff, &noteval,1000);//timeoutwait);
+		xTaskNotifyWait(0,noteval, &noteval,1000);//timeoutwait);
 
 /* ******* CAN msg request for sending CELL VOLTAGES. */
 			// Code for which modules should respond bits [7:6]
@@ -271,11 +295,30 @@ morse_trap(5);
 /* ******* Timeout notification. */
 		if (noteval == 0)
 		{ // Send heartbeat, but first get present readings.
-//morse_trap(34);	
-			CanComm_qreq(REQ_READBMS, 0, CANCOMMBIT03);		
+#ifndef TEST_WALK_DISCHARGE_FET_BITS // See main.h
+/* Normal hearbeat CAN msgs. */			
+			CanComm_qreq(REQ_READBMS, 0, CANCOMMBIT03);
+#else
+/* Test discharge bits. */			
+			if (walkdelay > 5)
+			{ // Use noteval = 0 to time delays
+				walkdelay = 0;
+
+				// Step to next FET position
+				dischgfet += 1;
+				if (dischgfet >= 18) dischgfet = 0;
+									
+				// Set fet bit position to be turned on.
+				bmsreq_c[3].setfets = (1 << dischgfet);
+				CanComm_qreq(REQ_SETFETS, 3, CANCOMMBIT03);
+			}
+#endif			
  		}	
+
+ 		/* Notification with CANCOMMBIT03 when BMSTask completes request. */
 		if ((noteval & CANCOMMBIT03) != 0) // BMSREQ_Q complete: heartbeat
 		{ // Timeoutout BMS request has been completed.
+#ifndef TEST_WALK_DISCHARGE_FET_BITS  // See main.h
 			/* Use dummy CAN msg, then it looks the same as a request CAN msg. */
 			can_hb.cd.uc[0] = CMD_CMD_TYPE2;  // Misc subcommands code
 			can_hb.cd.uc[1] = MISCQ_STATUS;   // status code
@@ -289,7 +332,10 @@ morse_trap(5);
 			/* Increment 4 bit CAN msg group sequence counter .*/
 			hbseq += 1;
    			xQueueSendToBack(CanTxQHandle,&p->canmsg[CID_CMD_MISC],4);   
+//#else
+#endif   			
 		}
+
 		if ((noteval & CANCOMMBIT04) != 0) // BMSREQ_Q complete: Send cell voltage
 		{
 			cancomm_items_uni_bms(&can_hb, &bqfunction.cellv[0]);

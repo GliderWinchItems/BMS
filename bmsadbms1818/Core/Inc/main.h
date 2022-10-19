@@ -60,6 +60,8 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define RTC_BAT_PWR_Pin GPIO_PIN_13
+#define RTC_BAT_PWR_GPIO_Port GPIOC
 #define FET_CUR_A2_Pin GPIO_PIN_3
 #define FET_CUR_A2_GPIO_Port GPIOC
 #define OPAMP_INP_Pin GPIO_PIN_0
@@ -111,6 +113,10 @@ void Error_Handler(void);
 #define DEFAULTTASKBIT02 (1 << 2)  // Task notification bit (from Mailbox)
 
 #define MAINFORLOOPDELAY 50 // main.c Delay of 'for' loop (ms)
+
+/* Enable discharge FET bits testing. */
+// Uncomment the following to enable test
+//#define TEST_WALK_DISCHARGE_FET_BITS
 
 /* USER CODE END Private defines */
 
