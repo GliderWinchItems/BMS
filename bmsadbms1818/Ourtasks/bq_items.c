@@ -60,9 +60,6 @@ static void bq_items_q(uint8_t reqcode)
 	bmstask_q_readbms.done = 1; // Show request queued
 	ret = xQueueSendToBack(BMSTaskReadReqQHandle, &pq, 0);
 	if (ret != pdPASS) morse_trap(201);
-
-//	xTaskNotifyWait(0,0xffffffff, &noteval1, 5500);
-//	if (noteval1 == BQITEMSNOTE00) morse_trap(203);
 }
 /* *************************************************************************
  * uint8_t bq_items(void);
@@ -141,7 +138,7 @@ dbgf = 1; // Set & compile for each
 
 /* *************************************************************************
  * void bq_items_selectfet(void);
- * @brief	: Go thought a sequence of steps to determine balancing
+ * @brief	: Go thru a sequence of steps to determine balancing
  * *************************************************************************/
 uint32_t dbgcell[18];
 uint32_t dbgcellbal;
@@ -154,7 +151,7 @@ void bq_items_selectfet(void)
 #endif	
 
 	float* p = &bqfunction.cellv[0]; // Calibrated cell voltage
-	uint16_t idata;
+	uint32_t idata;
 	int16_t i; // variable name selected in memory of FORTRAN
 
 	pbq->battery_status = 0; // Reset battery status
@@ -172,9 +169,9 @@ void bq_items_selectfet(void)
 	/* Check each cell reading. */
 	for (i = 0; i < NCELLMAX; i++)
 	{
-		idata = (*p * 0.1f); // Convert calibrated float (100uv) to uint16_t (1mv)
+		idata = (*p * 0.1f); // Convert calibrated float (100uv) to uint32_t (1mv)
 dbgcell[i] = idata*10;
-		if ((pbq->cellspresent & (1<<i)) != 0)
+		if ((pbq->cellspresent & (1<<i)) != 0) // Skip cells not installed
 		{ // Here, cell position is installed
 			if  ((idata <= pbq->lc.cellopen_lo)||(idata > pbq->lc.cellopen_hi))
 			{ // Here, likely unexpected open wire
@@ -192,22 +189,18 @@ dbgcell[i] = idata*10;
 					pbq->cellv_low = idata; // Save voltage
 					pbq->cellx_low = i;  // Save cell index
 				} 
-				if (idata > pbq->lc.cellv_max) 
-				{ // Cell higher than target voltage
-					pbq->cellbal       |=  (1 << i); // Set bit for discharge FET
-					pbq->hysterbits_hi |=  (1 << i); // Hysteresis high set
-					pbq->hysterbits_lo &= ~(1 << i); // Hysteresis low clear
-					pbq->active_ct += 1; // Count number of cell fets selected
+				if (idata > pbq->cellv_tmdelta) 
+				{ // Here, cell is higher than (target voltage minus delta)
+					pbq->cellbal |=  (1 << i); // Set bit for discharge FET
+				}			
+				if (idata > pbq->lc.cellv_max)
+				{ // Cell is above max limit
+					pbq->cellv_max_bits |= (1 << i); // Cells above cellv_max
+					pbq->battery_status |= BSTATUS_CELLTOOHI; // One or more cells above max limit
 				}
 				if (idata < pbq->hysterv_lo)
 				{ // Cell below (target-hysteresis) voltage
 					pbq->hysterbits_lo |=  (1 << i); // Hysteresis low set
-					pbq->hysterbits_hi &= ~(1 << i); // Hysteresis high clear
-				}
-				if (idata > pbq->lc.cellv_max)
-				{ // Cell is above the fixed max limited
-					pbq->cellv_max_bits |= (1 << i); // Cells above cellv_max
-					pbq->battery_status |= BSTATUS_CELLTOOHI; // One or more cells above max limit
 				}
 				if (idata < pbq->lc.cellv_min)
 				{
@@ -266,19 +259,19 @@ dbgcellbal = pbq->cellbal;
 	if (pbq->cellv_high > pbq->lc.cellv_max) // Too high?
 	{ // Here, yes. One or more cells are over max limit
 		// No charging, but discharging is needed
-		pbq->fet_status &= ~(FET_CHGR|FET_DUMP2);
+		pbq->fet_status &= ~(FET_CHGR|FET_DUMP2); // (DUMP2 external charger control)
 	}
 	else
-	{ // Here, no cells are too high.
-		pbq->fet_status |= (FET_CHGR|FET_DUMP2);
+	{ // Here, no cells are too high. 
+		pbq->fet_status |= (FET_CHGR|FET_DUMP2); // (DUMP2 external charger control)
 	}
 
 	/* Healthy Hysteresis Handling. */
 	if (pbq->hyster_sw == 0)
-	{ // Charging/balancing towards targetv
-		if (pbq->hysterbits_hi == pbq->cellspresent)
-		{ // Here, all cells have gone over the target voltage
-			pbq->hyster_sw = 1; // Start "relaxation"
+	{ // Charging/balancing is in effect
+		if (pbq->cellbal == pbq->cellspresent)
+		{ // Here, all installed cells are over the (target voltage - delta)	
+			pbq->hyster_sw = 1;     // Start "relaxation"
 			pbq->hysterbits_lo = 0; // Reset low cell bits
 		}
 	}
@@ -292,8 +285,7 @@ dbgcellbal = pbq->cellbal;
 		// Stop relaxation when one or more cells hits hysteresis low end
 		if (pbq->hysterbits_lo != 0)
 		{ // One or more cells hit the low end of hysteresis
-			pbq->hysterbits_hi = 0; // Reset high cell bits
-			pbq->hyster_sw  = 0; // Set hysteresis switch off
+			pbq->hyster_sw  = 0;    // Set hysteresis switch off
 		}
 	}
 

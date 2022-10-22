@@ -47,7 +47,6 @@ void bq_func_init(void)
 	p->battery_status = 0; // Cell status Bits 
 	p->fet_status     = 0; // FET bits
     p->hyster_sw      = 0; // 1 = means hysteresis (relaxation) currently in effect
-    p->hysterbits_hi  = 0; // Reset bits: 1 = cell reached max while hyster_sw = 0;
 
 	p->state      = 0;  // main state
 	p->substateA  = 0;  // 
@@ -55,8 +54,10 @@ void bq_func_init(void)
 
 	// Cell voltage hysteresis (relaxation)
     p->hysterbits_lo = 0; // Cell bit ON: voltage less than hysteresis low
-    p->hysterbits_hi = 0; // Cell bit ON: voltage greater than max target
     p->hysterv_lo = (p->lc.cellv_max - p->lc.cellv_hyster); // hyster volt low
+
+    // Target voltage minus target delta
+    p->cellv_tmdelta = p->lc.cellv_max - p->lc.cellv_tgtdelta;
 
 	for (i = 0; i < NCELLMAX; i ++)
 	{

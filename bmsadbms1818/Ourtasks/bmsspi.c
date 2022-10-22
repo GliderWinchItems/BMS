@@ -288,7 +288,7 @@ uint8_t bmsspi_keepawake(void)
 	/* Step to next state. */
 	bmsspi_keepawake_state += 1;
 	if (bmsspi_keepawake_state > 5)
-	bmsspi_keepawake_state = 0;
+		bmsspi_keepawake_state = 0;
 	return retx;
 }
 /* *************************************************************************

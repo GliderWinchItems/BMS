@@ -1321,6 +1321,8 @@ extern uint32_t dbstat2;
 #ifdef TEST_WALK_DISCHARGE_FET_BITS // See main.h
 extern uint8_t dischgfet; // Test fet bit (0-17)
   uint8_t  dischgfet_ctr = 20; 
+extern  dbgcancommloop;
+uint32_t dbgcancommloop_prev;
 #endif
 
 
@@ -1367,14 +1369,13 @@ adc1.common.ts_calrate );
     }
 #endif    
 
-
 #if 1
 //    bq_items();
-    HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_SET);
+    HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_SET); // GRN LED
     if (dbgka_prev != dbgka)
     {
       dbgka_prev = dbgka;
-      HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_RESET);
+      HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_RESET); // GRN LED
 
       switch (dbgka)
       {
@@ -1454,13 +1455,14 @@ adc1.common.ts_calrate );
 #ifdef TEST_WALK_DISCHARGE_FET_BITS // See main.h
   if (dischgfet_ctr++ > 3)
   {
-    yprintf(&pbuf1,"\n\r\t\t\t\t\t\t### TEST: WALK DISCHARGE FET #%02u\n\r",(dischgfet+1));
+    yprintf(&pbuf1,"\n\r\t\t\t\t\t\t### TEST: WALK DISCHARGE FET #%02u %u\n\r",(dischgfet+1),dbgcancommloop-dbgcancommloop_prev);
     dischgfet_ctr = 0;
+    dbgcancommloop_prev = dbgcancommloop;
   }
 #endif
 
-
-#if 1
+#ifndef TEST_WALK_DISCHARGE_FET_BITS 
+//#if 1
     /* Cell balance & control. */
     uint32_t dcc = extractconfigreg.dcc;
     #define LSPC 7 // column spacing
@@ -1497,11 +1499,25 @@ extern struct BMSREQ_Q  bmstask_q_readbms;
       yprintf(&pbuf2,"\n\rdbgcellv : ");
       for (i = 0; i < 18; ++i) yprintf(&pbuf2," %6d",dbgcell[i]);
 
+      yprintf(&pbuf2,"\n\r%5d %02d DCHG    ",fctr++,dbgf+1);
+      memset(cline,' ',(LSPC*18));
+      // Build a nice ASCII line whilst previous line prints
+      for (i=0; i < 18; i++)
+      {
+        if ((dcc & (1<<i)) != 0)
+          cline[i*LSPC] = '@';
+        else
+          cline[i*LSPC] = '.';
+      }
+      cline[18*LSPC] = 0;
+      yprintf(&pbuf1,"%s",cline);        
+
       yprintf(&pbuf1,"\n\r%5d %02d MAX|MIN ",fctr++,dbgf+1);
       memset(cline,' ',(LSPC*18));
       // Build a nice ASCII line whilst previous line prints
       for (i=0; i < 18; i++)
       {
+        cline[i*LSPC] = '.';
         if ((bqfunction.cellv_max_bits & (1<<i)) != 0)
           cline[i*LSPC] = '+';
         if ((bqfunction.cellv_min_bits & (1<<i)) != 0)
@@ -1518,10 +1534,9 @@ extern struct BMSREQ_Q  bmstask_q_readbms;
 
       yprintf(&pbuf1,"\n\rcellv_hi: x %2d v %5d",bqfunction.cellx_high,bqfunction.cellv_high);
       yprintf(&pbuf2,"\n\rcellv_lo: x %2d v %5d",bqfunction.cellx_low, bqfunction.cellv_low);
-      yprintf(&pbuf1,"\n\rhyster_sw: %d hysterbits hi %05X lo %05X",
-        bqfunction.hyster_sw, bqfunction.hysterbits_hi,bqfunction.hysterbits_lo);
-      yprintf(&pbuf2,"\n\rcellv_max: %5d cellv_max: %05X",bqfunction.lc.cellv_max, bqfunction.cellv_max_bits);
-      yprintf(&pbuf1,"\n\rcellv_min: %5d cellv_min: %05X",bqfunction.lc.cellv_min, bqfunction.cellv_min_bits);
+      yprintf(&pbuf1,"\n\rhyster_sw: %d hysterbits lo %05X",bqfunction.hyster_sw,bqfunction.hysterbits_lo);
+      yprintf(&pbuf2,"\n\rcellv_max: %5d cellv_max: %05X",bqfunction.lc.cellv_max,bqfunction.cellv_max_bits);
+      yprintf(&pbuf1,"\n\rcellv_min: %5d cellv_min: %05X",bqfunction.lc.cellv_min,bqfunction.cellv_min_bits);
 
       yprintf(&pbuf2,"\n\rcellv_vls: %5d cellv_vlc_bits: %05X",bqfunction.lc.cellv_vlc, bqfunction.cellv_vlc_bits);
 

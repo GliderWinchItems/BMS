@@ -112,14 +112,16 @@ struct BQFUNCTION
 	uint16_t cellv_latest[NCELLMAX]; // Cell voltage readings (0.1 millivolts)
 	uint32_t cellvopenbits;// Bits for unexpected open cells (1 = open wire suspected) 
 	int32_t  cellv_total;  // Sum of cell voltages (0.1 millivolts)
-	int16_t  cellv_high;   // Highest cellv 0.1 millivolts
-	int16_t  cellv_low;    // Lowest  cellv 0.1 millivolts
+	int32_t  cellv_high;   // Highest cellv 0.1 millivolts
+	int32_t  cellv_low;    // Lowest  cellv 0.1 millivolts
+	int32_t  cellv_tmdelta;// Target minus target delta
 	uint8_t  cellx_high;   // Highest cellv index (0-17)
 	uint8_t  cellx_low;    // Lowest  cellv index (0-17)
 
 	uint32_t cellv_max_bits; // Cells above cellv_max
 	uint32_t cellv_min_bits; // Cells below cellv_min
 	uint32_t cellv_vlc_bits; // Cells below cellv_vlc
+	uint32_t cellv_tmc_bits; // Cells above Target Minus Delta 
 
 	float cellv[NCELLMAX]; // Cell voltage (calibrated volts)
 	float cellv_sort[NCELLMAX]; // cellv sorted
@@ -129,7 +131,6 @@ struct BQFUNCTION
 	// Cell balancing & relaxation hysteresis
 //	uint32_t targetv;       // Balance voltage target
 	float    hysterv_lo;    // Hysteresis bottom voltage.
-	uint32_t hysterbits_hi; // Bits for cells that reached cellv_max (target)
 	uint32_t hysterbits_lo; // Bits for cells that fell below hysterv_lo
 	uint8_t  hyster_sw;     // Hysteresis switch: 1 = peak was reached
 

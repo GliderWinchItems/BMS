@@ -32,7 +32,7 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->modulenum    = 2; // Module number on string (1-16)
    if ((p->modulenum == 0) || (p->modulenum > 16)) morse_trap(702);
 
-   p->hbct_t       = 1000; // Heartbeat ct: milliseconds between sending 
+   p->hbct_t       = 4000; // Heartbeat ct: milliseconds between sending 
    p->hbct         = 64;    // Number of swctr ticks between heartbeats
 
 //   p->adc_hb       = 64;     // Number of ticks for heartbeat ADC readout
@@ -49,6 +49,7 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->cellv_max   = 3900; // Max limit (mv) for charging any cell
    p->cellv_min   = 2800; // Min limit (mv) for any discharging
    p->cellv_vlc   = 2550; // Below this (mv) Very Low Charge (vlc)required
+   p->cellv_tgtdelta = 30; // Target delta (mv)
    p->cellopen_hi = 4300; // Above this voltage cell wire is assumed open (mv)
    p->cellopen_lo =  333; // Below this voltage cell wire is assumed open (mv)
    p->modulev_max = (16*3600); // Battery module max limit (mv)

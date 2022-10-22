@@ -16,7 +16,6 @@ structs.
 struct RTCREG
 {
 	uint32_t cellbal;       // Bits with FETs that were on
-	uint32_t hysterbits_hi; // Bits for cells that reached cellv_max (target)
 	uint32_t hysterbits_lo; // Bits for cells that fell below hysterv_lo
 	uint16_t cellreg[18]; 
 	uint8_t hyster_sw;      // Hysteresis switch: 1 = peak was reached

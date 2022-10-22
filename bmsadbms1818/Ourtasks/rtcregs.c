@@ -62,7 +62,6 @@ void rtcregs_update(void)
 	RTC->WPR = 0x53;
 
 	*prtc++ = bqfunction.cellbal; // Bits to activate cell balance fets
-	*prtc++ = bqfunction.hysterbits_hi; // Bits for cells that reached cellv_max (target)
 	*prtc++ = bqfunction.hysterbits_lo; // Bits for cells that fell below hysterv_lo
 	*prtc++ = *(p16 +  0) | (*(p16 +  1) << 16);
 	*prtc++ = *(p16 +  2) | (*(p16 +  3) << 16);
@@ -138,7 +137,6 @@ static void rtcregs_load(void)
 	PWR->CR1 |= (1 << 8); // 1: Access to RTC and Backup registers enabled
 
 	bqfunction.cellbal        = *prtc++; // Bits to activate cell balance fets
-	bqfunction.hysterbits_hi  = *prtc++; // Bits for cells that reached cellv_max (target)
 	bqfunction.hysterbits_lo  = *prtc++;; // Bits for cells that fell below hysterv_lo
 	*p32++ = *prtc++;
 	*p32++ = *prtc++;

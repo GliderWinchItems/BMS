@@ -35,12 +35,14 @@ would a heartbeat or the variety of CAN msg requests).
 extern struct CAN_CTLBLOCK* pctl0; // Pointer to CAN1 control block
 extern CAN_HandleTypeDef hcan1;
 
+uint32_t dbgcancommloop;
+
 //static void canfilt(uint16_t mm, struct MAILBOXCAN* p);
 
 
 #ifdef TEST_WALK_DISCHARGE_FET_BITS // See main.h
 uint8_t dischgfet; // Test fet bit (0-17)
-uint8_t walkdelay; // noteval = 0 counter delay
+uint8_t walkdelay; // noteval == 0 counter delay
 #endif
 
 TaskHandle_t CanCommHandle = NULL;
@@ -193,14 +195,18 @@ osDelay(20); // Wait for ADCTask to get going.
 		/* Wait for notifications, or timeout for heart beat */
 		/* Keep from accumulating delays in heart beat rate. */
 		timeoutnext += bqfunction.hbct_k; // duration between HB (ticks)
-		timeoutwait = xTaskGetTickCount() - timeoutnext;
+		timeoutwait = timeoutnext - xTaskGetTickCount();
 
 /* Using noteval instead of 0xffffffff would take care of the possibility
 of a BMSTask request completing before xTaskNotifyWait was entered. If BMSTask
 completed before xTaskNotifyWait was entere using 0xfffffff would clear the 
 notification and it would be lost. */
-//		xTaskNotifyWait(0,0xffffffff, &noteval,1000);//timeoutwait);
-		xTaskNotifyWait(0,noteval, &noteval,1000);//timeoutwait);
+#ifdef TEST_WALK_DISCHARGE_FET_BITS  // See main.h
+		timeoutwait = 789; // Avoid keep_alive calls
+#endif		
+
+		xTaskNotifyWait(0,0xffffffff, &noteval,timeoutwait);//timeoutwait);
+//		xTaskNotifyWait(0,noteval, &noteval,timeoutwait);//timeoutwait);
 
 /* ******* CAN msg request for sending CELL VOLTAGES. */
 			// Code for which modules should respond bits [7:6]
@@ -210,7 +216,7 @@ notification and it would be lost. */
        		// 00 = spare; no response expected
 		if ((noteval & CANCOMMBIT00)  != 0) // cid_cmd_bms_cellvq
 		{  // Send cell voltages, but first get present readings
-morse_trap(6666);			
+//morse_trap(6666);			
 			pcan = &p->pmbx_cid_cmd_bms_cellvq_emc->ncan.can;
 			code = pcan->cd.uc[0] & 0xC0; // Extract identification code
 			if (((code == (3 << 6))) ||
@@ -223,7 +229,7 @@ morse_trap(6666);
 		}
 		if ((noteval & CANCOMMBIT07)!= 0)
 		{
-morse_trap(6661);			
+//morse_trap(6661);			
 			pcan = &p->pmbx_cid_cmd_bms_cellvq_pc->ncan.can;
 			code = pcan->cd.uc[0] & 0xC0; // Extract identification code
 			if (((code == (3 << 6))) ||
@@ -242,7 +248,7 @@ morse_trap(6661);
        		// 00 = spare; no response expected
 		if ((noteval & CANCOMMBIT01) != 0) // cid_cmd_bms_miscq
 		{
-morse_trap(5555);
+//morse_trap(5555);
 			/* Get present readings. */
 			pcan = &p->pmbx_cid_cmd_bms_miscq_emc->ncan.can;
 			code = pcan->cd.uc[0] & 0xC0; // Extract identification code
@@ -288,7 +294,7 @@ morse_trap(5555);
 				#define SCB_AIRCR 0xE000ED0C
 				*(volatile unsigned int*)SCB_AIRCR = (0x5FA << 16) | 0x4;	// Cause a RESET
 				while (1==1);
-morse_trap(5);
+//morse_trap(5);
 			}
 		}
 
@@ -299,25 +305,26 @@ morse_trap(5);
 /* Normal hearbeat CAN msgs. */			
 			CanComm_qreq(REQ_READBMS, 0, CANCOMMBIT03);
 #else
-/* Test discharge bits. */			
-			if (walkdelay > 5)
-			{ // Use noteval = 0 to time delays
+/* Test discharge bits. */
+			walkdelay += 1;
+			if (walkdelay > 10)
+			{ // Use noteval == 0 to time delays
 				walkdelay = 0;
-
 				// Step to next FET position
 				dischgfet += 1;
 				if (dischgfet >= 18) dischgfet = 0;
-									
-				// Set fet bit position to be turned on.
-				bmsreq_c[3].setfets = (1 << dischgfet);
-				CanComm_qreq(REQ_SETFETS, 3, CANCOMMBIT03);
 			}
+			// Set fet bit position to be turned on.
+			bmsreq_c[3].setfets = (1 << dischgfet);
+			CanComm_qreq(REQ_SETFETS, 3, CANCOMMBIT03);			
 #endif			
  		}	
 
  		/* Notification with CANCOMMBIT03 when BMSTask completes request. */
 		if ((noteval & CANCOMMBIT03) != 0) // BMSREQ_Q complete: heartbeat
 		{ // Timeoutout BMS request has been completed.
+dbgcancommloop += 1;			
+
 #ifndef TEST_WALK_DISCHARGE_FET_BITS  // See main.h
 			/* Use dummy CAN msg, then it looks the same as a request CAN msg. */
 			can_hb.cd.uc[0] = CMD_CMD_TYPE2;  // Misc subcommands code
