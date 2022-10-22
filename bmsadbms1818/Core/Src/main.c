@@ -1524,7 +1524,9 @@ extern struct BMSREQ_Q  bmstask_q_readbms;
           cline[i*LSPC] = '-';
       }
       cline[18*LSPC] = 0;
-      yprintf(&pbuf2,"%s",cline);        
+      yprintf(&pbuf2,"%s",cline);  
+
+      yprintf(&pbuf1,"\n\rFETSTAT: 0x%02X  battery_status: 0x%02X",bqfunction.fet_status,bqfunction.battery_status);     
 
 #if 0  
       yprintf(&pbuf1,"\n\rcellv_latest[i]: ");

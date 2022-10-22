@@ -118,9 +118,9 @@ dbg_adcsum[8] = (pz + 8)->sum;
 			   which is connected when PC13 is ON. */
 			rtcregs_update(); // Update RTC registers
 
-HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_SET);  // GRN OFF
-HAL_GPIO_WritePin(GPIOB,GPIO_PIN_1,GPIO_PIN_RESET); // Blnk RED LED
-osDelay(20); // Delay for red led blink
+HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_SET);   // GRN OFF
+HAL_GPIO_WritePin(GPIOB,GPIO_PIN_1,GPIO_PIN_RESET); // RED ON
+osDelay(20);                 // Short delay for red led blink
 			// Turn off Cell #3 power
 			HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13,GPIO_PIN_RESET);
 			while(1==1);

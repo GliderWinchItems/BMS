@@ -45,6 +45,7 @@ uint8_t fetonoff(uint8_t fetnum, uint8_t fetcommand)
 		 case FET_CHGR:
 		 	TIM1->CCR1 = 0; // FET ON time
 			pbq->fet_status &= ~FET_CHGR;
+HAL_GPIO_WritePin(GPIOB,GPIO_PIN_1,GPIO_PIN_SET); // RED LED OFF
 			break;
 
 		default: // Bogus FET designation
@@ -76,6 +77,7 @@ uint8_t fetonoff(uint8_t fetnum, uint8_t fetcommand)
 		 case FET_CHGR:
 		 	TIM1->CCR1 = pbq->tim1_ccr1; // FET ON time
 			pbq->fet_status |= FET_CHGR;
+HAL_GPIO_WritePin(GPIOB,GPIO_PIN_1,GPIO_PIN_RESET); // RED LED ON
 			break;
 
 		default: // Bogus FET bit designation
