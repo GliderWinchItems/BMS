@@ -1330,14 +1330,14 @@ uint32_t dbgcancommloop_prev;
   {  
     vTaskDelayUntil( &tickcnt, xPeriod );
 
-#if 0 // Processor ADC display
+#if 1 // Processor ADC display
     adcctr += 1;
     if (adcctr > 20)
     {
       adcctr = 0;
 extern uint32_t dwtdiff;      
   #if 1
-      yprintf(&pbuf1,"\n\rADCf: %4d %6d",(adc1.ctr-adc1_ctr_prev),dwtdiff);
+      yprintf(&pbuf1,"\n\rADCf: %4d %6d:",(adc1.ctr-adc1_ctr_prev),dwtdiff);
       adc1_ctr_prev = adc1.ctr;
       for (i = 0; i < 9; i++)
       {
@@ -1492,8 +1492,14 @@ extern struct BMSREQ_Q  bmstask_q_readbms;
       cline[18*LSPC] = 0;
       yprintf(&pbuf1,"%s",cline);
 
+int32_t csum = 0;
       yprintf(&pbuf2,"\n\rcellv[i] : ");
-      for (i = 0; i < 18; ++i) yprintf(&pbuf2," %6.0f",bqfunction.cellv[i]);
+      for (i = 0; i < 18; ++i)
+      {
+        csum += bqfunction.cellv[i];
+        yprintf(&pbuf2," %6.0f",bqfunction.cellv[i]);
+      }
+      yprintf(&pbuf1," %d",csum);
 
       extern uint32_t dbgcell[18];
       yprintf(&pbuf2,"\n\rdbgcellv : ");
@@ -1525,8 +1531,8 @@ extern struct BMSREQ_Q  bmstask_q_readbms;
       }
       cline[18*LSPC] = 0;
       yprintf(&pbuf2,"%s",cline);  
-
-      yprintf(&pbuf1,"\n\rFETSTAT: 0x%02X  battery_status: 0x%02X",bqfunction.fet_status,bqfunction.battery_status);     
+extern uint32_t dbgtrc;
+      yprintf(&pbuf1,"\n\rFETSTAT: 0x%02X  battery_status: 0x%02X dbgtrc: 0x%04x ",bqfunction.fet_status,bqfunction.battery_status,dbgtrc);     
 
 #if 0  
       yprintf(&pbuf1,"\n\rcellv_latest[i]: ");

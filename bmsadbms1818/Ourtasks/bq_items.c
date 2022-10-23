@@ -21,6 +21,8 @@
 #include "fetonoff.h"
 #include "bmsspi.h"
 
+uint32_t dbgtrc;
+
 void bq_items_selectfet(void);
 
 #define USESORTCODE
@@ -153,7 +155,7 @@ void bq_items_selectfet(void)
 	float* p = &bqfunction.cellv[0]; // Calibrated cell voltage
 	uint32_t idata;
 	int16_t i; // variable name selected in memory of FORTRAN
-
+dbgtrc = 0;
 	pbq->battery_status = 0; // Reset battery status
 	pbq->cellv_total    = 0; // Sum of installed cell voltages
 	pbq->cellv_high     = 0; // Highest cell voltage
@@ -234,6 +236,7 @@ dbgcellbal = pbq->cellbal;
 		pbq->fet_status &= ~(FET_DUMP|FET_HEATER|FET_DUMP2|FET_CHGR|FET_CHGR_VLC);
 		pbq->cellbal = 0; // All cell balancing FETS off
 //morse_trap(1);
+		dbgtrc |= (1<<0);
 		return;
 	}
 #endif	
@@ -246,12 +249,14 @@ dbgcellbal = pbq->cellbal;
 		pbq->fet_status &= ~(FET_DUMP|FET_HEATER); // Disable discharge
 		// The following assumes DUMP2 FET controls an external charger
 		pbq->cellbal = 0; // All cell balancing FET bits off
-//morse_trap(2);		
+//morse_trap(2);
+dbgtrc |= (1<<1);		
 		// Here, one or more are too low, but are any still too high?
 		if (pbq->cellv_high > pbq->lc.cellv_max)
 		{ // EGADS YES! We cannot charge, but can selectively discharge
 		  // until high cells become low enough to turn on charging.	
 			pbq->fet_status &= ~(FET_CHGR|FET_DUMP2); // Disable charging
+dbgtrc |= (1<<2);			
 		}
 	}
 
@@ -260,10 +265,12 @@ dbgcellbal = pbq->cellbal;
 	{ // Here, yes. One or more cells are over max limit
 		// No charging, but discharging is needed
 		pbq->fet_status &= ~(FET_CHGR|FET_DUMP2); // (DUMP2 external charger control)
+dbgtrc |= (1<<3);
 	}
 	else
 	{ // Here, no cells are too high. 
 		pbq->fet_status |= (FET_CHGR|FET_DUMP2); // (DUMP2 external charger control)
+dbgtrc |= (1<<4);		
 	}
 
 	/* Healthy Hysteresis Handling. */
@@ -273,6 +280,7 @@ dbgcellbal = pbq->cellbal;
 		{ // Here, all installed cells are over the (target voltage - delta)	
 			pbq->hyster_sw = 1;     // Start "relaxation"
 			pbq->hysterbits_lo = 0; // Reset low cell bits
+dbgtrc |= (1<<5);
 		}
 	}
 	else
@@ -281,11 +289,12 @@ dbgcellbal = pbq->cellbal;
 		pbq->cellbal   = 0;
 //morse_trap(3);
 		pbq->fet_status &= ~(FET_DUMP|FET_HEATER|FET_DUMP2|FET_CHGR|FET_CHGR_VLC);
-
+dbgtrc |= (1<<6);
 		// Stop relaxation when one or more cells hits hysteresis low end
 		if (pbq->hysterbits_lo != 0)
 		{ // One or more cells hit the low end of hysteresis
 			pbq->hyster_sw  = 0;    // Set hysteresis switch off
+dbgtrc |= (1<<7);			
 		}
 	}
 

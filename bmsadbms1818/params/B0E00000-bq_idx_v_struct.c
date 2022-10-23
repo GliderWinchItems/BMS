@@ -39,12 +39,12 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
 
    p->CanComm_hb = 1000; // CanCommTask 'wait' RTOS ticks per heartbeat sending
  
-   /* Initial test settings. */
-   p->dac1_hv_setting  = 3500; // HV volt limit (DAC setting)
-   p->dac2_ix_setting  = 100;  // Current sense level setting (DAC setting)
-   p->tim1_ccr1_on     =  50;  // PWM ON count: Normal charge rate
-   p->tim1_ccr1_on_vlc =   2;  // PWM ON count: Very Low Charge rate required
-   p->tim1_arr_init    =  79;  // At 16 MHz: count of 80 = 5 us PWM frame
+   /* Charger: timer and comparator settings. */
+   p->dac1_hv_setting  = 3600; // HV volt limit (DAC setting)
+   p->dac2_ix_setting  =  110; // Current sense level setting (DAC setting)
+   p->tim1_ccr1_on     =   55; // PWM ON count: Normal charge rate
+   p->tim1_ccr1_on_vlc =    2; // PWM ON count: Very Low Charge rate required
+   p->tim1_arr_init    =   79; // At 16 MHz: count of 80 = 5 us PWM frame
 
    p->cellv_max   = 3900; // Max limit (mv) for charging any cell
    p->cellv_min   = 2800; // Min limit (mv) for any discharging
