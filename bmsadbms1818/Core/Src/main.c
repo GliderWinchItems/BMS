@@ -1543,6 +1543,7 @@ extern uint32_t dbgtrc;
       yprintf(&pbuf1,"\n\rcellv_hi: x %2d v %5d",bqfunction.cellx_high,bqfunction.cellv_high);
       yprintf(&pbuf2,"\n\rcellv_lo: x %2d v %5d",bqfunction.cellx_low, bqfunction.cellv_low);
       yprintf(&pbuf1,"\n\rhyster_sw: %d hysterbits lo %05X",bqfunction.hyster_sw,bqfunction.hysterbits_lo);
+      yprintf(&pbuf1,"\n\rhysterv_lo:%5d",bqfunction.hysterv_lo);
       yprintf(&pbuf2,"\n\rcellv_max: %5d cellv_max: %05X",bqfunction.lc.cellv_max,bqfunction.cellv_max_bits);
       yprintf(&pbuf1,"\n\rcellv_min: %5d cellv_min: %05X",bqfunction.lc.cellv_min,bqfunction.cellv_min_bits);
 

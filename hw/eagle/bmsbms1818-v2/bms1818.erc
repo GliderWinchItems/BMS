@@ -1,6 +1,6 @@
 EAGLE Version 4.13 Copyright (c) 1988-2004 CadSoft
 
-Electrical Rule Check for /mnt/home/deh/GliderWinchItems/BMS/hw/eagle/bmsbms1818-v2/bms1818.sch at 10/14/2022 19:55:10 
+Electrical Rule Check for /mnt/home/deh/GliderWinchItems/BMS/hw/eagle/bmsbms1818-v2/bms1818.sch at 10/24/2022 20:22:25 
 
 WARNING: Sheet 1/1: POWER Pin IC101 VDD connected to +15V
 WARNING: Sheet 1/1: POWER Pin U1POWER VDD_1 connected to VCC
