@@ -30,22 +30,13 @@ int8_t rtcregs_init(void)
 		rtcregs_load(); // Load regs into SRAM
 	}
 	// Use default SRAM settings
+
+	// Check size
+	if (sizeof(struct RTCREG) >= (32*4) ) morse_trap(788);
+	if ((sizeof(struct RTCREG)/4) != (RTCREGUSED+1) ) morse_trap(789);
+
 	return ret;
 }
-
-/*
-struct RTCREG
-{
-	uint32_t cellbal;       // Bits with FETs that were on
-	uint32_t hysterbits_hi; // Bits for cells that reached cellv_max (target)
-	uint32_t hysterbits_lo; // Bits for cells that fell below hysterv_lo
-	uint16_t cellreg[18]; 
-	uint8_t hyster_sw;      // Hysteresis switch: 1 = peak was reached
-	uint8_t battery_status; // Cell status code bits 
-	uint8_t fet_status;     // This controls on/off of FETs
-	uint8_t err             // Err bits
-	uint16_t pec15; // CRC15
-};*/
 /* *************************************************************************
  * void rtcregs_update(void);
  *	@brief	: Write selected SRAM into RTC registers
@@ -104,27 +95,12 @@ dbgrtc = prtc;
 	/* Enable read access. */
 	PWR->CR1 |= (1 << 8); // 1: Access to RTC and Backup registers enabled
 
-	int len = 4*13; // Number of bytes in data registers (see 'update' above)
-
-	pec1 = pec15_reg (((uint8_t*)prtc), len); // Compute PEC15 
-	pec2 = *(prtc + 13*2); // Retrieve PEC15 in registers
+	pec1 = pec15_reg (((uint8_t*)prtc), (RTCREGUSED*4)); // Compute PEC15 
+	pec2 = *(prtc + (RTCREGUSED*2)); // Retrieve PEC15 in registers
 	if (pec1 != pec2)
 		return -1; // Fail
 	return 0; // Success
 }
-/*
-struct RTCREG
-{
-	uint32_t cellbal;       // Bits with FETs that were on
-	uint32_t hysterbits_hi; // Bits for cells that reached cellv_max (target)
-	uint32_t hysterbits_lo; // Bits for cells that fell below hysterv_lo
-	uint16_t cellreg[18]; 
-	uint8_t hyster_sw;      // Hysteresis switch: 1 = peak was reached
-	uint8_t battery_status; // Cell status code bits 
-	uint8_t fet_status;     // This controls on/off of FETs
-	uint8_t err             // Err bits
-	uint16_t pec15; // CRC15
-};*/
 /* *************************************************************************
  * void rtcregs_load(void);
  *	@brief	: Load RTC registers into SRAM

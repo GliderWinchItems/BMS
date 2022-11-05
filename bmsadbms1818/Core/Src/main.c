@@ -1301,7 +1301,12 @@ void StartDefaultTask(void *argument)
 //struct SERIALSENDTASKBCB* pbuf4 = getserialbuf(&HUARTMON,128);
 //if (pbuf4 == NULL) morse_trap(125);
 
-  yprintf(&pbuf1,"\n\n\rPROGRAM STARTS: rtcregs_ret: %d",rtcregs_ret);
+  char* ok = {"OK"};
+  char* ng = {"ng"};
+  char** ptwo;
+  if (rtcregs_ret == 0) ptwo = &ok;
+  else ptwo = &ng;
+  yprintf(&pbuf1,"\n\n\rPROGRAM STARTS: rtcregs_ret: %s",*ptwo);
 
   /* The 'for' loop polls. The following times the loop. */
   #define MAINFORLOOPDELAY 50 // Delay of 'for' loop in ms
