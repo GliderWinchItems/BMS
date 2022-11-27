@@ -64,8 +64,8 @@ module base()
             translate([lll/2+4,-www/2,-0.01])
             rounded_rectangle_hull(lll+16,www,basethk+10,baserad);
             
-            translate([-lll/2-11,-www/2,-0.01])
-            rounded_rectangle_hull(lll,www,basethk+10,baserad);            
+            translate([-lll/2-11-1,-www/2,-0.01])
+            rounded_rectangle_hull(lll-1,www,basethk+10,baserad);            
 
   //          translate([-brdlen/2+dd/2,-brdwid/2+dd/2,-0.01])
 //                 cube([brdlen-dd,brdwid-dd,50],center=false);
@@ -134,7 +134,7 @@ bb = (51-3.3)/2;
     postsq([+cc,-bb,0],[0,0, 90]);
     postsq([-cc,+bb,0],[0,0,-90]);
     postsq([+cc,+bb,0],[0,0,180]);
-        kk=0;
+        kk=-1;
     post([-brdholdmx/2+kk,-brdholdy/2,0]);
     post([-brdholdmx/2+kk,+brdholdy/2,0]);       
     post([-brdholdmx/2+kk,+brdholdmy/2,0]);        
