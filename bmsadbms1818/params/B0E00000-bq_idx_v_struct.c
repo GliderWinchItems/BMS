@@ -1,9 +1,12 @@
 /******************************************************************************
-* File Name          : B0C00000-bq_idx_v_struct.c
+* File Name          : B0E00000-bq_idx_v_struct.c
 * Date First Issued  : 08/20/2022
 * Board              : bmsadbms1818
 * Description        : Load BQ parameter struct: B0E00000 ADBMS1818 board #3
 *******************************************************************************/
+/* Updates
+11/30/2022
+*/
 
 #include "bq_idx_v_struct.h"
 #include "SerialTaskReceive.h"
@@ -46,14 +49,14 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->tim1_ccr1_on_vlc =    2; // PWM ON count: Very Low Charge rate required
    p->tim1_arr_init    =   79; // At 16 MHz: count of 80 = 5 us PWM frame
 
-   p->cellv_max   = 3900; // Max limit (mv) for charging any cell
-   p->cellv_min   = 2800; // Min limit (mv) for any discharging
-   p->cellv_vlc   = 2550; // Below this (mv) Very Low Charge (vlc)required
-   p->cellv_tgtdelta = 30; // Target delta (mv)
-   p->cellopen_hi = 4300; // Above this voltage cell wire is assumed open (mv)
+   p->cellv_max   = 3550; // Max limit (mv) for charging any cell
+   p->cellv_min   = 2200; // Min limit (mv) for any discharging
+   p->cellv_vlc   = 2100; // Below this (mv) Very Low Charge (vlc)required
+   p->cellv_tgtdelta = 20; // Target delta (mv)
+   p->cellopen_hi = 4000; // Above this voltage cell wire is assumed open (mv)
    p->cellopen_lo =  333; // Below this voltage cell wire is assumed open (mv)
    p->modulev_max = (16*3600); // Battery module max limit (mv)
-   p->modulev_min = (16*2600); // Battery module min limit (mv)
+   p->modulev_min = (16*2100); // Battery module min limit (mv)
 
    p->balnummax    = 18;  // Max number of cells to discharge at one time
    p->cellv_hyster = 75;  // Voltage below cellv_max to start recharging (mv)
