@@ -1,0 +1,296 @@
+GliderWinchItems/BMS/docs/description/
+BMS-board-software-update-steps
+12/27/2022
+
+0. One time software setup
+
+CANldr PC program may need to be compiled--
+
+- Make sure latest version
+cd ~/GliderWinchCommons/embed
+git pull
+
+- Compile program
+cd ~/GliderWinchCommons/embed/svn_discoveryf4/PC/sensor/CANldr/trunk
+./mm 
+
+1. Start gateway
+
+- determine serial port for gateway: 
+example:
+deh@ASUS:~$ ls /dev/ttyUSB*
+/dev/ttyUSB0  /dev/ttyUSB1  /dev/ttyUSB2
+
+Since multiple ports the USB connector the port to the gateway:
+example:
+deh@ASUS:~$ ls /dev/ttyUSB*
+/dev/ttyUSB0  /dev/ttyUSB1
+/dev/ttyUSB2 is the gateway.
+
+Plug back in and check which one is missing--
+deh@ASUS:~$ ls /dev/ttyUSB*
+/dev/ttyUSB0  /dev/ttyUSB1  /dev/ttyUSB2
+
+- Start hub-server and socat:
+[args: port number, device, baud rate]
+deh@ASUS:~$ hub-socat_b 32123 /dev/ttyUSB2 2000000
+
+Check that it is working--
+deh@ASUS:~$ nc localhost 32123
+E50000400001243C 
+E60000400001253E
+E700004000012640
+...
+CTL-C to stop
+
+- Start cangate
+
+cd ~/GliderWinchCommons/embed/svn_discoveryf4/PC/sensor/cangateCON/trunk
+./cangateCON 127.0.0.1 32123
+
+Saving the above as a script saves time later--
+echo cd "~/GliderWinchCommons/embed/svn_discoveryf4/PC/sensor/cangateCON/trunk; ./cangateCON 127.0.0.1 32123" > ~/bin/cgstart
+cd ~/bin
+chmod +x cgstart
+
+test it--
+cgstart
+cangateCON should start.
+'n' command is useful to monitor CAN traffic (and see program loading)
+
+2. Edit parameters for BMS board
+
+Assure latest list of CAN ids and other constants--
+cd ~/GliderWinchCommons/embed
+git pull
+
+To avoid git repo conflicts--
+cd ~/GliderWinchItems/BMS
+git pull
+
+Each BMS board has a pair of .c parameter files. 
+  xxxxxxx-adc_idx_v_struct.c - parameters for processor ADC
+  xxxxxxx-bq_idx_v_struct.c - parameters for '1818'
+ Where xxxxxxx is the CAN id assigned to the loader on the board,
+ e.g. B0A00000
+
+The file names of the pair must (and case sensitive) match the CAN ID 
+or that board, e.g. the first three BMS 1818 boards--
+
+cd ~/GliderWinchItems/BMS/bmsadbms1818/params
+deh@ASUS:~/GliderWinchItems/BMS/bmsadbms1818/params$ ls -l
+total 60
+-rw-rw-r-- 1 deh deh  5824 Oct 22 22:53 B0A00000-adc_idx_v_struct.c
+-rw-rw-r-- 1 deh deh 12007 Oct 22 22:52 B0A00000-bq_idx_v_struct.c
+-rw-rw-r-- 1 deh deh  5808 Aug 21 15:16 B0C00000-adc_idx_v_struct.c
+-rw-rw-r-- 1 deh deh 12008 Oct 22 21:13 B0C00000-bq_idx_v_struct.c
+-rw-rw-r-- 1 deh deh  5808 Oct 16 14:36 B0E00000-adc_idx_v_struct.c
+-rw-rw-r-- 1 deh deh 12056 Oct 22 21:12 B0E00000-bq_idx_v_struct.c
+
+Edit the .c file and save.
+
+Do a 'git commit' and 'git push'
+
+3. Load program over CAN
+
+deh@ASUS: cd ~/GliderWinchItems/BMS/bmsadbms1818
+
+'cc' starts the script. The argument is the CAN ID (case sensitive)
+deh@ASUS:~/GliderWinchItems/BMS/bmsadbms1818$ ./cc B0E00000
+
+The script compiles the program, using the two parameter .c files identified by the CAN ID.
+Following the compile the elf file is converted to srec, and a new srec file generated
+that has the checksum and crc added. The CAN loading program then uses the srec file and
+sends CAN msgs with the binary in the payload, with checksum checking every 2K flash block.
+
+When the loading completes the BMS board resets and starts up normally.
+
+=========================================================================
+=== Here is what the terminal output looks like when it is successful ===
+=========================================================================
+
+deh@ASUS:~/GliderWinchItems/BMS/bmsadbms1818$ ./cc B0E00000
+################ CAN ID  ################
+B0E00000
+################ PARAMETER FILES ################
+B0E00000-adc_idx_v_struct.c : B0E00000-bq_idx_v_struct.c
+################ COMPILE ##################
+arm-none-eabi-gcc build/main.o build/freertos.o build/stm32l4xx_it.o build/stm32l4xx_hal_msp.o build/stm32l4xx_hal_timebase_tim.o build/stm32l4xx_hal_adc.o build/stm32l4xx_hal_adc_ex.o build/stm32l4xx_hal.o build/stm32l4xx_hal_i2c.o build/stm32l4xx_hal_i2c_ex.o build/stm32l4xx_hal_rcc.o build/stm32l4xx_hal_rcc_ex.o build/stm32l4xx_hal_flash.o build/stm32l4xx_hal_flash_ex.o build/stm32l4xx_hal_flash_ramfunc.o build/stm32l4xx_hal_gpio.o build/stm32l4xx_hal_dma.o build/stm32l4xx_hal_dma_ex.o build/stm32l4xx_hal_pwr.o build/stm32l4xx_hal_pwr_ex.o build/stm32l4xx_hal_cortex.o build/stm32l4xx_hal_exti.o build/stm32l4xx_hal_can.o build/stm32l4xx_hal_comp.o build/stm32l4xx_hal_dac.o build/stm32l4xx_hal_dac_ex.o build/stm32l4xx_hal_rtc.o build/stm32l4xx_hal_rtc_ex.o build/stm32l4xx_hal_tim.o build/stm32l4xx_hal_tim_ex.o build/stm32l4xx_hal_uart.o build/stm32l4xx_hal_uart_ex.o build/system_stm32l4xx.o build/croutine.o build/event_groups.o build/list.o build/queue.o build/stream_buffer.o build/tasks.o build/timers.o build/cmsis_os2.o build/heap_4.o build/port.o build/stm32l4xx_hal_opamp.o build/stm32l4xx_hal_opamp_ex.o build/stm32l4xx_hal_spi.o build/stm32l4xx_hal_spi_ex.o build/SerialTaskSend.o build/DTW_counter.o build/CanTask.o build/can_iface.o build/canfilter_setup.o build/getserialbuf.o build/yprintf.o build/SerialTaskReceive.o build/yscanf.o build/morse.o build/payload_extract.o build/MailboxTask.o build/adctask.o build/ADCTask.o build/adcfastsum16.o build/adcparams.o build/adcparamsinit.o build/B0E00000-adc_idx_v_struct.o build/B0E00000-bq_idx_v_struct.o build/iir_f1.o build/iir_filter_lx.o build/fetonoff.o build/bqview.o build/bq_func_init.o build/bq_items.o build/chgr_items.o build/CanCommTask.o build/cancomm_items.o build/fanop.o build/bmsspi.o build/BMSTask.o build/pec15_reg.o build/bms_items.o build/rtcregs.o build/startup_stm32l431xx.o -mcpu=cortex-m4 -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=hard -u _printf_float -TSTM32L431RBTx_FLASH.ld  -lc -lm -lnosys  -Wl,-Map=build/bms1818.map,--cref -Wl,--gc-sections -o build/bms1818.elf
+arm-none-eabi-size build/bms1818.elf
+   text	   data	    bss	    dec	    hex	filename
+  73536	   2512	  22672	  98720	  181a0	build/bms1818.elf
+arm-none-eabi-objcopy -O ihex build/bms1818.elf build/bms1818.hex
+arm-none-eabi-objcopy -O binary -S build/bms1818.elf build/bms1818.bin	
+################ SUCCESS ##################
+
+################# ADD CRC & CHECKSUM #################
+.srec file opened read:        bms1818.srec
+.bin file opened read binary:  bms1818.bin
+.srec-crc file opened write:   bms1818.srec-crc
+.xbin file opened write binary:bms1818.xbin
+GAP:line    27 0x08008190  0x080081C0 48
+BEGIN GAP GEN: 0x080081c0  0x08008180 48
+LOOP  GAP GEN: 0x080081c0  0x08008198 40
+LOOP  GAP GEN: 0x080081c0  0x080081a0 32
+LOOP  GAP GEN: 0x080081c0  0x080081a8 24
+LOOP  GAP GEN: 0x080081c0  0x080081b0 16
+LOOP  GAP GEN: 0x080081c0  0x080081b8 8
+REMAINDER GEN: 0x080081c0  0x080081c0 8
+bufsav1: S3150801A9300000000000000000000000000000000008
+
+Last address s3bin.addr: 0x0801A930 ct: 16 ourbinsize: 0x00012940
+BIN DIFF:   400 0x00 0xff
+BIN DIFF:   401 0x00 0xff
+BIN DIFF:   402 0x00 0xff
+BIN DIFF:   403 0x00 0xff
+BIN DIFF:   404 0x00 0xff
+BIN DIFF:   405 0x00 0xff
+BIN DIFF:   406 0x00 0xff
+BIN DIFF:   407 0x00 0xff
+BIN DIFF:   408 0x00 0xff
+BIN DIFF:   409 0x00 0xff
+BIN DIFF:   410 0x00 0xff
+BIN DIFF:   411 0x00 0xff
+BIN DIFF:   412 0x00 0xff
+BIN DIFF:   413 0x00 0xff
+BIN DIFF:   414 0x00 0xff
+BIN DIFF:   415 0x00 0xff
+BIN DIFF:   416 0x00 0xff
+BIN DIFF:   417 0x00 0xff
+BIN DIFF:   418 0x00 0xff
+BIN DIFF:   419 0x00 0xff
+BIN DIFF:   420 0x00 0xff
+BIN DIFF:   421 0x00 0xff
+BIN DIFF:   422 0x00 0xff
+BIN DIFF:   423 0x00 0xff
+BIN DIFF:   424 0x00 0xff
+BIN DIFF:   425 0x00 0xff
+BIN DIFF:   426 0x00 0xff
+BIN DIFF:   427 0x00 0xff
+BIN DIFF:   428 0x00 0xff
+BIN DIFF:   429 0x00 0xff
+BIN DIFF:   430 0x00 0xff
+BIN DIFF:   431 0x00 0xff
+BIN DIFF:   432 0x00 0xff
+BIN DIFF:   433 0x00 0xff
+BIN DIFF:   434 0x00 0xff
+BIN DIFF:   435 0x00 0xff
+BIN DIFF:   436 0x00 0xff
+BIN DIFF:   437 0x00 0xff
+BIN DIFF:   438 0x00 0xff
+BIN DIFF:   439 0x00 0xff
+BIN DIFF:   440 0x00 0xff
+BIN DIFF:   441 0x00 0xff
+BIN DIFF:   442 0x00 0xff
+BIN DIFF:   443 0x00 0xff
+BIN DIFF:   444 0x00 0xff
+BIN DIFF:   445 0x00 0xff
+BIN DIFF:   446 0x00 0xff
+BIN DIFF:   447 0x00 0xff
+binfilectr : 76096 0x00012940
+ourbinsize : 76096 0x00012940
+ourbinsize2: 76104 0x00012948
+ourbinctr  : 76096 0x00012940
+ word ct*4 : 76096 binchksum : 0x89953ABF  crc2: 0x029481BC
+ word ct*4 : 76104 binchksum3: 0x15BEF73B  crc3: 0xEB3EEA60
+last compile S3 cnt  : 16 10
+last compile S3 addr : 0x0801A930
+Inserted S3 load addr: 0x0801A940
+last srec3 (S7?): S7050801531589
+Inserted S3 line: S30D0801A940BC819402BF3A958916
+bintmp:          0D 08 01 A9 40 BC 81 94 02 BF 3A 95 89 : 16
+Inserted replay:  8 0801A940 :  BC 81 94 02 BF 3A 95 89 : 16
+CRC generated : 0x029481BC
+CRC2generated : 0x029481BC
+CRC3generated : 0xEB3EEA60
+Checksum  gen : 0x89953ABF
+Checksum3 gen : 0x15BEF73B
+Total line ct :  4757
+Total s3   ct :  4755
+Line count out:  4763
+Size our bin  : 76096 0x00012940
+Size compile b: 76096 0x00012940
+################# SAVE & MOVE FILE   #################
+-rwxrwxr-x 1 deh deh 228445 Nov 30 11:01 bms1818.srec
+-rw-rw-r-- 1 deh deh 228445 Nov 30 11:01 bms1818.srec-crc
+-rwxrwxr-x 1 deh deh 228228 Nov 30 11:01 bms1818.srec.save
+-rwxrwxr-x 1 deh deh 76096 Nov 30 11:01 bms1818.bin
+-rw-rw-r-- 1 deh deh 76120 Nov 30 11:01 bms1818.xbin
+
+########## CANldr ########## 09/08/2022
+BAUDRATE is FIXED AT: 2000000 baud
+argc 5
+0 ./CANldr
+1 127.0.0.1
+2 32123
+3 B0E00000
+4 /home/deh/GliderWinchItems/BMS/bmsadbms1818/build/bms1818.xbin
+CANnodeid: 0xB0E00000
+Socket opened OK.  IP: 127.0.0.1 PORT: 32123
+Xbin opened: /home/deh/GliderWinchItems/BMS/bmsadbms1818/build/bms1818.xbin
+xbin_addr:     0x08008000
+xbin_size:     0x00012948
+xbin_crc:      0xEB3EEA60
+xbin_checksum: 0x15BEF73B
+xbin_in_ct   : 0x00012948 76104
+fseek size   : 0x00012958
+Node CRC does not match our CRC: 0x029481BC 0xEB3EEA60 retry ct: 0
+Node CRC matches: 0xEB3EEA60 : 0x029481BC
+#A# STATE_MSG_ADDR_RESPONSE: check msg
+	0xB0E00000 8:  4,  04 00 04 00 00 08 00 00
+STATE_MSG_ADDR_RESPONSE: OK. begin loading. req_size: 2048
+### EOF sent. Node returned: 4 req_size: FEEDBACC bt_flag: 0x 1
+xbin_in_ct: 0x00012948 76104
+0
+/home/deh/GliderWinchItems/BMS/bmsadbms1818
+deh@ASUS:~/GliderWinchItems/BMS/bmsadbms1818$ 
+
+=== Here is what cangate (command 'n') looks like ===
+=== Note the burst of CAN msgs for B0E0 ===
+ 7:004 64|E2E  0|E1A  0|B0201154  0|E26  0|B02  0|B0E  0| 64  1088  0.5
+ 7:004 64|E2E  1|E1A  0|B0201154  0|E26  0|B02  0|B0E  0| 65  1103  0.6
+ 7:004 64|E2E  0|E1A  0|B0201154  0|E26  1|B02  3|B0E 569|637 18917  9.5
+ 7:004 64|E2E  1|E1A  1|B0201154  0|E26  1|B02  5|B0E 1367|1439 43626 21.8
+ 7:004 64|E2E  0|E1A  0|B0201154  0|E26  1|B02  5|B0E 1421|1491 45322 22.7
+ 7:004 64|E2E  1|E1A  0|B0201154  0|E26  0|B02  5|B0E 1394|1464 44411 22.2
+ 7:004 64|E2E  0|E1A  0|B0201154  0|E26  0|B02  4|B0E 1449|1517 46070 23.0
+ 7:004 64|E2E  1|E1A  0|B0201154  0|E26  0|B02  5|B0E 1423|1493 45378 22.7
+ 7:004 64|E2E  0|E1A  0|B0201154  0|E26  0|B02  5|B0E 1421|1490 45264 22.6
+ 7:004 64|E2E  1|E1A  0|B0201154  0|E26  0|B02  5|B0E 1392|1462 44380 22.2
+ 7:004 64|E2E  0|E1A  0|B0201154  0|E26  0|B02  3|B0E 534|601 17676  8.8
+ 7:004 64|E2E  1|E1A  1|B0201154  0|E26  0|B02  0|B0E  0| 66  1128  0.6
+ 7:004 64|E2E  0|E1A  0|B0201154  0|E26  0|B02  0|B0E  0| 64  1088  0.5
+ 7:004 64|E2E  1|E1A  0|B0201154  0|E26  0|B02  0|B0E  0| 65  1103  0.6
+ 7:004 64|E2E  0|E1A  0|B0201154  0|E26  1|B02  0|B0E  0| 65  1115  0.6
+
+ ==== Here is what a failure looks like         ====
+ ==== Notice I missed a '0' in ./cc B0E0000     ====
+ ==== It did not find the .c file for B0E0000   ====
+ ==== A ### TIMEOUT also happens if CAN is not "working" ====
+
+deh@ASUS:~/GliderWinchItems/BMS/bmsadbms1818$ ./cc B0E0000
+params/B0E0000-adc_idx_v_struct.c does not exist
+
+########## CANldr ########## 09/08/2022
+BAUDRATE is FIXED AT: 2000000 baud
+argc 5
+0 ./CANldr
+1 127.0.0.1
+2 32123
+3 B0E0000
+4 /home/deh/GliderWinchItems/BMS/bmsadbms1818/build/bms1818.xbin
+CANnodeid: 0x0B0E0000
+Socket opened OK.  IP: 127.0.0.1 PORT: 32123
+Xbin opened: /home/deh/GliderWinchItems/BMS/bmsadbms1818/build/bms1818.xbin
+xbin_addr:     0x08008000
+xbin_size:     0x00012948
+xbin_crc:      0xEB3EEA60
+xbin_checksum: 0x15BEF73B
+xbin_in_ct   : 0x00012948 76104
+fseek size   : 0x00012958
+### TIMEOUT: STATE_TIM_REQ_CRC_TO: retry ctr 0
+### TIMEOUT: STATE_TIM_REQ_CRC_TO: retry ctr 1
+### TIMEOUT: STATE_TIM_REQ_CRC_TO: retry ctr 2
+249
+/home/deh/GliderWinchItems/BMS/bmsadbms1818
+deh@ASUS:~/GliderWinchItems/BMS/bmsadbms1818$ 
