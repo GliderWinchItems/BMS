@@ -14,6 +14,8 @@
 
 static void rtcregs_load(void);
 
+uint32_t morse_err;
+
 /* *************************************************************************
  * int8_t rtcregs_init(void);
  *	@brief	: Init access to regs
@@ -44,7 +46,7 @@ int8_t rtcregs_init(void)
 void rtcregs_update(void)
 {
 	uint32_t* prtc = (uint32_t*)&RTC->BKP0R;
-	uint16_t* p16 = &bmsspiall. cellreg[0];
+	uint16_t* p16  = &bmsspiall.cellreg[0];
 
 	PWR->CR1 |= (1 << 8); // 1: Access to RTC and Backup registers enabled
 
@@ -69,6 +71,7 @@ void rtcregs_update(void)
 				(bqfunction.fet_status << 16) |
 				(bqfunction.err << 24)
 				); 
+	*prtc++ = morse_err;
 	uint8_t* pr = (uint8_t*)&RTC->BKP0R;
 	int len = (uint8_t*)prtc - (uint8_t*)&RTC->BKP0R;
 	*prtc = pec15_reg (pr, len);
@@ -127,6 +130,9 @@ static void rtcregs_load(void)
 	bqfunction.battery_status  = (*prtc >>  8) & 0xf; /* Cell status code bits */
 	bqfunction.fet_status      = (*prtc >> 16) & 0xf;
 	bqfunction.err             = (*prtc >> 24) & 0xf;
+	prtc += 1;
+
+	bqfunction.morse_err = *prtc++;
 
 	return;
 }

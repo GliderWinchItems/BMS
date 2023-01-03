@@ -49,7 +49,7 @@ cd ~/GliderWinchCommons/embed/svn_discoveryf4/PC/sensor/cangateCON/trunk
 ./cangateCON 127.0.0.1 32123
 
 Saving the above as a script saves time later--
-echo cd "~/GliderWinchCommons/embed/svn_discoveryf4/PC/sensor/cangateCON/trunk; ./cangateCON 127.0.0.1 32123" > ~/bin/cgstart
+echo cd "~/GliderWinchCommons/embed/svn_discoveryf4/PC/sensor/cangateBMS/trunk; ./cangateBMS 127.0.0.1 32123" > ~/bin/cgstart
 cd ~/bin
 chmod +x cgstart
 

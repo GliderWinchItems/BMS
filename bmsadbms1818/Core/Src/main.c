@@ -87,7 +87,7 @@ uint8_t canflag1;
 
 int8_t rtcregs_ret; // RTC register init return
 
-//const uint32_t i_am_canid = I_AM_CANID;
+const uint32_t i_am_canid = I_AM_CANID;
 
 /* USER CODE END PTD */
 
@@ -227,7 +227,8 @@ int main(void)
   MX_I2C2_Init();
   MX_COMP2_Init();
   /* USER CODE BEGIN 2 */
-
+  /* CAN ID for this node is passed in to make from command line. */
+//  i_am_canid = I_AM_CANID;
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -1508,7 +1509,7 @@ int32_t csum = 0;
 
       extern uint32_t dbgcell[18];
       yprintf(&pbuf2,"\n\rdbgcellv : ");
-      for (i = 0; i < 18; ++i) yprintf(&pbuf2," %6d",dbgcell[i]);
+      for (i = 0; i < 18; ++i) yprintf(&pbuf2," %6d",dbgcell[i]);\
 
       yprintf(&pbuf2,"\n\r%5d %02d DCHG    ",fctr++,dbgf+1);
       memset(cline,' ',(LSPC*18));

@@ -64,8 +64,9 @@ struct BQLC
    uint32_t cid_cmd_bms_cellvq; // CANID_CMD_BMS_CELLVQ B0200000 request cell voltages
    uint32_t cid_cmd_bms_miscq;  // CANID_CMD_BMS_MISCQ  B0400000 request reading for many options
    uint32_t cid_unit_bms01;     // CANID_UNIT_BMS01     B0600000 multi-purpose BQ76952  #01
-   uint32_t cid_uni_bms_i;      // CANID_UNI_BMS_I      B0000000 multi-purpose universal BMS
-
+// Universal CAN msg: EMC_I = EMC sends; PC_I = PC sends; R = BMS responds;
+   uint32_t cid_uni_bms_emc_i;  // CANID_UNI_BMS_EMC_I  B0000000 multi-purpose universal BMS
+   uint32_t cid_uni_bms_pc_i;   // CANID_UNI_BMS_PC_I   B0200000 multi-purpose universal BMS
  };
 
 /* *************************************************************************/

@@ -8,6 +8,8 @@
 #include "stm32l4xx_hal.h"
 #include "main.h"
 
+#include "rtcregs.h"
+
 #define TICPERSEC (16000000)
 #define TIC_DIT (TICPERSEC/6)
 #define TIC_DAH (TIC_DIT*4)
@@ -189,11 +191,25 @@ void morse_trap(uint32_t x)
 {
 	/* Disable global interrupts */
 __asm__ volatile ("CPSID I");
-	while(1==1)
+
+	/* Save trap code for storage in RTC registers. */
+	morse_err = x;
+	rtcregs_update(); // Refresh the back RTC sram registers
+
+	/* Flash a few times then do a reset. */
+	for (int i=0; i <2; i++)
 	{
 		morse_number(x, (GPIO_PIN_0|GPIO_PIN_1));
 		delay(TIC_PAUSE, (GPIO_PIN_0|GPIO_PIN_1), GPIO_PIN_SET);	
 	}
+
+	// Turn off Cell #3 power (JIC)
+	HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13,GPIO_PIN_RESET);
+
+	// Execute a RESET
+	#define SCB_AIRCR 0xE000ED0C
+	*(volatile unsigned int*)SCB_AIRCR = (0x5FA << 16) | 0x4;	// Cause a RESET
+	while (1==1);
 }
 /* *************************************************************************
  * void morse_hex(uint32_t n, uint32_t pin);

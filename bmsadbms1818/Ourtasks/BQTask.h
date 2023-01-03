@@ -19,7 +19,7 @@
 
 #define BQVSIZE 20 // Readout loop size (16 cells plus others)
 
-#define NUMCANMSGS 7 // Number of predefined CAN msgs 
+#define NUMCANMSGS 8 // Number of predefined CAN msgs 
 #define MAXNUMCELLMSGS 6 // Max number of CAN msgs with cell readings
 #define CID_MSG_CELLV01  0 // CAN msg with cell readings 1 2 3
 #define CID_MSG_CELLV02  1 // CAN msg with cell readings 4 5 6
@@ -28,6 +28,7 @@
 #define CID_MSG_CELLV05  4 // CAN msg with cell readings 13 14 15
 #define CID_MSG_CELLV06  5 // CAN msg with cell readings 16 or 16 17 18
 #define CID_CMD_MISC     6 // CAN msg with status and TBD stuff
+#define CID_CMD_UNI      7 // CAN msg with universal command response
 
 /* Battery status bits: 'battery_status' */
 #define BSTATUS_NOREADING (1 << 0)	// Exactly zero = no reading
@@ -149,7 +150,7 @@ struct BQFUNCTION
 	uint8_t fanspeed; // Fan speed (timer pwm setting): 14 = minimum for rotation; 100+ = full speed
 	float   fanrpm;   // Fan speed (rpm)
 
-
+	uint32_t morse_err; // Error code retrieved from backup SRAM registers
 	uint8_t err;
 
 	/* balnumwrk might be adjusted based on chip temperature. */

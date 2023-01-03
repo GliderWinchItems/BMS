@@ -87,7 +87,8 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->cid_cmd_bms_cellvq = CANID_CMD_BMS_CELLVQ; // B0200000 
    p->cid_cmd_bms_miscq  = CANID_CMD_BMS_MISCQ;  // B0400000 request reading for many options
    p->cid_unit_bms01     = CANID_UNIT_BMS01;     // B0600000 universal, multi-purpose BQ76952  #01
-   p->cid_uni_bms_i      = CANID_UNI_BMS_I;      // B0000000 UNIversal BMS Incoming msg to BMS: X4=target CANID
+   p->cid_uni_bms_emc_i  = CANID_UNI_BMS_EMC_I;  //B0000000 multi-purpose universal BMS
+   p->cid_uni_bms_pc_i   = CANID_UNI_BMS_PC_I;   //B0200000 multi-purpose universal BMS
 
 // CAN ids BMS sends, others receive
    p->cid_msg_bms_cellvsmr = CANID_MSG_BMS_CELLV11R; //'B0201114', U16_U16_U16_U16'

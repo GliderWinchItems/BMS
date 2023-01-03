@@ -114,6 +114,9 @@ void Error_Handler(void);
 
 #define MAINFORLOOPDELAY 50 // main.c Delay of 'for' loop (ms)
 
+
+extern const uint32_t i_am_canid;
+
 /* Enable discharge FET bits testing. */
 // Uncomment the following to enable test
 //#define TEST_WALK_DISCHARGE_FET_BITS

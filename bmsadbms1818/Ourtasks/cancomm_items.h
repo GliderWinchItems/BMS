@@ -35,6 +35,7 @@
  #define MISCQ_R_BITS     21 // Dump, dump2, heater, discharge bits
  #define MISCQ_CURRENT_CAL 24 // Below cell #1 minus, current resistor: calibrated
  #define MISCQ_CURRENT_ADC 25 // Below cell #1 minus, current resistor: adc counts
+ #define MISCQ_UNIMPLIMENT 26 // Command requested is not implemented
 
 /* *************************************************************************/
  void cancomm_items_init(void);
@@ -45,9 +46,10 @@ void cancomm_items_sendcell(struct CANRCVBUF* pcan, float *pf);
  *  @param  : pcan = pointer to struct CANRCVBUF from mailbox 
  *  @param  : pf = pointer cell array
  * *************************************************************************/
- void cancomm_items_sendcmdr(struct CANRCVBUF* pcan);
-/*	@brief	: Prepare and send a response to a received command
- *  @param  : pcan = pointer to struct CANRCVBUF from mailbox 
+void cancomm_items_sendcmdr(struct CANRCVBUF* po,struct CANRCVBUF* pi);
+/*  @brief	: Prepare and send a response to a received command CAN msg
+ *  @param  : pi = pointer to incoming CAN msg struct CANRCVBUF from mailbox 
+ *  @param  : po = pointer to outgoing CAN msg struct
  * *************************************************************************/
 void cancomm_items_uni_bms(struct CANRCVBUF* pcan, float* pf);
 /*	@brief	: UNIversal multi-purpose command (CANCOMMBIT02)

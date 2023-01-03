@@ -101,8 +101,8 @@ struct BQLC
  // CAN ids ...........................................................................
    //                                  CANID_NAME            CANID       PAYLOAD FORMAT
     // BMS sends; EMC, PC or other receives
-   uint32_t cid_msg_bms_cellvsmr; // 
-   uint32_t cid_cmd_bms_misc11r;  // 
+   uint32_t cid_msg_bms_cellvsmr; // CAN id for cell voltage burst format 
+   uint32_t cid_cmd_bms_miscr;    // CAN id for all other responses
 
  // List of CAN ID's for setting up hw filter for incoming msgs
    // EMC or PC sends; BMS receives

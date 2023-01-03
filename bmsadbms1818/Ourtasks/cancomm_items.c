@@ -18,9 +18,10 @@
 void cancomm_items_sendcell(struct CANRCVBUF* pcan, float *pf);
 
 static void loadfloat(uint8_t* puc, float* f);
-static void status_group(void);
-static void send_bms_array(struct CANRCVBUF* pcan, float* pout, uint8_t n);
-static void send_allfets(struct CANRCVBUF* pcan);
+static void status_group(struct CANRCVBUF* po);
+static void send_bms_array(struct CANRCVBUF* po, float* pout, uint8_t n);
+static void send_allfets(struct CANRCVBUF* po);
+static void not_implemented(struct CANRCVBUF* po);
 
 static uint8_t skip;
 static struct BMSREQ_Q  bmstask_q_readbms;
@@ -37,7 +38,7 @@ return;
 	struct BMSREQ_Q* pq = &bmstask_q_readbms;
 
 	bmstask_q_readbms.reqcode = reqcode;
-	bmstask_q_readbms.noteyes = 0; // Do not notify calling task
+	bmstask_q_readbms.noteyes = 1;// Notify 0; // Do not notify calling task
 	bmstask_q_readbms.done = 1; // Show request queued
 	ret = xQueueSendToBack(BMSTaskReadReqQHandle, &pq, 0);
 	if (ret != pdPASS) morse_trap(201);
@@ -124,6 +125,12 @@ void cancomm_items_uni_bms(struct CANRCVBUF* pcan, float* pf)
     // 10 = All modules on identified string respond
     // 01 = Only identified string and module responds
     // 00 = spare; no response expected
+	code = pcan->cd.uc[0] & 0xC0; // Extract identification code
+	if (((code == (3 << 6))) ||
+		((code == (2 << 6)) && ((pcan->cd.uc[0] & 0x30) == p->ident_string)) ||
+		((code == (1 << 6)) && ((pcan->cd.uc[0] & 0x3F) == p->ident_onlyus)) )
+
+            
 	code = pcan->cd.uc[2] & 0xC0;
 
     // Respond if CAN ID for this node is in request
@@ -140,11 +147,13 @@ void cancomm_items_uni_bms(struct CANRCVBUF* pcan, float* pf)
 	{
 	case CMD_CMD_TYPE1: // Send Cell readings
 		cancomm_items_q(REQ_READBMS); // Read cells + GPIO 1 & 2
+		if (pf == NULL) morse_trap(822);
 		cancomm_items_sendcell(pcan, pf);
 		break;
 
 	case CMD_CMD_TYPE2: // Respond according to the code
-		cancomm_items_sendcmdr(pcan);		
+//		if (pf != NULL) morse_trap(823);
+		cancomm_items_sendcmdr(&p->canmsg[CID_CMD_MISC].can,pcan);		
 		break;
 
 	case CMD_CMD_TYPE3: // spare types
@@ -159,12 +168,6 @@ void cancomm_items_uni_bms(struct CANRCVBUF* pcan, float* pf)
  *  @param  : pcan = pointer to struct CANRCVBUF from mailbox 
  *  @param  : pf = pointer cell array
  * *************************************************************************/
-	/* Note: The CAN tx queue is a separate task, so until that task 
-	   copies the msg into its (priority sorted) array, the CAN msg
-	   has to remain unchanged. Hence the following loads six CAN
-	   msgs. This routine will not get called again until the EMC
-	   sends a request for a CAN msg readout. 
-	*/
 void cancomm_items_sendcell(struct CANRCVBUF* pcan, float *pf)
 {
 	struct BQFUNCTION* p = &bqfunction;
@@ -199,7 +202,7 @@ void cancomm_items_sendcell(struct CANRCVBUF* pcan, float *pf)
 				}
 				else
 				{ // Cell voltage is in normal range.
-					p->canmsg[CID_MSG_CELLV01 + i].can.cd.us[j+1] = (uint16_t)(*(pf+j) * 10000);
+					p->canmsg[CID_MSG_CELLV01 + i].can.cd.us[j+1] = (uint16_t)(*(pf+j));
 				}
 			}
 		}
@@ -209,9 +212,10 @@ void cancomm_items_sendcell(struct CANRCVBUF* pcan, float *pf)
 	return;
 }
 /* *************************************************************************
- * void cancomm_items_sendcmdr(struct CANRCVBUF* pcan);
- *	@brief	: Prepare and send a response to a received command
- *  @param  : pcan = pointer to struct CANRCVBUF from mailbox 
+ * void cancomm_items_sendcmdr(struct CANRCVBUF* po,struct CANRCVBUF* pi);
+ *  @brief	: Prepare and send a response to a received command CAN msg
+ *  @param  : pi = pointer to incoming CAN msg struct CANRCVBUF from mailbox 
+ *  @param  : po = pointer to outgoing CAN msg struct
  * *************************************************************************/
 /*
 CANID_CMD_BMS_MISCQ'
@@ -239,60 +243,60 @@ payload [1] U8: Command code
   11 = Lowest cell voltage
   12 = FET on/off discharge bits
 */ 
-void cancomm_items_sendcmdr(struct CANRCVBUF* pcan)
+void cancomm_items_sendcmdr(struct CANRCVBUF* po,struct CANRCVBUF* pi)
 {
 	struct BQFUNCTION* p = &bqfunction;
 	float ftmp[ADCDIRECTMAX];
 	uint8_t i;
 
 	/* Pointer to payload 4 byte value is used often. */
-	uint8_t* puc = &p->canmsg[CID_CMD_MISC].can.cd.uc[4];
+	uint8_t* puc = &po->cd.uc[4];
 
 	skip = 0;
 
 	/* Data in payload is always X4 (4 bytes, any format) */
-	p->canmsg[CID_CMD_MISC].can.dlc = 8;
+	po->dlc = 8;
 	
 /*	Return what was requested: copy as a uint32_t since,
 	byte-at-a-time is slow and fattening, e.g.,
-	p->canmsg[CID_CMD_MISC].can.cd.uc[0] = CMD_CMD_TYPE2;
+	po->cd.uc[0] = CMD_CMD_TYPE2;
 	// Code for response
-	p->canmsg[CID_CMD_MISC].can.cd.uc[1] = pcan->cd.uc[1];
+	po->cd.uc[1] = pcan->cd.uc[1];
 	// Module identification
-	p->canmsg[CID_CMD_MISC].can.cd.uc[2] = pcan->cd.uc[2];
+	po->cd.uc[2] = pcan->cd.uc[2];
 	// Item number, or thermistor number, or ...
-	p->canmsg[CID_CMD_MISC].can.cd.uc[3] = pcan->cd.uc[3]; */
-	p->canmsg[CID_CMD_MISC].can.cd.ui[0] = pcan->cd.ui[0];
+	po->cd.uc[3] = pcan->cd.uc[3]; */
+	po->cd.ui[0] = pi->cd.ui[0];
 
 	/* Add string and module number to response. It may or
 	   may not have been included in the request. */
-	p->canmsg[CID_CMD_MISC].can.cd.uc[2] = 
-			(p->canmsg[CID_CMD_MISC].can.cd.uc[2] & 0xC0) | 
+	po->cd.uc[2] = 
+			(pi->cd.uc[2] & 0xC0) | 
 			((p->lc.stringnum-1) << 4) | (p->lc.modulenum -1);
 
 	/* Command code. */
-	switch(p->canmsg[CID_CMD_MISC].can.cd.uc[1])
+	switch(pi->cd.uc[1])
 	{
 	case MISCQ_STATUS:      // 1 status
-		status_group();
+		status_group(po);
 		break;
 
  	case MISCQ_CELLV_CAL:   // 2 cell voltage: calibrated
 		cancomm_items_q(REQ_READBMS); // Read cells + GPIO 1 & 2
- 		send_bms_array(pcan, &bqfunction.cal_filt[0], p->lc.ncell);
+ 		send_bms_array(po, &bqfunction.cal_filt[0], p->lc.ncell);
  		break;
 
  	case MISCQ_CELLV_ADC:   // 3 cell voltage: adc counts
- 		send_bms_array(pcan, &p->raw_filt[0], p->lc.ncell);
+ 		send_bms_array(po, &p->raw_filt[0], p->lc.ncell);
  		break;
 
  	case MISCQ_TEMP_CAL:    // 4 temperature sensor: calibrated
-		cancomm_items_q(REQ_TEMPERATURE); // Read cells + GPIO 1 & 2
- 		send_bms_array(pcan, &bqfunction.cal_filt[16], 3);
+		cancomm_items_q(REQ_TEMPERATURE); // Read AUX
+ 		send_bms_array(po, &bqfunction.cal_filt[16], 3);
  		break;
 
  	case MISCQ_TEMP_ADC:    // 5 temperature sensor: adc counts
- 		send_bms_array(pcan, &p->raw_filt[16], 3);
+ 		send_bms_array(po, &p->raw_filt[16], 3);
  		break;
 
  	case MISCQ_DCDC_V:      // 6 isolated dc-dc converter output voltage
@@ -304,20 +308,20 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pcan)
  		break;
 
  	case MISCQ_HALL_CAL:    // 8 Hall sensor: calibrated
- 		skip = 1;
+ 		not_implemented(po);
  		break;
 
  	case MISCQ_HALL_ADC:    // 9 Hall sensor: adc counts
- 		skip = 1;
+ 		not_implemented(po);
  		break;
 
  	case MISCQ_CELLV_HI:   // 10 Highest cell voltage
- 		p->canmsg[CID_CMD_MISC].can.cd.uc[2] = p->cellx_high;
+ 		po->cd.uc[2] = p->cellx_high;
  		loaduint32(puc, p->cellv_high);
  		break;
 
  	case MISCQ_CELLV_LO:   // 11 Lowest cell voltage
- 		p->canmsg[CID_CMD_MISC].can.cd.uc[2] = p->cellx_low;
+ 		po->cd.uc[2] = p->cellx_low;
  		loaduint32(puc, p->cellv_low);
  		break;
 
@@ -326,72 +330,72 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pcan)
 		break;
 
 	case MISCQ_TOPOFSTACK: // BMS top-of-stack voltage
-		send_bms_array(pcan, &bqfunction.cal_filt[19], 1);
+		send_bms_array(po, &bqfunction.cal_filt[19], 1);
 		break;		
 
  	case MISCQ_PROC_CAL: // Processor ADC calibrated readings
  		for (i = 0; i < ADCDIRECTMAX; i++) // Copy struct items to float array
  			ftmp[i] = adc1.abs[i].filt;
  		ftmp[1] = adc1.common.degC; // Insert special intermal temperature calibration 
- 		send_bms_array(pcan, &ftmp[0], ADCDIRECTMAX);
+ 		send_bms_array(po, &ftmp[0], ADCDIRECTMAX);
  		break;
 
  	case MISCQ_PROC_ADC: // Processor ADC raw adc counts for making calibrations
 		for (i = 0; i < ADCDIRECTMAX; i++) // Copy struct items to float array
  			ftmp[i] = adc1.abs[i].sumsave;
-		send_bms_array(pcan, &ftmp[0], ADCDIRECTMAX); 	
+		send_bms_array(po, &ftmp[0], ADCDIRECTMAX); 	
  		break;
 
 	case MISCQ_R_BITS:      // 21 Dump, dump2, heater, discharge bits
-		send_allfets(pcan);
+		send_allfets(po);
  		break;
 
 	case MISCQ_CURRENT_CAL: // 24 Below cell #1 minus, current resistor: calibrated
-		skip = 1;
+		not_implemented(po);
  		break;
 
 	case MISCQ_CURRENT_ADC: // 25 Below cell #1 minus, current resistor: adc counts		
-		skip = 1;
+		not_implemented(po);
  		break;
 
 	}
 	if (skip == 0)
 	{ // Here, single CAN msg has not been queued for sending
 		/* Queue CAN msg response. */
-		xQueueSendToBack(CanTxQHandle,&p->canmsg[CID_CMD_MISC],4);
+		xQueueSendToBack(CanTxQHandle, po, 4);
 	}
 	return;
 }
 /* *************************************************************************
- * static void send_bms_array(struct CANRCVBUF* pcan, float* pout, uint8_t n);
+ * static void send_bms_array(struct CANRCVBUF* po, float* pout, uint8_t n);
  *	@brief	: Prepare and send a series of CAN msgs 
- *  @param  : pcan = pointer to CAN msg requesting response
+ *  @param  : po = pointer response CAN msg
  *  @param  : pout = pointer to output array of floats for first reading
  *  @param  : n = number of readings (CAN msgs) to send
  * *************************************************************************/
-static void send_bms_array(struct CANRCVBUF* pcan, float* pout, uint8_t n)
+static void send_bms_array(struct CANRCVBUF* po, float* pout, uint8_t n)
 {
 	struct BQFUNCTION* p = &bqfunction;
 	uint8_t i;
 
 	for (i = 0; i < n; i++)
 	{
-		p->canmsg[CID_CMD_MISC].can.cd.uc[3] = i;
+		po->cd.uc[3] = i;
 
 		// Reading into 4 byte payload
-		loadfloat(&p->canmsg[CID_CMD_MISC].can.cd.uc[4], pout);
+		loadfloat(&po->cd.uc[4], pout);
 
 		// Queue CAN msg
-		xQueueSendToBack(CanTxQHandle,&p->canmsg[CID_CMD_MISC],4);
+		xQueueSendToBack(CanTxQHandle,po,4);
 		pout += 1;
 	}
 	skip = 1;
 	return;
 }
 /* *************************************************************************
- * static void send_bms_array(struct CANRCVBUF* pcan, float* pout, uint8_t n);
- *	@brief	: Prepare and send CAN msgs for FETs
- *  @param  : pcan = pointer to CAN msg requesting response
+ * static void send_allfets(struct CANRCVBUF* po);
+ *	@brief	: Prepare and send CAN msgs for FET status
+ *  @param  : po = pointer to CAN msg requesting response
  * *************************************************************************/
 /*
 Send three CAN msgs with fet and cell wiring status.
@@ -412,35 +416,36 @@ payload [3] Defines payload data in payload [4-7]:
   2 = installed cells (1 = installed)
       [4-7] cells #1 - #18: bits 0-17
 */
-static void send_allfets(struct CANRCVBUF* pcan)
+static void send_allfets(struct CANRCVBUF* po)
 {
 	struct BQFUNCTION* p = &bqfunction;
 
 	/* FET status: (see cellball.c) */
-	p->canmsg[CID_CMD_MISC].can.cd.uc[3]  = 0;	
-	p->canmsg[CID_CMD_MISC].can.cd.ui[1]  = p->cellbal;
+	po->cd.uc[3]  = 0;	
+	po->cd.ui[1]  = p->cellbal;
 	// Add Dump, Dump2, Heater, trickle FET status. */
-	p->canmsg[CID_CMD_MISC].can.cd.uc[7]  = p->fet_status;
+	po->cd.uc[7]  = p->fet_status;
 	xQueueSendToBack(CanTxQHandle,&p->canmsg[CID_CMD_MISC],4);	
 
 	/* Unexpected open cell voltage (see cellball.c) */
-	p->canmsg[CID_CMD_MISC].can.cd.uc[3]  = 1;	
-	p->canmsg[CID_CMD_MISC].can.cd.ui[1]  = p->cellvopenbits;
+	po->cd.uc[3]  = 1;	
+	po->cd.ui[1]  = p->cellvopenbits;
 	xQueueSendToBack(CanTxQHandle,&p->canmsg[CID_CMD_MISC],4);	
 
 	/* Cells installed (see bq_idx_v_struct.c,h) */
-	p->canmsg[CID_CMD_MISC].can.cd.uc[3]  = 2;	
-	p->canmsg[CID_CMD_MISC].can.cd.ui[1]  = p->cellspresent;
+	po->cd.uc[3]  = 2;	
+	po->cd.ui[1]  = p->cellspresent;
 	xQueueSendToBack(CanTxQHandle,&p->canmsg[CID_CMD_MISC],4);	
 
 	skip = 1;
 	return;
 }
 /* *************************************************************************
- * static void status_group(void);
+ * static void status_group(struct CANRCVBUF* po);
  *	@brief	: Load data for status
+ *  @param  : po = pointer to outgoing CAN msg 
  * *************************************************************************/
-static void status_group(void)
+static void status_group(struct CANRCVBUF* po)
 {
 /* Status bits (see BQTask.h)
 Battery--
@@ -458,15 +463,22 @@ FETS--
 #define FET_CHGR     (1 << 3) // 1 = Charger FET enabled: Normal charge rate
 #define FET_CHGR_VLC (1 << 4) // 1 = Charger FET enabled: Very Low Charge rate
 */
-
 	struct BQFUNCTION* p = &bqfunction;
-
 	// Reserved byte
-	p->canmsg[CID_CMD_MISC].can.cd.uc[3] = 0;
+	po->cd.uc[3] = 0;
 	// Status bytes (U8)
-	p->canmsg[CID_CMD_MISC].can.cd.uc[4] = p->battery_status;
-	p->canmsg[CID_CMD_MISC].can.cd.uc[5] = p->fet_status;
-
+	po->cd.uc[4] = p->battery_status;
+	po->cd.uc[5] = p->fet_status;
 	return;
 }
+/* *************************************************************************
+ * static void not_implemented(struct CANRCVBUF* po);
+ *	@brief	: Send response to not implemented command code
+ *  @param  : po = pointer to outgoing CAN msg
+ * *************************************************************************/
 
+static void not_implemented(struct CANRCVBUF* po)
+{
+	po->cd.uc[1] = MISCQ_UNIMPLIMENT;
+	return;
+}

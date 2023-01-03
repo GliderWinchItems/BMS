@@ -1,0 +1,109 @@
+README-20230103.txt
+
+Revised from--
+README-20220221.txt 
+README-20220212.txt
+
+Ribbon pin assignments
+
+The ribbon assignments for eagleNucleo, and bmsbmsBQ, pcb layouts
+was based on 16 cells. With the advent of the ADBMS1818 the assignments
+were revised to accommodate the 18 cells. This revised assigement
+was used for the layout of the bms14921 16 cell board.
+
+2x10 keyed BMS ribbon cable: 18 cell layout
+
+col 1: 2x10 header pin number
+col 2: 20 pin ribbon color (REVERSED color sequence)
+col 3: 20 pin ribbon color (STANDARD color sequence)
+col 4: module cell number
+col 5: additional description
+
+---------TOP SPLIT-------------
+ 1 BLK - BRN Current sense (to current sense op-amp)
+ 2 WHT - RED GND/Vss
+ 3 GRY - ORG C2
+ 4 PUR - YEL C4
+ 5 BLU - GRN C6
+ 6 GRN - BLU C8
+ 7 YEL - PUR C10
+ 8 ORG - GRY C12
+ 9 RED - WHT C14
+10 BRN - BLK C16
+11 BLK - BRN C18
+----------BOTTOM SPLIT ---------
+12 WHT - RED C1
+13 GRY - ORG C3
+14 PUR - YEL C5
+15 BLU - GRN C7
+16 GRN - BLU C9
+17 YEL - PUR C11
+18 ORG - GRY C13
+19 RED - WHT C15
+20 BRN - BLK C17
+
+
+2. 2x10 keyed BMS ribbon cable: 16 cell '14921 board (initial version)
+
+col 1: 2x10 header pin number
+col 2: 20 pin ribbon color (reversed pin color sequence)
+col 3: 20 pin ribbon color (standard pin color sequence)
+col 4: module cell number
+col 5: additional description
+
+---------TOP SPLIT-------------
+ 1 BLK - BRN Current sense (to current sense op-amp)
+ 2 WHT - RED GND/Vss
+ 3 GRY - ORG C2
+ 4 PUR - YEL C4
+ 5 BLU - GRN C6
+ 6 GRN - BLU C8
+ 7 YEL - PUR C10
+ 8 ORG - GRY C12
+ 9 RED - WHT C14
+10 BRN - BLK C16
+11 BLK - BRN N/C (reserved for C18)
+----------BOTTOM SPLIT ---------
+12 WHT - RED C1
+13 GRY - ORG C3
+14 PUR - YEL C5
+15 BLU - GRN C7
+16 GRN - BLU C9
+17 YEL - PUR C11
+18 ORG - GRY C13
+19 RED - WHT C15
+20 BRN - BLK N/C (reserved for C17)
+
+
+3. Pin assignment for minimizing rewiring when increasing 
+the cell count from 16 to 18. This is not compatible
+with the '14921 (initial layout).
+
+col 1: 2x10 header pin number
+col 2: 20 pin ribbon color (reversed pin color sequence)
+col 3: 20 pin ribbon color (standard pin color sequence)
+col 4: module cell number
+col 5: additional description
+
+---------TOP SPLIT-------------
+ 1 BLK - BRN Current sense (to current sense op-amp)
+ 2 WHT - RED GND/Vss
+ 3 GRY - ORG C2
+ 4 PUR - YEL C4
+ 5 BLU - GRN C6
+ 6 GRN - BLU C8
+ 7 YEL - PUR N/C
+ 8 ORG - GRY C10
+ 9 RED - WHT C12
+10 BRN - BLK C14
+11 BLK - BRN C16
+----------BOTTOM SPLIT ---------
+12 WHT - RED C1
+13 GRY - ORG C3
+14 PUR - YEL C5
+15 BLU - GRN C7
+16 GRN - BLU N/C
+17 YEL - PUR C9
+18 ORG - GRY C11
+19 RED - WHT C13
+20 BRN - BLK C15

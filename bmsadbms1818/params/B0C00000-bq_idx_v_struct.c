@@ -333,12 +333,13 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
 // List of CAN ID's for setting up hw filter for incoming msgs
    //                      CANID_HEX      CANID_NAME             CAN_MSG_FMT     DESCRIPTION
    	// We receive: EMC
-   p->cid_cmd_bms_cellvq_emc= CANID_CMD_BMS_CELLVQ_EMC;// B0200000 EMC requests to BMS to send cellv, cmd code
-   p->cid_cmd_bms_cellvq_pc = CANID_CMD_BMS_CELLVQ_PC; // B0200004 PC  requests to BMS to send cellv, cmd code
-   p->cid_cmd_bms_miscq_emc = CANID_CMD_BMS_MISCQ_EMC; // B0400000 EMC requests to BMS for value for given cmd code
-   p->cid_cmd_bms_miscq_pc  = CANID_CMD_BMS_MISCQ_PC;  // B0400004 PC  requests to BMS for value for given cmd code
-   p->cid_uni_bms_emc_i     = CANID_UNI_BMS_EMC_I; // B0000000
-   p->cid_uni_bms_pc_i      = CANID_UNI_BMS_PC_I;  // B0200000 UNIversal From PC,  Incoming msg to BMS: X4=target CANID');   
+   p->cid_cmd_bms_cellvq_emc= CANID_CMD_BMS_CELLVQ_EMC;// B0400000 EMC requests to BMS to send cellv, cmd code
+   p->cid_cmd_bms_cellvq_pc = CANID_CMD_BMS_CELLVQ_PC; // B0400004 PC  requests to BMS to send cellv, cmd code
+   p->cid_cmd_bms_miscq_emc = CANID_CMD_BMS_MISCQ_EMC; // B2400000 EMC requests to BMS for value for given cmd code
+   p->cid_cmd_bms_miscq_pc  = CANID_CMD_BMS_MISCQ_PC;  // B0400014 PC  requests to BMS for value for given cmd code
+   p->cid_uni_bms_emc_i     = CANID_UNI_BMS_EMC_I;     // B0000000 UNIversal From EMC,  Incoming msg to BMS: X4=target CANID');   
+   p->cid_uni_bms_pc_i      = CANID_UNI_BMS_PC_I;      // B0200000 UNIversal From PC,  Incoming msg to BMS: X4=target CANID');   
+
 
 
 // CAN ids BMS sends, others receive
