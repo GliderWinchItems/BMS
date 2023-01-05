@@ -345,6 +345,7 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
 // CAN ids BMS sends, others receive
    // BMS sends cell readings with this CAN ID
    // 03 ADBMS1818 #AD01 U16:id,U16:cellv n+1,U16:cellv n+2');
-   p->cid_msg_bms_cellvsmr = CANID_MSG_BMS_CELLV14R; // B0201144', U16_U16_U16_U16'
+   p->cid_msg_bms_cellvsmr = I_AM_CANID; //CANID_MSG_BMS_CELLV13R; // B0201134', U16_U16_U16_U16'
+//   p->cid_cmd_bms_miscr = CANID_CMD_BMS_MISC13R;     // B0401134', U8_U8_U8_X4'
 	return;
 }

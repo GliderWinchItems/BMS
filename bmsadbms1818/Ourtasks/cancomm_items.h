@@ -46,9 +46,8 @@ void cancomm_items_sendcell(struct CANRCVBUF* pcan, float *pf);
  *  @param  : pcan = pointer to struct CANRCVBUF from mailbox 
  *  @param  : pf = pointer cell array
  * *************************************************************************/
-void cancomm_items_sendcmdr(struct CANRCVBUF* po,struct CANRCVBUF* pi);
+void cancomm_items_sendcmdr(struct CANRCVBUF* po);
 /*  @brief	: Prepare and send a response to a received command CAN msg
- *  @param  : pi = pointer to incoming CAN msg struct CANRCVBUF from mailbox 
  *  @param  : po = pointer to outgoing CAN msg struct
  * *************************************************************************/
 void cancomm_items_uni_bms(struct CANRCVBUF* pcan, float* pf);

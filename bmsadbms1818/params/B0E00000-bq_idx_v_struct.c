@@ -71,7 +71,7 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
 
    /* Relate cell numbers to cell positions. (indices are ("number"-1) */
 #define EighteenPositionBox
-  #define EighteenCellsInEighteenBox
+ // #define EighteenCellsInEighteenBox 
    
 #ifdef EighteenPositionBox
 
@@ -105,17 +105,17 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->cellpos[ 4]  =  4; // 
    p->cellpos[ 5]  =  5; // 
    p->cellpos[ 6]  =  6; // 
-   p->cellpos[ 7]  =  7; // Cell #8 is installed in cell position #8
-   p->cellpos[ 8]  =  CELLNONE; // No cell in cell position 8
-   p->cellpos[ 9]  =  CELLNONE; // No cell in cell position 9
-   p->cellpos[10]  =  8; // Cell #9 is installed in cell position 10
-   p->cellpos[11]  =  9; // ...
-   p->cellpos[12]  = 10; 
-   p->cellpos[13]  = 11; 
-   p->cellpos[14]  = 12; 
-   p->cellpos[15]  = 13; 
-   p->cellpos[16]  = 14; 
-   p->cellpos[17]  = 15; // Cell #16 is installed in cell position #18
+   p->cellpos[ 7]  =  7; // 
+   p->cellpos[ 8]  =  8; 
+   p->cellpos[ 9]  =  9;
+   p->cellpos[10]  = 10; 
+   p->cellpos[11]  = 11; 
+   p->cellpos[12]  = 12; 
+   p->cellpos[13]  = 13; 
+   p->cellpos[14]  = 14; 
+   p->cellpos[15]  = 15; 
+   p->cellpos[16]  = CELLNONE; // No cell in cell position #17
+   p->cellpos[17]  = CELLNONE; // No cell in cell position #18
  #endif
 
 #else
@@ -349,6 +349,7 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
 // CAN ids BMS sends, others receive
    // BMS sends cell readings with this CAN ID
    // 03 ADBMS1818 #AD01 U16:id,U16:cellv n+1,U16:cellv n+2');
-   p->cid_msg_bms_cellvsmr = CANID_MSG_BMS_CELLV15R; // B0201154', U16_U16_U16_U16'
+   p->cid_msg_bms_cellvsmr = I_AM_CANID; //CANID_MSG_BMS_CELLV13R; // B0201134', U16_U16_U16_U16'
+//   p->cid_cmd_bms_miscr = CANID_CMD_BMS_MISC13R;     // B0401134', U8_U8_U8_X4'
 	return;
 }

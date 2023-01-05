@@ -112,36 +112,6 @@ static void loadfloat(uint8_t* puc, float* pf)
  * *************************************************************************/
 void cancomm_items_uni_bms(struct CANRCVBUF* pcan, float* pf)
 {
-	struct BQFUNCTION* p = &bqfunction;
-	uint32_t canid; // CANID requested to respond, if applicable
-	uint8_t code;
-
-	 /* Extract CAN id for unit to respond. */
-    canid = (pcan->cd.uc[4] << 0)|(pcan->cd.uc[5] << 8)|
-            (pcan->cd.uc[6] <<16)|(pcan->cd.uc[7] <<24);
-
-	// Code for which modules should respond: bits [7:6]
-	// 11 = All modules respond
-    // 10 = All modules on identified string respond
-    // 01 = Only identified string and module responds
-    // 00 = spare; no response expected
-	code = pcan->cd.uc[0] & 0xC0; // Extract identification code
-	if (((code == (3 << 6))) ||
-		((code == (2 << 6)) && ((pcan->cd.uc[0] & 0x30) == p->ident_string)) ||
-		((code == (1 << 6)) && ((pcan->cd.uc[0] & 0x3F) == p->ident_onlyus)) )
-
-            
-	code = pcan->cd.uc[2] & 0xC0;
-
-    // Respond if CAN ID for this node is in request
-	if (!(((code == (3 << 6))) ||
-		  ((code == (2 << 6)) && ((pcan->cd.uc[2] & (3 << 4)) == p->ident_string)) ||
-		  ((code == (1 << 6)) && ((pcan->cd.uc[2] & 0x0F) == p->ident_onlyus)) ||
-		  ((canid == p->lc.cid_msg_bms_cellvsmr))))
-		return; // Skip. This request is not for us.
-    // Simplified for TEST
-	//if (canid != p->lc.cid_msg_bms_cellvsmr) return;
-
 	/* Set up response to command. */
 	switch(pcan->cd.uc[0])
 	{
@@ -153,7 +123,7 @@ void cancomm_items_uni_bms(struct CANRCVBUF* pcan, float* pf)
 
 	case CMD_CMD_TYPE2: // Respond according to the code
 //		if (pf != NULL) morse_trap(823);
-		cancomm_items_sendcmdr(&p->canmsg[CID_CMD_MISC].can,pcan);		
+		cancomm_items_sendcmdr(pcan);		
 		break;
 
 	case CMD_CMD_TYPE3: // spare types
@@ -218,16 +188,6 @@ void cancomm_items_sendcell(struct CANRCVBUF* pcan, float *pf)
  *  @param  : po = pointer to outgoing CAN msg struct
  * *************************************************************************/
 /*
-CANID_CMD_BMS_MISCQ'
-payload [0] U8: Module identification
-    [7:6] 
-       11 = All modules respond
-       10 = All modules on identified string respond
-       01 = Only identified string and module responds
-       00 = spare; no response expected
-    [5:4] Battery string number (0 – 3) (string #1 - #4)
-    [3:0] Module number (0 – 7) (module #1 - #16)
-
 payload [1] U8: Command code
     0 = reserved for heartbeat
     1 = status
@@ -243,9 +203,10 @@ payload [1] U8: Command code
   11 = Lowest cell voltage
   12 = FET on/off discharge bits
 */ 
-void cancomm_items_sendcmdr(struct CANRCVBUF* po,struct CANRCVBUF* pi)
+void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
 {
 	struct BQFUNCTION* p = &bqfunction;
+	struct CANRCVBUF* po = &p->canmsg[CID_CMD_MISC].can;
 	float ftmp[ADCDIRECTMAX];
 	uint8_t i;
 
@@ -254,25 +215,6 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* po,struct CANRCVBUF* pi)
 
 	skip = 0;
 
-	/* Data in payload is always X4 (4 bytes, any format) */
-	po->dlc = 8;
-	
-/*	Return what was requested: copy as a uint32_t since,
-	byte-at-a-time is slow and fattening, e.g.,
-	po->cd.uc[0] = CMD_CMD_TYPE2;
-	// Code for response
-	po->cd.uc[1] = pcan->cd.uc[1];
-	// Module identification
-	po->cd.uc[2] = pcan->cd.uc[2];
-	// Item number, or thermistor number, or ...
-	po->cd.uc[3] = pcan->cd.uc[3]; */
-	po->cd.ui[0] = pi->cd.ui[0];
-
-	/* Add string and module number to response. It may or
-	   may not have been included in the request. */
-	po->cd.uc[2] = 
-			(pi->cd.uc[2] & 0xC0) | 
-			((p->lc.stringnum-1) << 4) | (p->lc.modulenum -1);
 
 	/* Command code. */
 	switch(pi->cd.uc[1])
@@ -282,8 +224,7 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* po,struct CANRCVBUF* pi)
 		break;
 
  	case MISCQ_CELLV_CAL:   // 2 cell voltage: calibrated
-		cancomm_items_q(REQ_READBMS); // Read cells + GPIO 1 & 2
- 		send_bms_array(po, &bqfunction.cal_filt[0], p->lc.ncell);
+		CanComm_qreq(REQ_READBMS, 0, CANCOMMBIT04);; // Read cells + GPIO 1 & 2
  		break;
 
  	case MISCQ_CELLV_ADC:   // 3 cell voltage: adc counts
@@ -336,7 +277,7 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* po,struct CANRCVBUF* pi)
  	case MISCQ_PROC_CAL: // Processor ADC calibrated readings
  		for (i = 0; i < ADCDIRECTMAX; i++) // Copy struct items to float array
  			ftmp[i] = adc1.abs[i].filt;
- 		ftmp[1] = adc1.common.degC; // Insert special intermal temperature calibration 
+ 		ftmp[1] = adc1.common.degC; // Insert special internal temperature calibration 
  		send_bms_array(po, &ftmp[0], ADCDIRECTMAX);
  		break;
 
@@ -375,7 +316,7 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* po,struct CANRCVBUF* pi)
  * *************************************************************************/
 static void send_bms_array(struct CANRCVBUF* po, float* pout, uint8_t n)
 {
-	struct BQFUNCTION* p = &bqfunction;
+//	struct BQFUNCTION* p = &bqfunction;
 	uint8_t i;
 
 	for (i = 0; i < n; i++)
