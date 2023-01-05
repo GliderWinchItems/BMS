@@ -1,0 +1,17 @@
+# Update BMS '1818
+cd ~/GliderWinchItems/BMS*/1818
+git pull
+
+# Update CANldr 
+cd ~/GliderWinchCommons/BMS
+git pull
+
+# Recompile CANldr
+cd ~/GliderWinchCommons/embed/svn_discoveryf4/PC/sensor/CANldr/trunk
+./mm
+cd -
+
+# Compile and load '1818
+cd ~/GliderWinchItems/BMS/*1818
+./cc B0E00000
+
