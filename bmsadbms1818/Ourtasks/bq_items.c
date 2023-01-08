@@ -142,7 +142,6 @@ dbgf = 1; // Set & compile for each
  * void bq_items_selectfet(void);
  * @brief	: Go thru a sequence of steps to determine balancing
  * *************************************************************************/
-uint32_t dbgcell[18];
 uint32_t dbgcellbal;
 void bq_items_selectfet(void)
 {
@@ -172,7 +171,6 @@ dbgtrc = 0;
 	for (i = 0; i < NCELLMAX; i++)
 	{
 		idata = (*p * 0.1f); // Convert calibrated float (100uv) to uint32_t (1mv)
-dbgcell[i] = idata*10;
 		if ((pbq->cellspresent & (1<<i)) != 0) // Skip cells not installed
 		{ // Here, cell position is installed
 			if  ((idata <= pbq->lc.cellopen_lo)||(idata > pbq->lc.cellopen_hi))

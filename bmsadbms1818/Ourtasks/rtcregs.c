@@ -125,6 +125,7 @@ static void rtcregs_load(void)
 	*p32++ = *prtc++;
 	*p32++ = *prtc++;
 	*p32++ = *prtc++;
+	*p32++ = *prtc++;
 
 	bqfunction.hyster_sw       = (*prtc >>  0) & 0xf; /* Hysteresis switch: 1 = peak was reached */
 	bqfunction.battery_status  = (*prtc >>  8) & 0xf; /* Cell status code bits */
