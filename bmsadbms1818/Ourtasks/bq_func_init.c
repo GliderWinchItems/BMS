@@ -47,6 +47,7 @@ void bq_func_init(void)
 	p->battery_status = 0; // Cell status Bits 
 	p->fet_status     = 0; // FET bits
     p->hyster_sw      = 0; // 1 = means hysteresis (relaxation) currently in effect
+    p->celltrip       = 0; // 1 = cell went over max (cumulative) for not hysteresis mode
 
 	p->state      = 0;  // main state
 	p->substateA  = 0;  // 

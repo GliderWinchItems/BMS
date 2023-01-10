@@ -21,11 +21,8 @@
 #include "fetonoff.h"
 #include "bmsspi.h"
 
-uint32_t dbgtrc;
-
 void bq_items_selectfet(void);
 
-#define USESORTCODE
 #ifdef  USESORTCODE
 	#include <stdlib.h> // for qsort
 	static int compare_v(const void *a, const void *b);
@@ -142,22 +139,19 @@ dbgf = 1; // Set & compile for each
  * void bq_items_selectfet(void);
  * @brief	: Go thru a sequence of steps to determine balancing
  * *************************************************************************/
+uint32_t dbgtrc;
 uint32_t dbgcellbal;
 void bq_items_selectfet(void)
 {
 	struct BQFUNCTION* pbq = &bqfunction; // Convenience pointer
 
-#ifdef  USESORTCODE	
-	struct BQCELLV* psort  = &bqfunction.cellv_bal[0]; // 
-#endif	
-
 	float* p = &bqfunction.cellv[0]; // Calibrated cell voltage
 	uint32_t idata;
 	int16_t i; // variable name selected in memory of FORTRAN
-dbgtrc = 0;
+dbgtrc = 0; // bits for checking logic
 	pbq->battery_status = 0; // Reset battery status
 	pbq->cellv_total    = 0; // Sum of installed cell voltages
-	pbq->cellv_high     = 0; // Highest cell voltage
+	pbq->cellv_high     = 0; // Highest cell initial voltage
 	pbq->cellbal        = 0; // Discharge fet bits
 	pbq->cellv_max_bits = 0; // Cells over cellv_max
 	pbq->cellv_min_bits = 0; // Cells below cellv_min
@@ -189,13 +183,18 @@ dbgtrc = 0;
 					pbq->cellv_low = idata; // Save voltage
 					pbq->cellx_low = i;  // Save cell index
 				} 
-				if (idata > pbq->cellv_tmdelta) 
-				{ // Here, cell is higher than (target voltage minus delta)
-					pbq->cellbal |=  (1 << i); // Set bit for discharge FET
+				if (idata < pbq->cellv_tmdelta) 
+				{ // Here, cell is lower|equal (target voltage minus delta)
+					if (pbq->hyster_sw == 0)
+					{
+						pbq->cellbal &= ~(1 << i); // Reset bit for discharge FET
+					}
 				}			
 				if (idata > pbq->lc.cellv_max)
 				{ // Cell is above max limit
 					pbq->cellv_max_bits |= (1 << i); // Cells above cellv_max
+					pbq->cellbal        |= (1 << i); // Set bit for discharge FET
+					pbq->celltrip       |= (1 << i); // Cell "tripped" max (cumulative)
 					pbq->battery_status |= BSTATUS_CELLTOOHI; // One or more cells above max limit
 				}
 				if (idata < pbq->hysterv_lo)
@@ -212,20 +211,15 @@ dbgtrc = 0;
 						pbq->cellv_vlc_bits |= (1 << i); // Cells below cellv_vlc	
 						pbq->battery_status |= BSTATUS_CELLVRYLO; // One or more cells very low
 				}
-				
 				pbq->cellv_total += idata; // Sum cell readings
-
-#ifdef  USESORTCODE					
-				psort->v = *p; psort->idx = i; // Copy to struct for sorting
-				psort += 1;
-#endif				
 			}
 		}
 		p += 1; // Next cellv array
 	}
-dbgcellbal = pbq->cellbal;
-	/* Set FET status.  */
 
+dbgcellbal = pbq->cellbal;
+
+	/* Set FET status.  */
 #if 1
 	/* Unusual situation check. */
 	if (((pbq->battery_status & BSTATUS_NOREADING) != 0) ||
@@ -233,8 +227,7 @@ dbgcellbal = pbq->cellbal;
 	{ // Here serious problem, so no charging, or discharging
 		pbq->fet_status &= ~(FET_DUMP|FET_HEATER|FET_DUMP2|FET_CHGR|FET_CHGR_VLC);
 		pbq->cellbal = 0; // All cell balancing FETS off
-//morse_trap(1);
-		dbgtrc |= (1<<0);
+dbgtrc |= (1<<0);
 		return;
 	}
 #endif	
@@ -246,8 +239,6 @@ dbgcellbal = pbq->cellbal;
 	{ // Here, one or more cells are below min limit
 		pbq->fet_status &= ~(FET_DUMP|FET_HEATER); // Disable discharge
 		// The following assumes DUMP2 FET controls an external charger
-		pbq->cellbal = 0; // All cell balancing FET bits off
-//morse_trap(2);
 dbgtrc |= (1<<1);		
 		// Here, one or more are too low, but are any still too high?
 		if (pbq->cellv_high > pbq->lc.cellv_max)
@@ -255,6 +246,10 @@ dbgtrc |= (1<<1);
 		  // until high cells become low enough to turn on charging.	
 			pbq->fet_status &= ~(FET_CHGR|FET_DUMP2); // Disable charging
 dbgtrc |= (1<<2);			
+		}
+		else
+		{
+			pbq->cellbal = 0; // (JIC) All cell balancing FET bits off
 		}
 	}
 
@@ -266,15 +261,15 @@ dbgtrc |= (1<<2);
 dbgtrc |= (1<<3);
 	}
 	else
-	{ // Here, no cells are too high. 
+	{ // Here, no cells are too high. Set chargers on.
 		pbq->fet_status |= (FET_CHGR|FET_DUMP2); // (DUMP2 external charger control)
 dbgtrc |= (1<<4);		
 	}
 
-	/* Healthy Hysteresis Handling. */
+	/* HHH: Healthy Hysteresis Handling. */
 	if (pbq->hyster_sw == 0)
 	{ // Charging/balancing is in effect
-		if (pbq->cellbal == pbq->cellspresent)
+		if (pbq->celltrip == pbq->cellspresent)
 		{ // Here, all installed cells are over the (target voltage - delta)	
 			pbq->hyster_sw = 1;     // Start "relaxation"
 			pbq->hysterbits_lo = 0; // Reset low cell bits
@@ -282,26 +277,19 @@ dbgtrc |= (1<<5);
 		}
 	}
 	else
-	{ // Relaxation hysteresis is in effect
+	{ // Relaxation/hysteresis is in effect
 		// Everything off
 		pbq->cellbal   = 0;
-//morse_trap(3);
 		pbq->fet_status &= ~(FET_DUMP|FET_HEATER|FET_DUMP2|FET_CHGR|FET_CHGR_VLC);
 dbgtrc |= (1<<6);
 		// Stop relaxation when one or more cells hits hysteresis low end
 		if (pbq->hysterbits_lo != 0)
 		{ // One or more cells hit the low end of hysteresis
-			pbq->hyster_sw  = 0;    // Set hysteresis switch off
+			pbq->hyster_sw     = 0; // Set hysteresis switch off
+			pbq->celltrip      = 0; // Reset cells that went over max
 dbgtrc |= (1<<7);			
 		}
 	}
-
-#ifdef  USESORTCODE
-	/* Sort on Cell voltages. (qsort does ascending) */
-	psort  = &pbq->cellv_bal[0];
-	qsort(psort, pbq->lc.ncell, sizeof(struct BQCELLV), compare_v);
-#endif
-
 	return;
 }
 /* ************************************************************************* 

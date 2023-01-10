@@ -1303,11 +1303,49 @@ void StartDefaultTask(void *argument)
 //if (pbuf4 == NULL) morse_trap(125);
 
   char* ok = {"OK"};
-  char* ng = {"ng"};
+  char* ng = {"NG"};
   char** ptwo;
   if (rtcregs_ret == 0) ptwo = &ok;
   else ptwo = &ng;
   yprintf(&pbuf1,"\n\n\rPROGRAM STARTS: rtcregs_ret: %s",*ptwo);
+
+  /* List the RTC */
+  /*
+    uint32_t cellbal;       //   1.00 Bits with FETs that were on
+  uint32_t hysterbits_lo; //   1.00 Bits for cells that fell below hysterv_lo
+  uint16_t cellreg[18];   //1001.00 Last readings before power down
+  uint8_t hyster_sw;      //   0.01 Hysteresis switch: 1 = peak was reached
+  uint8_t battery_status; //   0.01 Cell status code bits 
+  uint8_t fet_status;     //   0.01 This controls on/off of FETs
+  uint8_t err;            //   0.01 Err bits
+  uint32_t morse_err;     //   1.00 morse_trap err code
+ The foregoing MUST be an even number of 32b 
+  uint16_t pec15; // CRC15 (in lower 1/2 of register)
+*/
+  if (rtcregs_ret == 0)
+  {
+    yprintf(&pbuf1,"\n\r\t\tRTC REGISTERS SAVED & RESTORED");
+    uint32_t* prtc = (uint32_t*)&RTC->BKP0R;
+    yprintf(&pbuf1,"\n\rcellbal: %05X",*prtc++);
+    yprintf(&pbuf1,"\n\rhysterbits_lo: %05X",*prtc++);
+    yprintf(&pbuf1,"%s",pcheader);
+    yprintf(&pbuf1,"\n\r           ");
+    for (i = 0; i < 9; i++)
+    {
+      yprintf(&pbuf1," %6d",(*prtc & 0xFFFF));
+      yprintf(&pbuf2," %6d",(*prtc >> 16));
+      prtc += 1;
+    }
+    yprintf(&pbuf1,"\n\rhysterbits_sw : %02X",((*prtc >>  0) & 0xF));
+    yprintf(&pbuf1,"\n\rbattery_status: %02X",((*prtc >>  8) & 0xF));
+    yprintf(&pbuf1,"\n\rfet_status    : %02X",((*prtc >> 16) & 0xF));
+    yprintf(&pbuf1,"\n\rerr           : %02X",((*prtc >> 24) & 0xF));
+    prtc += 1;
+    yprintf(&pbuf2,"\n\rmorse_err: %d\n\n\r",*prtc);
+    osDelay(100); // Allow enough time to printout before next morse_trap
+  }
+  
+
 
   /* The 'for' loop polls. The following times the loop. */
   #define MAINFORLOOPDELAY 50 // Delay of 'for' loop in ms
@@ -1330,7 +1368,6 @@ extern uint8_t dischgfet; // Test fet bit (0-17)
 extern  dbgcancommloop;
 uint32_t dbgcancommloop_prev;
 #endif
-
 
   for(;;) /* Loop polls various operations. */
   {  
@@ -1376,7 +1413,6 @@ adc1.common.ts_calrate );
 #endif    
 
 #if 1
-//    bq_items();
     HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_SET); // GRN LED
     if (dbgka_prev != dbgka)
     {
@@ -1412,7 +1448,7 @@ adc1.common.ts_calrate );
 
       case 4:
        yprintf(&pbuf1,"%s",pcheader);
-       yprintf(&pbuf2,"\n\r%5d ADCVAX",dbgka);
+       yprintf(&pbuf2,"\n\r%5dADCVAX",dbgka);
        for (i = 0; i < 18; i++) yprintf(&pbuf1," %6d",bmsspiall.cellreg[i]);
        yprintf(&pbuf1," %d",dbstat2/16);
         break;
@@ -1457,7 +1493,7 @@ adc1.common.ts_calrate );
 
 #endif
 
-/* Testint discharge FET bits. */
+/* Testing discharge FET bits. */
 #ifdef TEST_WALK_DISCHARGE_FET_BITS // See main.h
   if (dischgfet_ctr++ > 3)
   {
@@ -1465,10 +1501,7 @@ adc1.common.ts_calrate );
     dischgfet_ctr = 0;
     dbgcancommloop_prev = dbgcancommloop;
   }
-#endif
-
-#ifndef TEST_WALK_DISCHARGE_FET_BITS 
-//#if 1
+#else
     /* Cell balance & control. */
     uint32_t dcc = extractconfigreg.dcc;
     #define LSPC 7 // column spacing
@@ -1510,10 +1543,9 @@ int32_t csum = 0;
       yprintf(&pbuf2,"\n\r%5d %02d TRIPPED ",fctr++,dbgf+1);
       memset(cline,' ',(LSPC*18));
       // Build a nice ASCII line whilst previous line prints
-extern uint32_t dbgcellbal;      
       for (i=0; i < 18; i++)
       {
-        if ((dbgcellbal & (1<<i)) != 0)
+        if ((bqfunction.celltrip & (1<<i)) != 0)
           cline[i*LSPC] = '@';
         else
           cline[i*LSPC] = '.';
@@ -1542,23 +1574,26 @@ extern uint32_t dbgtrc;
       for (i = 0; i < 18; ++i) yprintf(&pbuf2," %5d",bqfunction.cellv_latest[i]);
 #endif
       yprintf(&pbuf2,"\n\rcellspresent: %05X",bqfunction.cellspresent); 
-
       yprintf(&pbuf1,"\n\rcellv_hi: x %2d v %5d",bqfunction.cellx_high,bqfunction.cellv_high);
       yprintf(&pbuf2,"\n\rcellv_lo: x %2d v %5d",bqfunction.cellx_low, bqfunction.cellv_low);
       yprintf(&pbuf1,"\n\rhyster_sw: %d hysterbits lo %05X",bqfunction.hyster_sw,bqfunction.hysterbits_lo);
-      yprintf(&pbuf1,"\n\rhysterv_lo: %6.1f",bqfunction.hysterv_lo);
-      yprintf(&pbuf2,"\n\rcellv_max: %5d cellv_max: %05X",bqfunction.lc.cellv_max,bqfunction.cellv_max_bits);
-      yprintf(&pbuf1,"\n\rcellv_min: %5d cellv_min: %05X",bqfunction.lc.cellv_min,bqfunction.cellv_min_bits);
-
-      yprintf(&pbuf2,"\n\rcellv_vls: %5d cellv_vlc_bits: %05X",bqfunction.lc.cellv_vlc, bqfunction.cellv_vlc_bits);
-
-      yprintf(&pbuf1,"\n\rcallbal:   %05X  fet_status: %04X FET_CHRG: %01X",bqfunction.cellbal,
+      yprintf(&pbuf1,"\n\rcellv_tmdelta: %5d",bqfunction.cellv_tmdelta);      
+      yprintf(&pbuf2,"\n\rhysterv_lo: %6.1f",bqfunction.hysterv_lo);
+      yprintf(&pbuf1,"\n\rcellv_max: %5d cellv_max: %05X",bqfunction.lc.cellv_max,bqfunction.cellv_max_bits);
+      yprintf(&pbuf2,"\n\rcellv_min: %5d cellv_min: %05X",bqfunction.lc.cellv_min,bqfunction.cellv_min_bits);
+      yprintf(&pbuf1,"\n\rcellv_vls: %5d cellv_vlc_bits: %05X",bqfunction.lc.cellv_vlc, bqfunction.cellv_vlc_bits);
+      yprintf(&pbuf2,"\n\rcallbal:   %05X  fet_status: %04X FET_CHRG: %01X",bqfunction.cellbal,
           bqfunction.fet_status,(bqfunction.fet_status & FET_CHGR));
+      if ((bqfunction.fet_status & FET_DUMP2) != 0)
+        yprintf(&pbuf1,"\t\t\t\t\tDUMP2 ON");
+      else
+        yprintf(&pbuf1,"\t\t\t\t\tDUMP2 OFF");
+
 
       extern uint32_t dbgcellbal;
       yprintf(&pbuf1,"\n\rdbgcellbal:%05X",dbgcellbal);
 
-      yprintf(&pbuf1,"\n\r config:   %04X %04X %04X %04X %04X %04X",
+      yprintf(&pbuf2,"\n\r config:   %04X %04X %04X %04X %04X %04X",
         bmsspiall.configreg[0],bmsspiall.configreg[1],bmsspiall.configreg[2],
         bmsspiall.configreg[3],bmsspiall.configreg[4],bmsspiall.configreg[5]);
 

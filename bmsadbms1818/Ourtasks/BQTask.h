@@ -15,7 +15,7 @@
 #include "CanTask.h"
 #include "adc_idx_v_struct.h"
 
-#define USESORTCODE
+//#define USESORTCODE
 
 #define BQVSIZE 20 // Readout loop size (16 cells plus others)
 
@@ -107,9 +107,6 @@ struct BQFUNCTION
 
 	uint16_t tim1_ccr1;  // Present CCR1 (PWM count)
 
-#ifdef  USESORTCODE
-	struct BQCELLV cellv_bal[NCELLMAX]; // Working array for cell balancing
-#endif	
 	uint16_t cellv_latest[NCELLMAX]; // Cell voltage readings (0.1 millivolts)
 	uint32_t cellvopenbits;// Bits for unexpected open cells (1 = open wire suspected) 
 	int32_t  cellv_total;  // Sum of cell voltages (0.1 millivolts)
@@ -142,6 +139,7 @@ struct BQFUNCTION
 
 //	uint32_t dchgfetbits; // 1 = discharge FET is on !!!!!!!!!!!
 	uint32_t cellbal;       // Bits to activate cell balance fets!!!!!!!!!!!
+	uint32_t celltrip;      // Bits for cell going over cellv_max
 	uint32_t cellspresent;  // Bits for cell positions that are installed
 	uint8_t active_ct;      // Count of bits set in cellbal
 	uint8_t battery_status; // Cell status code bits 

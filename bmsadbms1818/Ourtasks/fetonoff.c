@@ -29,22 +29,18 @@ uint8_t fetonoff(uint8_t fetnum, uint8_t fetcommand)
 		case FET_DUMP:   // DUMP = Battery module discharge "dump"
 			HAL_GPIO_WritePin(DUMP_NOT_GPIO_Port,DUMP_NOT_Pin, GPIO_PIN_RESET);
 			HAL_GPIO_WritePin(DUMP_GPIO_Port,DUMP_Pin, GPIO_PIN_SET);
-			pbq->fet_status |= FET_DUMP;
 			break;
 
 		case FET_DUMP2:  // DUMP2 = Spare for relays, etc.
 			HAL_GPIO_WritePin(DUMP2_GPIO_Port,DUMP2_Pin, GPIO_PIN_RESET);
-			pbq->fet_status |= FET_DUMP2;
 			break;
 
 		case FET_HEATER: // Battery module warmup heater
 			HAL_GPIO_WritePin(HEATER_NOT_GPIO_Port, HEATER_NOT_Pin, GPIO_PIN_RESET);
 			HAL_GPIO_WritePin(HEATER_GPIO_Port,HEATER_Pin, GPIO_PIN_SET);
-			pbq->fet_status |= FET_HEATER;
 
 		 case FET_CHGR:
 		 	TIM1->CCR1 = 0; // FET ON time
-			pbq->fet_status &= ~FET_CHGR;
 HAL_GPIO_WritePin(GPIOB,GPIO_PIN_1,GPIO_PIN_SET); // RED LED OFF
 			break;
 
@@ -60,23 +56,19 @@ HAL_GPIO_WritePin(GPIOB,GPIO_PIN_1,GPIO_PIN_SET); // RED LED OFF
 		case FET_DUMP:   // Battery module discharge "dump"
 			HAL_GPIO_WritePin(DUMP_NOT_GPIO_Port,DUMP_NOT_Pin, GPIO_PIN_SET);
 			HAL_GPIO_WritePin(DUMP_GPIO_Port,DUMP_Pin, GPIO_PIN_RESET);
-			pbq->fet_status &= ~FET_DUMP;
 			break;
 
 		case FET_DUMP2:  // DUMP2 = Spare for relays, etc.
 			HAL_GPIO_WritePin(DUMP2_GPIO_Port,DUMP2_Pin, GPIO_PIN_SET);
-			pbq->fet_status &= ~FET_DUMP2;
 			break;
 
 		case FET_HEATER: // Battery module warmup heater
 			HAL_GPIO_WritePin(HEATER_NOT_GPIO_Port, HEATER_NOT_Pin, GPIO_PIN_SET);
 			HAL_GPIO_WritePin(HEATER_GPIO_Port,HEATER_Pin, GPIO_PIN_RESET);
-			pbq->fet_status &= ~FET_HEATER;
 			break;
 
 		 case FET_CHGR:
 		 	TIM1->CCR1 = pbq->tim1_ccr1; // FET ON time
-			pbq->fet_status |= FET_CHGR;
 HAL_GPIO_WritePin(GPIOB,GPIO_PIN_1,GPIO_PIN_RESET); // RED LED ON
 			break;
 
@@ -92,8 +84,10 @@ HAL_GPIO_WritePin(GPIOB,GPIO_PIN_1,GPIO_PIN_RESET); // RED LED ON
  * @brief	: Set FETs according to status byte (see BQTask.h)
  * @param   : status = status bits
  * *************************************************************************/
+
 void fetonoff_status_set(uint8_t status)
 {
+
 //status = 0x00;// Testing External FETs on/off
 	if ((status & FET_DUMP)    == 0)  // External charger
 		fetonoff( FET_DUMP,   FET_SETOFF);
@@ -119,7 +113,6 @@ void fetonoff_status_set(uint8_t status)
 		bqfunction.battery_status |= BSTATUS_CHARGING;
 	else
 		bqfunction.battery_status &= ~BSTATUS_CHARGING;
-
 
 	return;
 }
