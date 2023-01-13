@@ -100,6 +100,8 @@ extern struct BMSSPIALL bmsspiall;
 extern struct EXTRACTSTATREG extractstatreg;
 extern struct EXTRACTCONFIGREG extractconfigreg;
 
+extern float current_sense;
+
 extern struct BMSREQ_Q* pssb; // Pointer to struct for request details
 
 

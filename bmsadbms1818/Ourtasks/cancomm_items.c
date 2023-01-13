@@ -138,8 +138,15 @@ void cancomm_items_uni_bms(struct CANRCVBUF* pcan, float* pf)
  *  @param  : pcan = pointer to struct CANRCVBUF from mailbox 
  *  @param  : pf = pointer cell array
  * *************************************************************************/
+#include "DTW_counter.h"
+uint32_t dbgsendcelldtw;
+uint32_t dbgsendcellctr;
+
 void cancomm_items_sendcell(struct CANRCVBUF* pcan, float *pf)
 {
+dbgsendcelldtw  = DTWTIME;
+dbgsendcellctr += 1;
+
 	struct BQFUNCTION* p = &bqfunction;
 	uint8_t i;
 	uint8_t j;

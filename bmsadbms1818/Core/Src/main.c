@@ -1326,9 +1326,9 @@ void StartDefaultTask(void *argument)
   {
     yprintf(&pbuf1,"\n\r\t\tRTC REGISTERS SAVED & RESTORED");
     uint32_t* prtc = (uint32_t*)&RTC->BKP0R;
-    yprintf(&pbuf1,"\n\rcellbal: %05X",*prtc++);
+    yprintf(&pbuf2,"\n\rcellbal: %05X",*prtc++);
     yprintf(&pbuf1,"\n\rhysterbits_lo: %05X",*prtc++);
-    yprintf(&pbuf1,"%s",pcheader);
+    yprintf(&pbuf2,"%s",pcheader);
     yprintf(&pbuf1,"\n\r           ");
     for (i = 0; i < 9; i++)
     {
@@ -1336,13 +1336,13 @@ void StartDefaultTask(void *argument)
       yprintf(&pbuf2," %6d",(*prtc >> 16));
       prtc += 1;
     }
-    yprintf(&pbuf1,"\n\rhysterbits_sw : %02X",((*prtc >>  0) & 0xF));
-    yprintf(&pbuf1,"\n\rbattery_status: %02X",((*prtc >>  8) & 0xF));
+    yprintf(&pbuf1,"\n\rhyster_sw     : %02X",((*prtc >>  0) & 0xF));
+    yprintf(&pbuf2,"\n\rbattery_status: %02X",((*prtc >>  8) & 0xF));
     yprintf(&pbuf1,"\n\rfet_status    : %02X",((*prtc >> 16) & 0xF));
-    yprintf(&pbuf1,"\n\rerr           : %02X",((*prtc >> 24) & 0xF));
+    yprintf(&pbuf2,"\n\rerr           : %02X",((*prtc >> 24) & 0xF));
     prtc += 1;
-    yprintf(&pbuf2,"\n\rmorse_err: %d\n\n\r",*prtc);
-    osDelay(100); // Allow enough time to printout before next morse_trap
+    yprintf(&pbuf1,"\n\rmorse_err: %d\n\n\r",*prtc);
+    osDelay(50); // Allow enough time to printout before next morse_trap
   }
   
 
@@ -1368,6 +1368,9 @@ extern uint8_t dischgfet; // Test fet bit (0-17)
 extern  dbgcancommloop;
 uint32_t dbgcancommloop_prev;
 #endif
+
+uint32_t dbgsendcellctr_prev=0;
+uint32_t dbgsendcelldtw_prev=0;
 
   for(;;) /* Loop polls various operations. */
   {  
@@ -1467,11 +1470,14 @@ adc1.common.ts_calrate );
 
       bms_items_therm_temps(); // Convert thermistor readings to tempature (deg C)
       extern float fanrpm;
-        yprintf(&pbuf1,"\n\rTEMP:%5.1f %5.1f %5.1f Fanpwm: %d Fanrpm: %0.3f",
+      yprintf(&pbuf1,"\n\rTEMP:%5.1f %5.1f %5.1f Fanpwm: %d Fanrpm: %0.3f Z",
           bqfunction.lc.thermcal[0].temp,
           bqfunction.lc.thermcal[1].temp,
           bqfunction.lc.thermcal[2].temp, 
           bqfunction.fanspeed, fanrpm);
+
+      bms_items_current_sense(); // Calibrate current sense readings
+      yprintf(&pbuf2,"\n\rCURRENT: %5.1f",current_sense);
         break;
 
       default:

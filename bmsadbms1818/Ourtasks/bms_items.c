@@ -191,21 +191,33 @@ static void uvov(uint8_t* p, uint8_t s)
 void bms_items_therm_temps(void)
 {
 	int i;
-	float* pf;
 	float tmpf;
+	float* pf;
 	uint16_t* paux = &bmsspiall.auxreg[1];
-
+		
 	for (i = 0; i < 3; i++)
 	{
+		tmpf = *paux++;
 		pf = &bqfunction.lc.thermcal[i].tt[0];
-		tmpf = *paux;
 		bqfunction.lc.thermcal[i].temp = 
 		 (*(pf + 2) * tmpf * tmpf) +
  		 (*(pf + 1) * tmpf) +
 		 (*(pf + 0)       );
-
-		pf += 1;
-		paux += 1;
 	}
+	return;
+}
+/* *************************************************************************
+ * void bms_items_current_sense(void);
+ * @brief	: Compute a calibrated current from AUX GPIO6 reading
+ * @return  : Calibrated current
+ * *************************************************************************/
+float current_sense;
+void bms_items_current_sense(void)
+{
+	uint16_t* p = &bmsspiall.auxreg[6];
+	float* pc   = &bqfunction.lc.bmsaux[BMSAUX_6_CUR_SENSE].coef[0];
+
+	// current = (reading - offset) * scale;
+	current_sense = (*p - *pc) * (*(pc + 1));
 	return;
 }

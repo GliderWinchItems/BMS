@@ -44,17 +44,6 @@ IN9		9	247.5	12.5	260	80	3.2500	52.0000 DC-DC volt
 #define ADC1IDX_INTERNALTEMP  7	// IN17  247.5   Internal temperature sensor
 #define ADC1IDX_PA4_DC_DC     8 // IN9   247.5   Isolated DC-DC 15v supply
 
-/* ADBMS1818 ADC reading sequence/array indices */
-#define BMSAUX_1_NC           0 // GPIO 1 No Connection
-#define BMSAUX_2_THERM1       1 // GPIO 2 Thermistor
-#define BMSAUX_3_THERM3       2 // GPIO 3 Thermistor
-#define BMSAUX_4_THERM2       3 // GPIO 4 Thermistor
-#define BMSAUX_5_US6          4 // GPIO 5 Spare: U$6
-#define BMSAUX_6_CUR_SENSE    5 // GPIO 6 Current sense op amp
-#define BMSAUX_7_HALL         6 // GPIO 7 Hall effect sensor signal
-#define BMSAUX_8_US9          7 // GPIO 8 Spare: U$9
-#define BMSAUX_9_US10         8 // GPIO 9 Spare: U$10
-
 /* This holds calibration values common to all ADC modules. 
      Some of these are not used. */
 struct ADCCALCOMMON

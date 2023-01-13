@@ -39,6 +39,9 @@ void bms_items_extract_configreg(void);
 void bms_items_therm_temps(void);
 /* @brief	: Convert to temperature the latest thermistor voltages
  * *************************************************************************/
+void bms_items_current_sense(void);
+/* @brief	:  Compute a calibrated current from AUX GPIO reading
+ * *************************************************************************/
 
 #endif
 

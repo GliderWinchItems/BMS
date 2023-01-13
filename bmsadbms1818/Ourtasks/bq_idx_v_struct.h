@@ -2,7 +2,7 @@
 * File Name          : bq_idx_v_struct.h
 * Date First Issued  : 10/01/2021
 * Board              :
-* Description        : Load parameter struct
+* Description        : Fixed parameter struct
 *******************************************************************************/
 
 #include <stdint.h>
@@ -13,8 +13,8 @@
 #ifndef __BQ_IDX_V_STRUCT
 #define __BQ_IDX_V_STRUCT
 
-#define NCELLMAX 18  // Largest array size allowed
-#define NAUXMAX 9    // Number of Auxiliary arrauy size
+#define NCELLMAX 18   // Largest array size allowed
+#define NAUXMAX  12   // Auxiliary array size
 #define CELLNONE 0xFF // Code for no cell in cell box position
 
 /* 16b codes for impossible voltage readings. */
@@ -24,6 +24,21 @@
 
 #define RAWTC 0.975f  // Filter time constant
 #define RAWSKIPCT 2  // Ignore initial readings to filter
+
+
+/* ADBMS1818 GPIO AUX Register ADC reading sequence/array indices */
+#define BMSAUX_1_NC           0 // GPIO 1 No Connection
+#define BMSAUX_2_THERM1       1 // GPIO 2 Thermistor 1
+#define BMSAUX_3_THERM3       2 // GPIO 3 Thermistor 3
+#define BMSAUX_4_THERM2       3 // GPIO 4 Thermistor 2
+#define BMSAUX_5_US5          4 // GPIO 5 Spare
+#define BMSAUX_REF            5 // 2nd Reference voltage
+#define BMSAUX_6_CUR_SENSE    6 // GPIO 6 Current sense op amp
+#define BMSAUX_7_HALL         7 // GPIO 7 Hall effect sensor signal
+#define BMSAUX_8_US9          8 // GPIO 8 Spare: U$9
+#define BMSAUX_9_US10         9 // GPIO 9 Spare: U$10
+#define BMSAUX_RSVD          10 // RSVD1
+#define BMSAUX_COV_CUV       11 // COV CUV RSVD1
 
 struct BMSCAL
 {

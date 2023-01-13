@@ -262,8 +262,18 @@ dbgtrc |= (1<<3);
 	}
 	else
 	{ // Here, no cells are too high. Set chargers on.
-		pbq->fet_status |= (FET_CHGR|FET_DUMP2); // (DUMP2 external charger control)
-dbgtrc |= (1<<4);		
+		pbq->fet_status |= FET_CHGR; // Ob-board charger ON
+dbgtrc |= (1<<4);	
+	}
+	if (pbq->celltrip == 0)
+	{ // Here, no cells have charged over max
+		pbq->fet_status |= FET_DUMP2; // (DUMP2 external charger control ON)
+dbgtrc |= (1<<8);		
+	}
+	if (pbq->celltrip != 0)
+	{ // Here, one or more cells have charged over max.
+		pbq->fet_status &= ~FET_DUMP2; // (DUMP2 external charger control OFF)
+dbgtrc |= (1<<9);		
 	}
 
 	/* HHH: Healthy Hysteresis Handling. */
@@ -271,8 +281,11 @@ dbgtrc |= (1<<4);
 	{ // Charging/balancing is in effect
 		if (pbq->celltrip == pbq->cellspresent)
 		{ // Here, all installed cells are over the (target voltage - delta)	
-			pbq->hyster_sw = 1;     // Start "relaxation"
+			pbq->hyster_sw     = 1; // Set "relaxation" mode
 			pbq->hysterbits_lo = 0; // Reset low cell bits
+			pbq->cellbal       = 0; // Discharge FETs off.
+			// Everybody off.
+			pbq->fet_status &= ~(FET_DUMP|FET_HEATER|FET_DUMP2|FET_CHGR|FET_CHGR_VLC);
 dbgtrc |= (1<<5);
 		}
 	}

@@ -244,18 +244,6 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
       p->bmscal[i].iir_f1.onemcoef = 1 - p->bmscal[i].iir_f1.coef;
    }
 
-
-   /* ADBMS1818 ADC reading sequence/array indices */
-   #define BMSAUX_1_NC           0 // GPIO 1 No Connection
-   #define BMSAUX_2_THERM1       1 // GPIO 2 Thermistor 1
-   #define BMSAUX_3_THERM3       2 // GPIO 3 Thermistor 3
-   #define BMSAUX_4_THERM2       3 // GPIO 4 Thermistor 2
-   #define BMSAUX_5_US6          4 // GPIO 5 Spare: U$6
-   #define BMSAUX_6_CUR_SENSE    5 // GPIO 6 Current sense op amp
-   #define BMSAUX_7_HALL         6 // GPIO 7 Hall effect sensor signal
-   #define BMSAUX_8_US9          7 // GPIO 8 Spare: U$9
-   #define BMSAUX_9_US10         8 // GPIO 9 Spare: U$10
-
    /* Auxilarly GPIO 1 No Connection */
    p->bmsaux[BMSAUX_1_NC].coef[0] = 0;
    p->bmsaux[BMSAUX_1_NC].coef[1] = 1;
@@ -276,14 +264,19 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->bmsaux[BMSAUX_4_THERM2].coef[1] = 1;
    p->bmsaux[BMSAUX_4_THERM2].coef[2] = 0;
 
-   /* Auxilarly GPIO 5 Spare: U$6 */
-   p->bmsaux[BMSAUX_5_US6].coef[0] = 0;
-   p->bmsaux[BMSAUX_5_US6].coef[1] = 1;
-   p->bmsaux[BMSAUX_5_US6].coef[2] = 0;
+ /* Auxilarly GPIO 5 Spare: U$6 */
+   p->bmsaux[BMSAUX_5_US5].coef[0] = 0;
+   p->bmsaux[BMSAUX_5_US5].coef[1] = 1;
+   p->bmsaux[BMSAUX_5_US5].coef[2] = 0;
+
+   /* Auxilarly REF */
+   p->bmsaux[BMSAUX_REF].coef[0] = 0;
+   p->bmsaux[BMSAUX_REF].coef[1] = 1;
+   p->bmsaux[BMSAUX_REF].coef[2] = 0;
 
    /* Auxilarly GPIO 6 Current sense op amp */
-   p->bmsaux[BMSAUX_6_CUR_SENSE].coef[0] = 0;
-   p->bmsaux[BMSAUX_6_CUR_SENSE].coef[1] = 1;
+   p->bmsaux[BMSAUX_6_CUR_SENSE].coef[0] = 11582.7f;
+   p->bmsaux[BMSAUX_6_CUR_SENSE].coef[1] = 4.817729E-02f;
    p->bmsaux[BMSAUX_6_CUR_SENSE].coef[2] = 0;
 
    /* Auxilarly GPIO 7 U$12 w divider */
@@ -316,15 +309,15 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
 // Thermisters: calibration & results
    p->thermcal[0].tt[0] = 100.81f; 
    p->thermcal[0].tt[1] = -3.85E-3f;
-   p->thermcal[0].tt[2] = 2.99E-8;
+   p->thermcal[0].tt[2] = 2.99E-8f;
 
    p->thermcal[1].tt[0] = 100.81f; 
    p->thermcal[1].tt[1] = -3.85E-3f;
-   p->thermcal[1].tt[2] = 2.99E-8;
+   p->thermcal[1].tt[2] = 2.99E-8f;
 
    p->thermcal[2].tt[0] = 100.81f; 
    p->thermcal[2].tt[1] = -3.85E-3f;
-   p->thermcal[2].tt[2] = 2.99E-8;
+   p->thermcal[2].tt[2] = 2.99E-8f;
 
    /* Positions installed set to 1. Otherwise 0. */
    p->thermcal[0].installed = 1; // GPIO 2 JP2

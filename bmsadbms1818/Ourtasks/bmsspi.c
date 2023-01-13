@@ -104,8 +104,17 @@ void bmsspi_readbms(void)
 	struct BMSCAL* pf;
 	float x;
 
-	// Turn heater, dump, dump2, trickle chgr off
-	fetonoff_status_set(0);
+	/* Turn heater, dump, trickle chgr off,
+		if dump2 (external charger) is on, leave
+		it turned on. */
+	if ((bqfunction.fet_status & FET_DUMP2) != 0)
+	{ // DUMP2 stays on. Turn all others off.
+		fetonoff_status_set(FET_DUMP2);
+	}
+	else
+	{ // DUMP2 is off.
+		fetonoff_status_set(0);
+	}
 
 	// Read cells and GPIO1, GPIO2
 	bmsspi_readstuff(READCELLSGPIO12);
