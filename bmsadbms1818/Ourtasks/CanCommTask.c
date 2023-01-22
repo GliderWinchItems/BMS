@@ -19,6 +19,7 @@ would a heartbeat or the variety of CAN msg requests).
 //#include "semphr.h"
 
 #include "main.h"
+#include "DTW_counter.h"
 #include "morse.h"
 #include "bmsspi.h"
 #include "BMSTask.h"
@@ -36,42 +37,88 @@ extern struct CAN_CTLBLOCK* pctl0; // Pointer to CAN1 control block
 extern CAN_HandleTypeDef hcan1;
 
 static void do_req_codes(struct CANRCVBUF* pcan);
-
+static uint8_t q_do(struct CANRCVBUF* pcan);
 
 uint32_t dbgCanCommTask1;
 uint32_t dbgCanCommTask1_noteval;
-
-
 uint32_t dbgcancommloop;
 
 //static void canfilt(uint16_t mm, struct MAILBOXCAN* p);
-
 
 #ifdef TEST_WALK_DISCHARGE_FET_BITS // See main.h
 uint8_t dischgfet; // Test fet bit (0-17)
 uint8_t walkdelay; // noteval == 0 counter delay
 #endif
 
-TaskHandle_t CanCommHandle = NULL;
-
+TaskHandle_t CanCommHandle;
 
 struct CANRCVBUF  can_hb; // Dummy heart-beat request CAN msg
-uint8_t hbseq; // heartbeat CAN msg sequence number
-uint8_t rdyflag_cancomm = 0; // Initialization complete and ready = 1
 
-struct CANRCVBUF can05;
-struct CANRCVBUF can06;
-struct CANRCVBUF can10;
+uint8_t rdyflag_cancomm; // Initialization complete and ready = 1
 
-/* Delayed queue requests. */
-#define BMSTASKQUEUESIZE 5
-static struct BMSREQ_Q bmsreq_c[BMSTASKQUEUESIZE];
-static struct BMSREQ_Q* pbmsreq_c[BMSTASKQUEUESIZE];
-//static struct CANRCVBUF canreq[BMSTASKQUEUESIZE];
+/* Delayed queue requests. 
+When an incoming CAN msg requests a response that requires a reading
+from the '1818 a request is queued to BMSTask and the incoming CAN msg
+is saved along with a notification bit. The CanCommTask loop
+continues and other requests could take place. When BMSTask completes
+a queued request it notifies CanCommTask and the notification bit is
+used to lookup the CAN msg that initiated the BMSTask request. 
+*/
+/* xTaskNotifyWait Notification bits */
+#define CANCOMMBIT00 (1 <<  0) // EMC CAN msg
+#define CANCOMMBIT01 (1 <<  1) // PC CAN msg
+
+// The following reserves notification bits 7-12 (out of 0-31)
+#define CANQEDSIZE 8   // Max number of BMSTask requests that can be queued
+#define CANCOMMQUEUE 7 // Notification bit shift offset
+// Mask notification word for bits assigned to queued linked list items
+#define CANCOMMQUEUE_MASK (((1<<CANQEDSIZE)-1)<<CANCOMMQUEUE)
+
+/* CANQED associates BMSTask queue request with requesting CAN msg. */
+struct CANQED
+{
+	struct BMSREQ_Q bmsreq_c;
+	struct BMSREQ_Q* pbmsreq_c;
+	struct CANRCVBUF can;
+	uint32_t time; // Check for failure to get notification
+	uint8_t busy;
+};
+struct CANQED canqed[CANQEDSIZE];
+
+static uint32_t canqed_time;
+
+// Index for checking timeouts notification failures
+uint8_t idxhb;
 
 
 
+// Number of RTOS ticks for notification wait timeout
+#define TIMEOUTPOLLRATE 4 // Four per second
+#define TIMEOUTPOLL (1000/TIMEOUTPOLLRATE) // RTOS ticks between wait timeouts
 
+/* *************************************************************************
+ * static struct CANQED* canqedadd(void);
+ *	@brief	: Get pointer to next circular buffer position
+ *  @return : NULL = buffer full, otherwise pointer to position to be filled
+ * *************************************************************************/
+static struct CANQED* canqedadd(void)
+{
+		int i;
+	// Search for first not-busy array item
+	for (i = 0; i<CANQEDSIZE; i++)
+	{
+		if (canqed[i].busy == 0)
+			break;
+	}
+	// None available check
+	if (i >= CANQEDSIZE)
+	{
+		bqfunction.warning = 655;
+morse_trap(655);
+	 	return NULL;
+	}
+	return &canqed[i]; // Return ptr to position to be filled
+}
 /* *************************************************************************
  * static uint8_t for_us(struct CANRCVBUF* pcan, struct BQFUNCTION* p);
  *	@brief	: Check if CAN msg request is for this unit
@@ -105,19 +152,36 @@ static uint8_t for_us(struct CANRCVBUF* pcan, struct BQFUNCTION* p)
 	return 1; // Skip. This request is not for us.
 }
 /* *************************************************************************
- *  void CanComm_qreq(uint32_t reqcode, uint8_t idx, uint32_t notebit);
+ *  void CanComm_qreq(uint32_t reqcode, uint32_t setfets, struct CANRCVBUF* pcan);
  *	@brief	: Queue request to BMSTask.c
  *  @param  : reqcode = see BMSTask.h 
+ *  @param  : setfets = bits to set discharge fets (if so commanded)
  *  @param  : idx = this queue request slot
- *  @param  : notebit = notification bit when BMSTask completes request5
+ *  @param  : notebit = notification bit when BMSTask completes request
  * *************************************************************************/
-void CanComm_qreq(uint32_t reqcode, uint8_t idx, uint32_t notebit)
+void CanComm_qreq(uint32_t reqcode, uint32_t setfets, struct CANRCVBUF* pcan)
 {
-	bmsreq_c[idx].reqcode  = reqcode;
-    bmsreq_c[idx].tasknote = notebit; // Notification bit for this request
-    bmsreq_c[idx].noteyes  = 1; // Wait notification
+	struct CANQED* pcanqed;
+
+	/* Get a pointer to a free position. */
+    pcanqed = canqedadd();
+    // NULL means buffer is full.
+    if (pcanqed == NULL) return; // Screwed.
+
+    pcanqed->busy = 1;
+    pcanqed->time = DTWTIME;
+
+	/* Setup request for BMSTask. */
+	pcanqed->can = *pcan; // Save requesting CAN msg
+	pcanqed->bmsreq_c.reqcode  = reqcode; // BMSTask request code
+	pcanqed->bmsreq_c.setfets  = setfets; // Discharge fet bits to set
+    pcanqed->bmsreq_c.noteyes  = 1; // Yes, we will wait for notification
+
+    // Timeout check for missing notifications (debugging?)
+	canqed_time = xTaskGetTickCount(); // Update time
+ 
     // Queue request for BMSTask.c
- 	int ret = xQueueSendToBack(BMSTaskReadReqQHandle, &pbmsreq_c[idx], 0);
+ 	int ret = xQueueSendToBack(BMSTaskReadReqQHandle, &pcanqed->pbmsreq_c, 0);
     if (ret != pdPASS) morse_trap(650);	
     return;
 }
@@ -130,73 +194,47 @@ void CanComm_init(struct BQFUNCTION* p )
 	uint8_t i;
 
 	/* Add CAN Mailboxes                               CAN     CAN ID             TaskHandle,Notify bit,Skip, Paytype */
-///   p->pmbx_cid_cmd_bms_cellvq_emc = MailboxTask_add(pctl0,p->lc.cid_cmd_bms_cellvq_emc, NULL, CANCOMMBIT00,0,U8); // Command: send cell voltages
-//    if (p->pmbx_cid_cmd_bms_cellvq_emc == NULL) morse_trap(620);
-//    p->pmbx_cid_cmd_bms_miscq_emc  = MailboxTask_add(pctl0,p->lc.cid_cmd_bms_miscq_emc,  NULL, CANCOMMBIT01,0,U8); // Command: many options	
-//    if (p->pmbx_cid_cmd_bms_miscq_emc == NULL) morse_trap(621);
-    p->pmbx_cid_uni_bms_emc_i      = MailboxTask_add(pctl0,p->lc.cid_uni_bms_emc_i,      NULL, CANCOMMBIT02,0,U8); // universal #1
+    p->pmbx_cid_uni_bms_emc_i      = MailboxTask_add(pctl0,p->lc.cid_uni_bms_emc_i, NULL, CANCOMMBIT00,0,U8); // universal #1
     if (p->pmbx_cid_uni_bms_emc_i == NULL) morse_trap(622);
-
-//    p->pmbx_cid_cmd_bms_cellvq_pc = MailboxTask_add(pctl0,p->lc.cid_cmd_bms_cellvq_pc, NULL, CANCOMMBIT07,0,U8); // Command: send cell voltages
-//    if (p->pmbx_cid_cmd_bms_cellvq_pc == NULL) morse_trap(620);
-//    p->pmbx_cid_cmd_bms_miscq_pc  = MailboxTask_add(pctl0,p->lc.cid_cmd_bms_miscq_pc,  NULL, CANCOMMBIT08,0,U8); // Command: many options	
-//    if (p->pmbx_cid_cmd_bms_miscq_pc == NULL) morse_trap(621);
-    p->pmbx_cid_uni_bms_pc_i      = MailboxTask_add(pctl0,p->lc.cid_uni_bms_pc_i,      NULL, CANCOMMBIT09,0,U8); // universal #2
+    p->pmbx_cid_uni_bms_pc_i      = MailboxTask_add(pctl0,p->lc.cid_uni_bms_pc_i,   NULL, CANCOMMBIT01,0,U8); // universal #2
     if (p->pmbx_cid_uni_bms_pc_i == NULL) morse_trap(622);
 
-
     /* Add CAN msgs to incoming CAN hw filter. (Skip to allow all incoming msgs. */
- //   canfilt(601, p->pmbx_cid_cmd_bms_cellvq_emc);
- //   canfilt(602, p->pmbx_cid_cmd_bms_miscq_emc);
  //   canfilt(603, p->pmbx_cid_uni_bms_emc_i);
- //   canfilt(601, p->pmbx_cid_cmd_bms_cellvq_pc);
- //   canfilt(602, p->pmbx_cid_cmd_bms_miscq_pc);
  //   canfilt(603, p->pmbx_cid_uni_bms_pc_i);
 
-    	/* Pre-load fixed data in all possible CAN msgs to be sent. */
-	for (i = 0; i < NUMCANMSGS; i++)
-	{
-		p->canmsg[i].pctl = pctl0;   // Control block for CAN module (CAN 1)
-		p->canmsg[i].maxretryct = 4; //
-		p->canmsg[i].bits = 0;       //
-		p->canmsg[i].can.dlc = 8;    // Default payload size (might be modified when loaded and sent)
-		p->canmsg[i].can.cd.ull = 0;    // Clear playload jic
-	}
+	/* Pre-load fixed data ib CAN msg to be sent. */
+	p->canmsg.pctl = pctl0;   // Control block for CAN module (CAN 1)
+	p->canmsg.maxretryct = 4; //
+	p->canmsg.bits       = 0; //
+	p->canmsg.can.cd.ull = 0; // Clear playload jic
+	p->canmsg.can.dlc    = 8; // Default payload size (might be modified when loaded and sent)
+	p->canmsg.can.id     = p->lc.cid_msg_bms_cellvsmr; // 
 
-	/* Preload fixed data for sending cell reading msgs. */
-	for (i = 0; i < MAXNUMCELLMSGS; i++)
-	{	
-		/* Preload CAN IDs */
-		p->canmsg[CID_MSG_CELLV01 + i].can.id = p->lc.cid_msg_bms_cellvsmr;
-
-		/* Msg identification = cell readings. */
-		p->canmsg[CID_MSG_CELLV01 + i].can.cd.ui[0]  = CMD_CMD_TYPE1;//
-
-		/* Preload cell_number-1 for first payload in cell reading msg. */
-		// 0,3,6,9,12,15 in upper nibble; lower order nibble (seq number) = 0;
-		p->canmsg[CID_MSG_CELLV01 + i].can.cd.ui[1] = ((i*3) << 4); 
-	}
-
-	/* Pre-load a dummy CAN msg request (from EMC) for sending heartbeat CAN msg. 
-	   This looks like a CAN msg that is polling this unit. */
-	can_hb.id       = p->lc.cid_uni_bms_emc_i;
+	/* Pre-load a dummy CAN msg request for sending heartbeat CAN msg. 
+	   This looks like an incoming CAN msg is polling this unit. */
+	can_hb.id       = p->lc.cid_msg_bms_cellvsmr;
 	can_hb.dlc      = 8;
 	can_hb.cd.ull   = 0; // Clear entire payload
-	can_hb.cd.uc[0] = CMD_CMD_TYPE1;  // request code (initial, changed later)
-	can_hb.cd.uc[4] = p->lc.cid_msg_bms_cellvsmr >>  0; // Our CAN ID
-	can_hb.cd.uc[5] = p->lc.cid_msg_bms_cellvsmr >>  8;
-	can_hb.cd.uc[6] = p->lc.cid_msg_bms_cellvsmr >> 16;
-	can_hb.cd.uc[7] = p->lc.cid_msg_bms_cellvsmr >> 24;
-
-	/* Pre-load BMS queue. */
-	for (i = 0; i < BMSTASKQUEUESIZE; i++)
+	can_hb.cd.uc[0] = CMD_CMD_CELLPOLL;  // request code (initial, changed later)
+	can_hb.cd.ui[1] = p->lc.cid_msg_bms_cellvsmr;
+	
+	/* Circular buffer for saving CAN msg for queued BMSTask requests */
+	/* Pre-load fixed data into array for queuing BMSTask requests. */
+	for (i = 0; i < CANQEDSIZE; i++)
 	{
 		// Notification: task handle
-		bmsreq_c[i].bmsTaskHandle = xTaskGetCurrentTaskHandle();
-		// Pointer to request struct.
-		pbmsreq_c[i] = &bmsreq_c[i];
+		canqed[i].bmsreq_c.bmsTaskHandle = xTaskGetCurrentTaskHandle();
+		// Pointer to request struct since BMSTask queue is pointers.
+		canqed[i].pbmsreq_c = &canqed[i].bmsreq_c;
+		// Notification bit 
+		canqed[i].bmsreq_c.tasknote  = (1 << (CANCOMMQUEUE + i));
+		// Show not busy
+		canqed[i].busy = 0;
+		// 
+		canqed[i].time = (DTWTIME + 8000000);
 	}
-
+	idxhb = 0; // Index for checking timeouts of notification failure
 	return;
 }
 /* *************************************************************************
@@ -207,44 +245,52 @@ void StartCanComm(void* argument)
 {
 	struct BQFUNCTION* p = &bqfunction;
 	struct CANRCVBUF* pcan;
+	struct CANQED* pcanqed;
 	uint32_t noteval;
 	uint32_t timeoutwait;
-	uint32_t timeoutnext;
+	int i;
 
 	/* CAN communications parameter init. */
 	CanComm_init(p);
-
 	cancomm_items_init();
 
 	extern CAN_HandleTypeDef hcan1;
-	HAL_CAN_Start(&hcan1); // CAN1
+	HAL_CAN_Start(&hcan1); // Start CAN1
 
 osDelay(20); // Wait for ADCTask to get going.
 
 	rdyflag_cancomm = 1; // Initialization complete and ready
-	timeoutnext = xTaskGetTickCount(); // Set starting tick reference
+
+/* In the following 'for (;;)' loop xTaskNotifyWait will time out if there are no 
+   incoming CAN msg notifications. The timeout is set to poll the timeouts for the
+   two hearbeat msgs. The heartbeat status msg will be sent even when CAN msgs are
+   coming in. The timeout for the heartbeat that sends cell readings is reset each
+   time a set (of six) CAN msgs with cell readings is sent. The TIMEOUTPOLL sets
+   the RTOS ticks to wair for the polling. */ 
+	p->HBstatus_ctr = xTaskGetTickCount(); // Count RTOS ticks for hearbeat timing: status msg
+	p->HBcellv_ctr  = p->HBstatus_ctr; // Count RTOS ticks for hearbeat timing: cellv msg
+	timeoutwait     = TIMEOUTPOLL; // TaskNotifyWait timeout
+
 /* ******************************************************************* */
 	for (;;)
 	{
-		/* Wait for notifications, or timeout for heart beat */
-		/* Keep from accumulating delays in heart beat rate. */
-		timeoutnext += bqfunction.hbct_k; // duration between HB (ticks)
-		timeoutwait = timeoutnext - xTaskGetTickCount();
+
+/* PCB board discharge fet testing. */
+#ifdef TEST_WALK_DISCHARGE_FET_BITS  // See main.h for #define
+		timeoutwait = 789; // Avoid keep-alive calls disrupting fets
+#endif		
 
 /* Using noteval instead of 0xffffffff would take care of the possibility
 of a BMSTask request completing before xTaskNotifyWait was entered. If BMSTask
-completed before xTaskNotifyWait was entere using 0xfffffff would clear the 
+completed before xTaskNotifyWait was entered using 0xfffffff would clear the 
 notification and it would be lost. */
-#ifdef TEST_WALK_DISCHARGE_FET_BITS  // See main.h
-		timeoutwait = 789; // Avoid keep_alive calls
-#endif		
 
-		xTaskNotifyWait(0,0xffffffff, &noteval,timeoutwait);//timeoutwait);
-//		xTaskNotifyWait(0,noteval, &noteval,timeoutwait);//timeoutwait);
+		xTaskNotifyWait(0,0xffffffff, &noteval, timeoutwait);
+//		xTaskNotifyWait(0,noteval, &noteval, timeoutwait);//timeoutwait);
 dbgCanCommTask1_noteval = noteval;
-
+		
 /* ******* CAN msg to all nodes. EMC poll msg. */
-		if ((noteval & CANCOMMBIT02) != 0) // CAN id: cid_uni_bms_i [B0000000]
+		if ((noteval & CANCOMMBIT00) != 0) // CAN id: cid_uni_bms_emc_i [B0000000]
 		{ // 
 			pcan = &p->pmbx_cid_uni_bms_emc_i->ncan.can;
 			if (for_us(pcan,p) == 0)
@@ -254,7 +300,7 @@ dbgCanCommTask1_noteval = noteval;
 		}
 
 /* ******* CAN msg to all nodes. PC poll msg. */
-		if ((noteval & CANCOMMBIT09) != 0) // CAN id: cid_uni_bms_pc_i [B0200000]
+		if ((noteval & CANCOMMBIT01) != 0) // CAN id: cid_uni_bms_pc_i [B0200000]
 		{ //     
 			pcan = &p->pmbx_cid_uni_bms_pc_i->ncan.can;
 			if (for_us(pcan,p) == 0)
@@ -263,12 +309,42 @@ dbgCanCommTask1_noteval = noteval;
 			}
 		}
 
+/* ******* Heartbeat timing: status */
+		if 	((int)(xTaskGetTickCount() - p->HBstatus_ctr) > 0)
+		{
+			p->HBstatus_ctr += p->hbct_k;
+			{
+			/* Use dummy CAN msg, then it looks the same as a request CAN msg. */
+				can_hb.cd.uc[0] = CMD_CMD_MISCHB; // Misc subcommands code
+				can_hb.cd.uc[1] = MISCQ_STATUS;   // status code
+				cancomm_items_sendcmdr(&can_hb);  // Handles as if incoming CAN msg.
+			}
+		}			
+/* ******* Heartbeat timing: cell readings */
+		if 	((int)(xTaskGetTickCount() - p->HBcellv_ctr) > 0)
+		{
+			p->HBcellv_ctr = xTaskGetTickCount() + p->hbct_k; // Next HB
+			// HBcellv_ctr set to (current + increment) each time cell readings sent.
+		/* Use dummy CAN msg, then it looks the same as a request CAN msg. */
+			/* Get new cell readings. Queue a BMS cell readings request. */
+			can_hb.cd.uc[0] = CMD_CMD_CELLPOLL; // Cell readings request
+			do_req_codes(&can_hb); // Cell readings will queue a BMSTask request
+		}
+#if 0
 /* ******* Timeout notification. (Heartbeat) */
 		if (noteval == 0)
-		{ // Send heartbeat, but first get present readings.
-#ifndef TEST_WALK_DISCHARGE_FET_BITS // See main.h
-	/* Normal hearbeat CAN msgs. */			
-			CanComm_qreq(REQ_READBMS, 0, CANCOMMBIT03);
+		{ // Send heartbeat: status and six with cell readings
+#ifndef TEST_WALK_DISCHARGE_FET_BITS // See main.h for #define 
+		/* Normal hearbeat CAN msgs. */			
+			/* Use dummy CAN msg, then it looks the same as a request CAN msg. */
+			/* Send current status. */
+			can_hb.cd.uc[0] = CMD_CMD_MISCHB; // Misc subcommands code
+			can_hb.cd.uc[1] = MISCQ_STATUS;   // status code
+			cancomm_items_sendcmdr(&can_hb);  // Handles as if incoming CAN msg.
+
+			/* Get new cell readings. Queue a BMS cell readings request. */
+			can_hb.cd.uc[0] = CMD_CMD_CELLPOLL; // 
+			do_req_codes(&can_hb);
 #else
 	/* Step through discharge bits for testing. */
 			walkdelay += 1;
@@ -280,50 +356,43 @@ dbgCanCommTask1_noteval = noteval;
 				if (dischgfet >= 18) dischgfet = 0;
 			}
 			// Set fet bit position to be turned on.
-			bmsreq_c[3].setfets = (1 << dischgfet);
-			CanComm_qreq(REQ_SETFETS, 3, CANCOMMBIT03);			
+			can_hb.cd.uc[0] = CMD_CMD_TYPE2; // 
+			can_hb.cd.uc[1] = MISCQ_SETFETBITS;
+			can_hb.cd.ui[1] = (1 << dischgfet);
+			do_req_codes(pcan);
 #endif			
  		}	
+#endif 	
 
- /* ******* Notification with CANCOMMBIT03 when BMSTask completes request. */
-		if ((noteval & CANCOMMBIT03) != 0) // BMSREQ_Q complete: heartbeat
-		{ // Timeoutout HB BMS request has been completed.
-dbgcancommloop += 1;			
-
-#ifndef TEST_WALK_DISCHARGE_FET_BITS  // See main.h
-			/* Use dummy CAN msg, then it looks the same as a request CAN msg. */
-			can_hb.cd.uc[0] = CMD_CMD_TYPE2;  // Misc subcommands code
-			can_hb.cd.uc[1] = MISCQ_STATUS;   // status code
-			cancomm_items_sendcmdr(&can_hb);
-
-			/* Use dummy CAN msg, then it looks the same as a request CAN msg. */
-			can_hb.cd.uc[0] = CMD_CMD_TYPE1;  // cell readings code
-			can_hb.cd.uc[1] = (hbseq & 0x0f); // Group sequence number
-			cancomm_items_uni_bms(&can_hb,&bqfunction.cellv[0]); //Not filtered
-
-			/* Increment 4 bit CAN msg group sequence counter .*/
-			hbseq += 1;
-//   			xQueueSendToBack(CanTxQHandle,&p->canmsg[CID_CMD_MISC],4);   
-//#else
-#endif   			
+	/* Check for queue requests that have timed out. 
+	a failure means something with BMSTask notification failed. */
+		// Check one entry each pass through
+		if (((int)(DTWTIME - canqed[idxhb].time) > 8000000) && (canqed[idxhb].busy != 0))
+		{ // Here, queued item is over 1/2 second old
+			bqfunction.warning = (656);
+			canqed[idxhb].busy = 0;
+	morse_trap(656);			
 		}
+		idxhb += 1; if (idxhb >= CANQEDSIZE) idxhb = 0;	
 
-		if ((noteval & CANCOMMBIT04) != 0) // BMSREQ_Q complete: Send cell voltages
-		{
-			cancomm_items_sendcell(&can_hb, &bqfunction.cellv[0]);
-		}		
-		if ((noteval & CANCOMMBIT05) != 0) // BMSREQ_Q complete: Send misc reading command
-		{
-			cancomm_items_sendcmdr(&p->canmsg[CID_CMD_MISC].can);	
-		}		
-		if ((noteval & CANCOMMBIT06) != 0) // BMSREQ_Q complete: Multi-purpose incoming command	1
-		{
-			cancomm_items_uni_bms(&p->canmsg[CID_CMD_UNI].can, NULL);
-		}		
-		if ((noteval & CANCOMMBIT10) != 0) // BMSREQ_Q complete: Multi-purpose incoming command	2
-		{
-//?			cancomm_items_uni_bms(&p->canmsg[CID_CMD_UNI].can, NULL);
-		}		
+/* ******* BMSTask notification of queued item completed */		
+/* ******* Check notification bits for a queued BMSTask completion. */
+		i = 0;
+		pcanqed = &canqed[0];
+		while (((noteval & CANCOMMQUEUE_MASK) != 0) && (i < CANQEDSIZE))
+ 		{ 
+			if (pcanqed->busy != 0)
+			{
+				if (pcanqed->bmsreq_c.tasknote == (noteval & (1 << (CANCOMMQUEUE + i))))
+				{ // We found the BMSTask request completion
+					pcanqed->busy = 0; // Set array position not busy
+					noteval &= ~(1 << (CANCOMMQUEUE + i)); // Removed notification bit
+					cancomm_items_sendcmdr(&(pcanqed->can)); // Handle request
+				}
+			}
+			i += 1;
+			pcanqed += 1;
+		}
 	} 	
 }
 
@@ -369,31 +438,142 @@ static void canfilt(uint16_t mm, struct MAILBOXCAN* p)
 #endif
 
 /* *************************************************************************
+ * static uint8_t toosoon(struct CANRCVBUF* pcan);
+ *	@brief	: If requests are too close together, don't respond
+ *  @param  : pcan = point to CAN msg struct
+ *  @return : 0 = Not too soon (so OK to respond); 1 = do not respond
+ * *************************************************************************/
+struct TOOSOON
+{
+	uint32_t cant;
+	uint32_t cellt;
+};
+#define TOOSOONNEXT 40 // Minimum time (ms) between CAN msgs
+#define TOOSOONSIZE 2
+#define TS_EMC 0  // EMC
+#define TS_PC  1  // PC
+struct TOOSOON toosoon[TOOSOONSIZE];
+
+static uint8_t toosoonchk(struct CANRCVBUF* pcan)
+{
+	if ((pcan->id == bqfunction.lc.cid_uni_bms_emc_i) &&
+		(((int)(xTaskGetTickCount() - toosoon[TS_EMC].cant)) > 0))
+	{ // EMC incoming CAN msg
+		toosoon[TS_EMC ].cant = xTaskGetTickCount()+TOOSOONNEXT;
+		return 0;
+	}
+	if ((pcan->id == bqfunction.lc.cid_uni_bms_pc_i) &&
+		(((int)(xTaskGetTickCount() - toosoon[TS_PC].cant)) > 0))
+	{ // PC incoming CAN msg
+		// Set next time count that will allow a queued rerquest.
+		toosoon[TS_PC].cant = xTaskGetTickCount()+TOOSOONNEXT;
+		return 0;
+	}
+	if (pcan->id == bqfunction.lc.cid_msg_bms_cellvsmr)
+	{ // Hearbeat dummy msg
+		return 0;
+	}
+	// Note: this would catch a bogus CAN ID
+	return 1; // Don't respond
+};
+
+/* *************************************************************************
  * static void do_req_codes(struct CANRCVBUF* pcan);
  *	@brief	: Respond to the CAN msg request code
  *  @param  : pcan = point to CAN msg struct
  * *************************************************************************/
 static void do_req_codes(struct CANRCVBUF* pcan)
 {
+	/* First payload byte holds root request code. */
 	switch (pcan->cd.uc[0])
 	{
-
 	case LDR_RESET: // Execute a RESET ###############################
 		#define SCB_AIRCR 0xE000ED0C
 		*(volatile unsigned int*)SCB_AIRCR = (0x5FA << 16) | 0x4;// Cause a RESET
 //		while (1==1);
 		break; // Redundant
 
-	case CMD_CMD_TYPE1: // (42) Queue BSMTask read, then send cells when read completes
-		CanComm_qreq(REQ_READBMS, 0, CANCOMMBIT04);
+	case CMD_CMD_CELLPOLL: // (42) Queue BSMTask read, then send cells when read completes
+		// If sufficient time between requests, queue a BMSTask read. If
+		// the readings are not stale BMSTask will do an immediate notification.
+		if (toosoonchk(pcan) == 0)
+			CanComm_qreq(REQ_READBMS, 0, pcan);
 		break;
 
-	case CMD_CMD_TYPE2: // (43) Misc: Some may not need queuing BMSTask
-		cancomm_items_sendcmdr(pcan);
+	case CMD_CMD_TYPE2: // (43) Misc: Some may not need queueing BMSTask
+		if (q_do(pcan) == 0) // Queue BMSTask request if applicable to command
+		{ // Here, queueing not needed, so handle request now.
+			cancomm_items_sendcmdr(pcan);
+		}
 		break;
 
 	default:
-		morse_trap(551);
+		bqfunction.warning = 551;
+morse_trap(551);
+		break;
 	}
 	return;
+}
+/* *************************************************************************
+ * static uint8_t q_do(struct CANRCVBUF* pcan);
+ *	@brief	: Queue a BMS task if necessary
+ *  @param  : pcan = point to CAN msg struct
+ * *************************************************************************/
+static uint8_t q_do(struct CANRCVBUF* pcan)
+{
+	uint8_t qsw = 0;
+	/* Command code. */
+	switch(pcan->cd.uc[1])
+	{
+	/* Group not requiring a BMSTask reading */
+	case MISCQ_STATUS:      // 1 status
+ 	case MISCQ_CELLV_ADC:   // 3 cell voltage: adc counts 		send_bms_array(po, &p->raw_filt[0], p->lc.ncell);
+ 	case MISCQ_DCDC_V:      // 6 isolated dc-dc converter output voltageloadfloat(puc, &adc1.abs[ADC1IDX_PA4_DC_DC].filt);
+ 	case MISCQ_CHGR_V:      // 7 charger hv voltage loadfloat(puc, &adc1.abs[ADC1IDX_PA7_HV_DIV].filt);
+
+	case MISCQ_TOPOFSTACK: // BMS top-of-stack voltage		send_bms_array(po, &bqfunction.cal_filt[19], 1);
+ 	case MISCQ_PROC_CAL: // Processor ADC calibrated readings
+ 	/*
+ 		for (i = 0; i < ADCDIRECTMAX; i++) // Copy struct items to float array
+ 			ftmp[i] = adc1.abs[i].filt;
+ 		ftmp[1] = adc1.common.degC; // Insert special internal temperature calibration 
+ 		send_bms_array(po, &ftmp[0], ADCDIRECTMAX);
+	*/
+ 	case MISCQ_PROC_ADC: // Processor ADC raw adc counts for making calibrations
+	/*	for (i = 0; i < ADCDIRECTMAX; i++) // Copy struct items to float array
+ 			ftmp[i] = adc1.abs[i].sumsave;
+		send_bms_array(po, &ftmp[0], ADCDIRECTMAX); 	 */
+	case MISCQ_R_BITS:      // 21 Dump, dump2, heater, discharge bits
+	case MISCQ_CURRENT_CAL: // 24 Below cell #1 minus, current resistor: calibrated
+	case MISCQ_CURRENT_ADC: // 25 Below cell #1 minus, current resistor: adc counts	
+		qsw = 0; // No need to queue a reading
+		break;
+
+	/* BMSTask: REQ_SETFETS */
+ 	/* ???? Does this require a read AUX registers? */
+	case MISCQ_SETFETBITS: //  27 // Set FET on/off discharge bits
+ 		CanComm_qreq(REQ_SETFETS, pcan->cd.ui[1], pcan);
+ 		break;
+
+	/* BMSTask: REQ_TEMPERATURE */
+ 	case MISCQ_TEMP_CAL:    // 4 temperature sensor: calibrated send_bms_array(po, &bqfunction.cal_filt[16], 3);
+ 	case MISCQ_TEMP_ADC:    // 5 temperature sensor: adc counts send_bms_array(po, &p->raw_filt[16], 3);
+ 		CanComm_qreq(REQ_TEMPERATURE, 0, pcan);
+ 		qsw = 1;
+ 		break;
+
+ 	/* Not implemented. uses AUX registers. */
+ 	case MISCQ_HALL_CAL:    // 8 Hall sensor: calibrated
+ 	case MISCQ_HALL_ADC:    // 9 Hall sensor: adc counts
+ 		break;
+
+	/* BMSTask: REQ_READBMS */
+ 	case MISCQ_CELLV_CAL:   // 2 cell voltage: calibrated
+ 	case MISCQ_CELLV_HI:   // 10 Highest cell voltage 		loaduint32(puc, p->cellv_high);
+ 	case MISCQ_CELLV_LO:   // 11 Lowest cell voltage 		loaduint32(puc, p->cellv_low);
+ 		CanComm_qreq(REQ_READBMS, 0, pcan);
+ 		qsw = 1;
+ 		break;
+	}
+	return qsw;
 }

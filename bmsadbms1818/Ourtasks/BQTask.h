@@ -18,7 +18,7 @@
 //#define USESORTCODE
 
 #define BQVSIZE 20 // Readout loop size (16 cells plus others)
-
+/*
 #define NUMCANMSGS 8 // Number of predefined CAN msgs 
 #define MAXNUMCELLMSGS 6 // Max number of CAN msgs with cell readings
 #define CID_MSG_CELLV01  0 // CAN msg with cell readings 1 2 3
@@ -29,6 +29,7 @@
 #define CID_MSG_CELLV06  5 // CAN msg with cell readings 16 or 16 17 18
 #define CID_CMD_MISC     6 // CAN msg with status and TBD stuff
 #define CID_CMD_UNI      7 // CAN msg with universal command response
+*/
 
 /* Battery status bits: 'battery_status' */
 #define BSTATUS_NOREADING (1 << 0)	// Exactly zero = no reading
@@ -150,6 +151,13 @@ struct BQFUNCTION
 
 	uint32_t morse_err; // Error code retrieved from backup SRAM registers
 	uint8_t err;
+	uint16_t warning;   // Error code that is a warning
+
+	uint8_t hbseq; // heartbeat CAN msg sequence number
+	uint32_t HBstatus_ctr; // Count RTOS ticks for hearbeat timing: status msg
+	uint32_t HBcellv_ctr; // Count RTOS ticks for hearbeat timing: cellv msg
+
+
 
 	/* balnumwrk might be adjusted based on chip temperature. */
 	uint8_t balnumwrk; // Max number of active cell bits (Working)
@@ -168,7 +176,7 @@ struct BQFUNCTION
 	uint8_t substateB;  // spare substate 
 
 	/* CAN msgs */
-	struct CANTXQMSG canmsg[NUMCANMSGS];
+	struct CANTXQMSG canmsg;
 };
 /* *************************************************************************/
 TaskHandle_t xBQTaskCreate(uint32_t taskpriority);

@@ -8,6 +8,8 @@
 
 #include "can_iface.h"
 
+#define MAXNUMCELLMSGS 6 // Number of CAN msgs to send all cell readings
+
 #define CANCOMMITEMSNOTE00 (1<<0) // CanCommTask TaskWait notification bit
 
 // payload [1] U8: TYPE2 Command code
@@ -23,7 +25,7 @@
  #define MISCQ_HALL_ADC    9 // Hall sensor: adc counts for making calibration
  #define MISCQ_CELLV_HI   10 // Highest cell voltage
  #define MISCQ_CELLV_LO   11 // Lowest cell voltage
- #define MISCQ_FETBALBITS 12 // FET on/off discharge bits
+ #define MISCQ_FETBALBITS 12 // Read FET on/off discharge bits
  #define MISCQ_DUMP_ON	  13 // Turn on Dump FET for no more than ‘payload [3]’ secs
  #define MISCQ_DUMP_OFF	  14 // Turn off Dump FET
  #define MISCQ_HEATER_ON  15 // Enable Heater mode to ‘payload [3] temperature
@@ -36,6 +38,7 @@
  #define MISCQ_CURRENT_CAL 24 // Below cell #1 minus, current resistor: calibrated
  #define MISCQ_CURRENT_ADC 25 // Below cell #1 minus, current resistor: adc counts
  #define MISCQ_UNIMPLIMENT 26 // Command requested is not implemented
+ #define MISCQ_SETFETBITS  27 // Set FET on/off discharge bits
 
 /* *************************************************************************/
  void cancomm_items_init(void);
@@ -46,14 +49,9 @@ void cancomm_items_sendcell(struct CANRCVBUF* pcan, float *pf);
  *  @param  : pcan = pointer to struct CANRCVBUF from mailbox 
  *  @param  : pf = pointer cell array
  * *************************************************************************/
-void cancomm_items_sendcmdr(struct CANRCVBUF* po);
+ void cancomm_items_sendcmdr(struct CANRCVBUF* pi);
 /*  @brief	: Prepare and send a response to a received command CAN msg
- *  @param  : po = pointer to outgoing CAN msg struct
- * *************************************************************************/
-void cancomm_items_uni_bms(struct CANRCVBUF* pcan, float* pf);
-/*	@brief	: UNIversal multi-purpose command (CANCOMMBIT02)
- *  @param  : pcan = pointer to struct CANRCVBUF with request CAN msg
- *  @param  : pf = pointer to array for output
+ *  @param  : pi = pointer to incoming CAN msg struct CANRCVBUF from mailbox 
  * *************************************************************************/
  void cancomm_items_filter(uint16_t* pi);
 /*	@brief	: Pass raw readings through filter 

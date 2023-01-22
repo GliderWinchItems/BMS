@@ -24,36 +24,12 @@ static void send_allfets(struct CANRCVBUF* po);
 static void not_implemented(struct CANRCVBUF* po);
 
 static uint8_t skip;
-static struct BMSREQ_Q  bmstask_q_readbms;
-
-/* *************************************************************************
- * static void cancomm_items_q(uint8_t reqcode);
- * @brief	: Queue request (for BMSTask handling)
- * *************************************************************************/
-static void cancomm_items_q(uint8_t reqcode)
-{
-return;
-	BaseType_t ret;
-	uint32_t noteval1;
-	struct BMSREQ_Q* pq = &bmstask_q_readbms;
-
-	bmstask_q_readbms.reqcode = reqcode;
-	bmstask_q_readbms.noteyes = 1;// Notify 0; // Do not notify calling task
-	bmstask_q_readbms.done = 1; // Show request queued
-	ret = xQueueSendToBack(BMSTaskReadReqQHandle, &pq, 0);
-	if (ret != pdPASS) morse_trap(201);
-
-	xTaskNotifyWait(0,0xffffffff, &noteval1, 3000);
-	if (noteval1 == 0) morse_trap(202);
-}
 /* *************************************************************************
  * void cancomm_items_init(void);
  * @brief	: Initialization
  * *************************************************************************/
 void cancomm_items_init(void)
 {
-	bmstask_q_readbms.bmsTaskHandle = xTaskGetCurrentTaskHandle();
-	bmstask_q_readbms.tasknote = CANCOMMITEMSNOTE00;
 	return;
 }
 /* *************************************************************************
@@ -104,34 +80,7 @@ static void loadfloat(uint8_t* puc, float* pf)
 	*(puc+3) = uf.uc[3];
 	return;
 }
-/* *************************************************************************
- * void cancomm_items_uni_bms(struct CANRCVBUF* pcan, float* pf);
- *	@brief	: UNIversal multi-purpose command (CANCOMMBIT02)
- *  @param  : pcan = pointer to struct CANRCVBUF with request CAN msg
- *  @param  : pf = pointer to array for output
- * *************************************************************************/
-void cancomm_items_uni_bms(struct CANRCVBUF* pcan, float* pf)
-{
-	/* Set up response to command. */
-	switch(pcan->cd.uc[0])
-	{
-	case CMD_CMD_TYPE1: // Send Cell readings
-		cancomm_items_q(REQ_READBMS); // Read cells + GPIO 1 & 2
-		if (pf == NULL) morse_trap(822);
-		cancomm_items_sendcell(pcan, pf);
-		break;
 
-	case CMD_CMD_TYPE2: // Respond according to the code
-//		if (pf != NULL) morse_trap(823);
-		cancomm_items_sendcmdr(pcan);		
-		break;
-
-	case CMD_CMD_TYPE3: // spare types
-	case CMD_CMD_TYPE4:
-		break;
-	}
-	return;
-}
 /* *************************************************************************
  * void cancomm_items_sendcell(struct CANRCVBUF* pcan, float *pf);
  *	@brief	: Prepare and queue CAN msgs for sending cell voltage array
@@ -156,64 +105,47 @@ dbgsendcellctr += 1;
 	for (i = 0; i < MAXNUMCELLMSGS; i++) // 6 CAN msgs are sent.
 	{	
 		// DLC is the same for all
-		p->canmsg[CID_MSG_CELLV01 + i].can.dlc = 8;
+		p->canmsg.can.dlc = 8;
 
-		// Set sequence number sent by requesting CAN msgs
-		p->canmsg[CID_MSG_CELLV01 + i].can.cd.uc[1] = (pcan->cd.uc[1] & 0x0f) | ((i*3) << 4);
+		// Set group sequence number sent by requesting CAN msgs
+		p->canmsg.can.cd.uc[1] = (pcan->cd.uc[1] & 0x0f) | ((i*3) << 4);
 
-		/*
-			Three cells per CAN msg, and 18 possible readings are sent 
+		/*	Three cells per CAN msg, and 18 possible readings are sent 
 			regardless of the number of installed cells (which will be
 			18,16, or maybe 12)*/
 		for (j = 0; j < 3; j++) // Load 
 		{
 			if (p->lc.cellpos[i*3+j] == CELLNONE)
 			{ // Here, cell was not installed in this position. Set code.
-				p->canmsg[CID_MSG_CELLV01 + i].can.cd.us[j+1] = 65534;//CELLVNONE;
+				p->canmsg.can.cd.us[j+1] = 65534;//CELLVNONE;
 			}
 			else
 			{ // Here, cell is installed
 				if ((bqfunction.cellvopenbits & (1 << (i*3+j))) != 0)
 				{ // Here, unexpected open cell.
-					p->canmsg[CID_MSG_CELLV01 + i].can.cd.us[j+1] = CELLVOPEN;
+					p->canmsg.can.cd.us[j+1] = CELLVOPEN;
 				}
 				else
 				{ // Cell voltage is in normal range.
-					p->canmsg[CID_MSG_CELLV01 + i].can.cd.us[j+1] = (uint16_t)(*(pf+j));
+					p->canmsg.can.cd.us[j+1] = (uint16_t)(*(pf+j));
 				}
 			}
 		}
-		xQueueSendToBack(CanTxQHandle,&p->canmsg[CID_MSG_CELLV01 + i],4);
 		pf += 3;
+		xQueueSendToBack(CanTxQHandle,&p->canmsg,4);
 	}
+   	p->HBcellv_ctr = xTaskGetTickCount() + p->hbct_k; // Next HB for cellv gets delayed	
 	return;
 }
 /* *************************************************************************
- * void cancomm_items_sendcmdr(struct CANRCVBUF* po,struct CANRCVBUF* pi);
+ * void cancomm_items_sendcmdr(struct CANRCVBUF* pi);
  *  @brief	: Prepare and send a response to a received command CAN msg
  *  @param  : pi = pointer to incoming CAN msg struct CANRCVBUF from mailbox 
- *  @param  : po = pointer to outgoing CAN msg struct
  * *************************************************************************/
-/*
-payload [1] U8: Command code
-    0 = reserved for heartbeat
-    1 = status
-    2 = cell voltage: calibrated
-    3 = cell voltage: adc counts
-    4 = temperature sensor: calibrated
-    5 = temperature sensor: adc counts
-    6 = isolated dc-dc converter output voltage
-    7 = charger hv voltage
-    8 = Hall sensor: calibrated
-    9 = Hall sensor: adc counts
-  10 = Highest cell voltage
-  11 = Lowest cell voltage
-  12 = FET on/off discharge bits
-*/ 
 void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
 {
 	struct BQFUNCTION* p = &bqfunction;
-	struct CANRCVBUF* po = &p->canmsg[CID_CMD_MISC].can;
+	struct CANRCVBUF* po = &p->canmsg.can;
 	float ftmp[ADCDIRECTMAX];
 	uint8_t i;
 
@@ -222,6 +154,27 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
 
 	skip = 0;
 
+   if (pi->cd.uc[0] == CMD_CMD_CELLPOLL)// (code 42) Request to send cell
+   {
+   	// Set code in response that identifies who polled
+   	 if (pi->id == p->lc.cid_uni_bms_emc_i)
+   	 	po->cd.uc[0] = CMD_CMD_CELLEMC; // EMC polled cell voltages
+   	 else if (pi->id == p->lc.cid_uni_bms_pc_i)
+   	 	po->cd.uc[0] = CMD_CMD_CELLEMC; // PC polled cell voltages
+   	 else if (pi->id == p->lc.cid_msg_bms_cellvsmr)
+   	 	{
+			po->cd.uc[0] = CMD_CMD_CELLHB; // Heartbeat timeout cell voltages
+			bqfunction.hbseq += 1; // Group sequence number
+   	 	}  
+   	 	else
+   	 	{
+   	 		// Warning: Unexpectd CAN ID
+   	 	}
+   	// Send cell voltages: 6 CAN msgs
+ 	cancomm_items_sendcell(pi, &p->cellv[0]);
+
+ 	return;
+   }
 
 	/* Command code. */
 	switch(pi->cd.uc[1])
@@ -231,7 +184,7 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
 		break;
 
  	case MISCQ_CELLV_CAL:   // 2 cell voltage: calibrated
-		CanComm_qreq(REQ_READBMS, 0, CANCOMMBIT04);; // Read cells + GPIO 1 & 2
+		CanComm_qreq(REQ_READBMS, 0, pi); // Read cells + GPIO 1 & 2
  		break;
 
  	case MISCQ_CELLV_ADC:   // 3 cell voltage: adc counts
@@ -239,7 +192,7 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
  		break;
 
  	case MISCQ_TEMP_CAL:    // 4 temperature sensor: calibrated
-		cancomm_items_q(REQ_TEMPERATURE); // Read AUX
+		CanComm_qreq(REQ_TEMPERATURE, 0, pi); // Read AUX
  		send_bms_array(po, &bqfunction.cal_filt[16], 3);
  		break;
 
@@ -373,17 +326,17 @@ static void send_allfets(struct CANRCVBUF* po)
 	po->cd.ui[1]  = p->cellbal;
 	// Add Dump, Dump2, Heater, trickle FET status. */
 	po->cd.uc[7]  = p->fet_status;
-	xQueueSendToBack(CanTxQHandle,&p->canmsg[CID_CMD_MISC],4);	
+	xQueueSendToBack(CanTxQHandle,&p->canmsg,4);	
 
 	/* Unexpected open cell voltage (see cellball.c) */
 	po->cd.uc[3]  = 1;	
 	po->cd.ui[1]  = p->cellvopenbits;
-	xQueueSendToBack(CanTxQHandle,&p->canmsg[CID_CMD_MISC],4);	
+	xQueueSendToBack(CanTxQHandle,&p->canmsg,4);	
 
 	/* Cells installed (see bq_idx_v_struct.c,h) */
 	po->cd.uc[3]  = 2;	
 	po->cd.ui[1]  = p->cellspresent;
-	xQueueSendToBack(CanTxQHandle,&p->canmsg[CID_CMD_MISC],4);	
+	xQueueSendToBack(CanTxQHandle,&p->canmsg,4);	
 
 	skip = 1;
 	return;
@@ -417,6 +370,7 @@ FETS--
 	// Status bytes (U8)
 	po->cd.uc[4] = p->battery_status;
 	po->cd.uc[5] = p->fet_status;
+	skip = 0;
 	return;
 }
 /* *************************************************************************

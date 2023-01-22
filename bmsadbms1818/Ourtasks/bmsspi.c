@@ -91,6 +91,13 @@ static const uint16_t cmdsreg[READOUTSIZE_SCTRL] = {
 	RDSCTRL /* 0x016  // Read S Control Register Group */
 };
 
+/* Skip readouts that are too close together. */
+#define MINREADOUT (16*9000) // 9.00 ms
+// System ticks of last reading. 
+uint32_t time_read_cells; 
+uint32_t time_read_gpio;  
+uint32_t time_read_aux; 
+
 uint8_t readbmsflag; // Let main know a BMS reading was made
 
 /* *************************************************************************
@@ -103,6 +110,10 @@ void bmsspi_readbms(void)
 	int i;
 	struct BMSCAL* pf;
 	float x;
+
+	/* Skip readout if previous request was too soon. */
+	if ((int)(DTWTIME - time_read_cells) < 0)
+		return;
 
 	/* Turn heater, dump, trickle chgr off,
 		if dump2 (external charger) is on, leave
@@ -137,6 +148,9 @@ void bmsspi_readbms(void)
 
 	// Restore heater, dump, dump2, trickle chgr
 	fetonoff_status_set(bqfunction.fet_status);
+
+	// Update the time of the last reading
+	time_read_cells = DTWTIME + MINREADOUT;
 	return;
 }
 /* *************************************************************************
@@ -198,7 +212,10 @@ void bmsspi_readstuff(uint8_t code)
  * *************************************************************************/
 void bmsspi_gpio(void)
 {
+	if ((int)(DTWTIME - time_read_gpio) < 0)
+		return;
 	bmsspi_readstuff(READGPIO);
+	time_read_gpio = DTWTIME + MINREADOUT;
 
 	// TODO: calibration
 	return;
@@ -239,7 +256,10 @@ void bmsspi_setfets(void)
  * *************************************************************************/
 void bms_gettemp(void)
 {
+	if ((int)(DTWTIME - time_read_aux) < 0)
+		return;
 	bmsspi_readstuff(READAUX);
+	time_read_aux = DTWTIME + MINREADOUT;
 	return;
 }
 /* *************************************************************************
@@ -256,7 +276,6 @@ void bmsspi_wakeseq(void)
 	osDelay(6); // Startup delay
 	return;
 }
-
 /* *************************************************************************
  * uint8_t bmsspi_keepawake(void);
  * @brief	: Execute valid commands to keep awake. Sequence through commands
@@ -370,6 +389,11 @@ uint8_t bmsspi_keepawake(void)
 //	GPIOC->MODER &= ~(0x3 << 8);
 //	GPIOC->MODER |=  (0x1 << 8);
 //	GPIOC->BSRR  = (1<<(4+16)); // Set PC4 low
+
+	/* Last reading time */
+	time_read_cells = DTWTIME; 
+	time_read_gpio  = time_read_cells;  
+	time_read_aux   = time_read_gpio; 
 
 	return;
 }

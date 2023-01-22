@@ -120,13 +120,10 @@ struct BQLC
    uint32_t cid_cmd_bms_miscr;    // CAN id for all other responses
 
  // List of CAN ID's for setting up hw filter for incoming msgs
-   // EMC or PC sends; BMS receives
-   uint32_t cid_cmd_bms_cellvq_emc;// CANID_CMD_BMS_CELLVQ_EMC B0200000 request cell voltages
-   uint32_t cid_cmd_bms_cellvq_pc; // CANID_CMD_BMS_CELLVQ_PC  B0200004 request cell voltages
-   uint32_t cid_cmd_bms_miscq_emc; // CANID_CMD_BMS_MISCQ_EMC  B0400000 request reading for many options
-   uint32_t cid_cmd_bms_miscq_pc;  // CANID_CMD_BMS_MISCQ_PC   B0400004 request reading for many options
    uint32_t cid_uni_bms_emc_i;     // CANID_UNI_BMS_EMC_I      B0000000 multi-purpose universal BMS
    uint32_t cid_uni_bms_pc_i;      // CANID_UNI_BMS_PC_I       B0200000 multi-purpose universal BMS
+
+   uint8_t hbseq; // heartbeat CAN msg sequence number
  };
 
 /* *************************************************************************/

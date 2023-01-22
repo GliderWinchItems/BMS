@@ -325,20 +325,10 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->temp_fan_max = 48.0f; // Above max fan is 100%
 
 // List of CAN ID's for setting up hw filter for incoming msgs
-   //                      CANID_HEX      CANID_NAME             CAN_MSG_FMT     DESCRIPTION
-   	// We receive: EMC
-//   p->cid_cmd_bms_cellvq_emc= CANID_CMD_BMS_CELLVQ_EMC;// B0400000 EMC requests to BMS to send cellv, cmd code
-//   p->cid_cmd_bms_cellvq_pc = CANID_CMD_BMS_CELLVQ_PC; // B0400004 PC  requests to BMS to send cellv, cmd code
-//   p->cid_cmd_bms_miscq_emc = CANID_CMD_BMS_MISCQ_EMC; // B2400000 EMC requests to BMS for value for given cmd code
-//   p->cid_cmd_bms_miscq_pc  = CANID_CMD_BMS_MISCQ_PC;  // B0400014 PC  requests to BMS for value for given cmd code
    p->cid_uni_bms_emc_i     = CANID_UNI_BMS_EMC_I;     // B0000000 UNIversal From EMC,  Incoming msg to BMS: X4=target CANID');   
    p->cid_uni_bms_pc_i      = CANID_UNI_BMS_PC_I;      // B0200000 UNIversal From PC,  Incoming msg to BMS: X4=target CANID');   
 
-
 // CAN ids BMS sends, others receive
-   // BMS sends cell readings with this CAN ID
-   // 03 ADBMS1818 #AD01 U16:id,U16:cellv n+1,U16:cellv n+2');
-   p->cid_msg_bms_cellvsmr = I_AM_CANID; //CANID_MSG_BMS_CELLV13R; // B0201134', U16_U16_U16_U16'
-//   p->cid_cmd_bms_miscr = CANID_CMD_BMS_MISC13R;     // B0401134', U8_U8_U8_X4'
+   p->cid_msg_bms_cellvsmr = I_AM_CANID; // B0A00000
 	return;
 }
