@@ -1278,9 +1278,13 @@ uint8_t wakectr;
 uint8_t state_defaultTask = 0;
 static struct BMSREQ_Q bmsreq_1;
 struct BMSREQ_Q* pbmsreq_1 = &bmsreq_1;
-
+#define LSPC 7 // column spacing
 char* pcheader =
 "\n\r                 1      2      3      4      5      6      7      8      9     10     11     12     13     14     15     16     17     18";
+char* ptripcode ="0123456789ABCDEFGH";
+static uint8_t idxtripcode;
+static char tripline[LSPC*18+2];
+static uint32_t celltrip_prev;
 
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void *argument)
@@ -1371,6 +1375,11 @@ uint32_t dbgcancommloop_prev;
 
 uint32_t dbgsendcellctr_prev=0;
 uint32_t dbgsendcelldtw_prev=0;
+
+  memset(tripline,' ',(LSPC*18));
+  for (i = 0; i < 18; i++) tripline[i*LSPC] = '.';
+  tripline[18*LSPC] = 0;
+  celltrip_prev = 0;
 
   for(;;) /* Loop polls various operations. */
   {  
@@ -1510,7 +1519,6 @@ adc1.common.ts_calrate );
 #else
     /* Cell balance & control. */
     uint32_t dcc = extractconfigreg.dcc;
-    #define LSPC 7 // column spacing
     char cline[LSPC*18+2];
 
     /* Check cell balance. */
@@ -1547,17 +1555,27 @@ int32_t csum = 0;
 
 
       yprintf(&pbuf2,"\n\r%5d %02d TRIPPED ",fctr++,dbgf+1);
-      memset(cline,' ',(LSPC*18));
-      // Build a nice ASCII line whilst previous line prints
-      for (i=0; i < 18; i++)
-      {
-        if ((bqfunction.celltrip & (1<<i)) != 0)
-          cline[i*LSPC] = '@';
-        else
-          cline[i*LSPC] = '.';
+      if(bqfunction.celltrip == 0)
+      { // Reset display line
+        for (i = 0; i < 18; i++) tripline[i*LSPC] = '.';
+        idxtripcode = 0;
+        celltrip_prev = 0;
       }
-      cline[18*LSPC] = 0;
-      yprintf(&pbuf1,"%s",cline);        
+      uint32_t ttx = bqfunction.celltrip ^ celltrip_prev;
+      if (ttx != 0)
+      {
+        if (idxtripcode >= 18) morse_trap(333);
+        for (i=0; i < 18; i++)
+        {
+          if ((ttx & (1<<i)) != 0)
+          { // Cell trip
+              tripline[i*LSPC] = *(ptripcode+idxtripcode);
+          } 
+        }
+        idxtripcode += 1;
+        celltrip_prev = bqfunction.celltrip;
+      }
+      yprintf(&pbuf1,"%s",tripline);        
 
       yprintf(&pbuf1,"\n\r%5d %02d MAX|MIN ",fctr++,dbgf+1);
       memset(cline,' ',(LSPC*18));

@@ -53,6 +53,7 @@ uint8_t walkdelay; // noteval == 0 counter delay
 TaskHandle_t CanCommHandle;
 
 struct CANRCVBUF  can_hb; // Dummy heart-beat request CAN msg
+uint8_t hbctr; // Cell group seq number for dummy CAN msg
 
 uint8_t rdyflag_cancomm; // Initialization complete and ready = 1
 
@@ -315,10 +316,11 @@ dbgCanCommTask1_noteval = noteval;
 			p->HBstatus_ctr += p->hbct_k;
 			{
 			/* Use dummy CAN msg, then it looks the same as a request CAN msg. */
+				can_hb.cd.ull   = 0xffffffff; // Clear entire payooad
 				can_hb.cd.uc[0] = CMD_CMD_MISCHB; // Misc subcommands code
 				can_hb.cd.uc[1] = MISCQ_STATUS;   // status code
 				cancomm_items_sendcmdr(&can_hb);  // Handles as if incoming CAN msg.
-			}
+			}	
 		}			
 /* ******* Heartbeat timing: cell readings */
 		if 	((int)(xTaskGetTickCount() - p->HBcellv_ctr) > 0)
@@ -328,6 +330,7 @@ dbgCanCommTask1_noteval = noteval;
 		/* Use dummy CAN msg, then it looks the same as a request CAN msg. */
 			/* Get new cell readings. Queue a BMS cell readings request. */
 			can_hb.cd.uc[0] = CMD_CMD_CELLPOLL; // Cell readings request
+			can_hb.cd.uc[2] = (0x0F & hbctr++);
 			do_req_codes(&can_hb); // Cell readings will queue a BMSTask request
 		}
 #if 0

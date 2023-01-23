@@ -100,15 +100,15 @@ dbgsendcellctr += 1;
 	uint8_t i;
 	uint8_t j;
 
+	// DLC is the same for all
+	p->canmsg.can.dlc = 8;
+
 	/* Load CAN msg payload with three cell readings, or codes that is a voltage 
 		   reading that is not possible. */
 	for (i = 0; i < MAXNUMCELLMSGS; i++) // 6 CAN msgs are sent.
 	{	
-		// DLC is the same for all
-		p->canmsg.can.dlc = 8;
-
 		// Set group sequence number sent by requesting CAN msgs
-		p->canmsg.can.cd.uc[1] = (pcan->cd.uc[1] & 0x0f) | ((i*3) << 4);
+		p->canmsg.can.cd.uc[1] = (pcan->cd.uc[2] & 0x0f) | ((i*3) << 4);
 
 		/*	Three cells per CAN msg, and 18 possible readings are sent 
 			regardless of the number of installed cells (which will be
@@ -164,7 +164,7 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
    	 else if (pi->id == p->lc.cid_msg_bms_cellvsmr)
    	 	{
 			po->cd.uc[0] = CMD_CMD_CELLHB; // Heartbeat timeout cell voltages
-			bqfunction.hbseq += 1; // Group sequence number
+//			bqfunction.hbseq += 1; // Group sequence number
    	 	}  
    	 	else
    	 	{
@@ -175,6 +175,20 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
 
  	return;
    }
+      	// Set code in response that identifies who polled
+   	 if (pi->id == p->lc.cid_uni_bms_emc_i)
+   	 	po->cd.uc[0] = CMD_CMD_MISCPC; // EMC polled cell voltages
+   	 else if (pi->id == p->lc.cid_uni_bms_pc_i)
+   	 	po->cd.uc[0] = CMD_CMD_MISCEMC; // PC polled cell voltages
+   	 else if (pi->id == p->lc.cid_msg_bms_cellvsmr)
+   	 	{
+			po->cd.uc[0] = CMD_CMD_MISCHB; // Heartbeat timeout cell voltages
+//			bqfunction.hbseq += 1; // Group sequence number
+   	 	}  
+   	 	else
+   	 	{
+   	 		// Warning: Unexpectd CAN ID
+   	 	}
 
 	/* Command code. */
 	switch(pi->cd.uc[1])
