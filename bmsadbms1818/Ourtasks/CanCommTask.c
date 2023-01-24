@@ -42,6 +42,7 @@ static uint8_t q_do(struct CANRCVBUF* pcan);
 uint32_t dbgCanCommTask1;
 uint32_t dbgCanCommTask1_noteval;
 uint32_t dbgcancommloop;
+uint32_t dbgcancommmsg;
 
 //static void canfilt(uint16_t mm, struct MAILBOXCAN* p);
 
@@ -167,7 +168,11 @@ void CanComm_qreq(uint32_t reqcode, uint32_t setfets, struct CANRCVBUF* pcan)
 	/* Get a pointer to a free position. */
     pcanqed = canqedadd();
     // NULL means buffer is full.
-    if (pcanqed == NULL) return; // Screwed.
+    if (pcanqed == NULL)
+    {
+morse_trap(654);    	
+    	return; // Screwed.
+	}
 
     pcanqed->busy = 1;
     pcanqed->time = DTWTIME;
@@ -499,7 +504,7 @@ static void do_req_codes(struct CANRCVBUF* pcan)
 	case CMD_CMD_CELLPOLL: // (42) Queue BSMTask read, then send cells when read completes
 		// If sufficient time between requests, queue a BMSTask read. If
 		// the readings are not stale BMSTask will do an immediate notification.
-		if (toosoonchk(pcan) == 0)
+//		if (toosoonchk(pcan) == 0)
 			CanComm_qreq(REQ_READBMS, 0, pcan);
 		break;
 

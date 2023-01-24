@@ -190,7 +190,11 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
    	 		// Warning: Unexpectd CAN ID
    	 	}
 
-	/* Command code. */
+	/* Command code. 
+	If a BMSTask request was needed this would have been taken care of
+	in CanCommTask before this routine is called. To queue a request
+	here could result in an endless loop. 
+	*/
 	switch(pi->cd.uc[1])
 	{
 	case MISCQ_STATUS:      // 1 status
@@ -198,7 +202,7 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
 		break;
 
  	case MISCQ_CELLV_CAL:   // 2 cell voltage: calibrated
-		CanComm_qreq(REQ_READBMS, 0, pi); // Read cells + GPIO 1 & 2
+//		CanComm_qreq(REQ_READBMS, 0, pi); // Read cells + GPIO 1 & 2
  		break;
 
  	case MISCQ_CELLV_ADC:   // 3 cell voltage: adc counts
@@ -206,7 +210,7 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
  		break;
 
  	case MISCQ_TEMP_CAL:    // 4 temperature sensor: calibrated
-		CanComm_qreq(REQ_TEMPERATURE, 0, pi); // Read AUX
+//		CanComm_qreq(REQ_TEMPERATURE, 0, pi); // Read AUX
  		send_bms_array(po, &bqfunction.cal_filt[16], 3);
  		break;
 
