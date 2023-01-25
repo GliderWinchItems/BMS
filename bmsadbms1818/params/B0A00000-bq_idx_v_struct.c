@@ -321,7 +321,7 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->thermcal[1].installed = 1; // GPIO 3 JP4
    p->thermcal[2].installed = 1; // GPIO 4 JP5
 
-   p->temp_fan_min = 27.5f; // Between max & min fan proporational
+   p->temp_fan_min = 31.0f; // Between max & min fan proporational
    p->temp_fan_max = 48.0f; // Above max fan is 100%
 
 // List of CAN ID's for setting up hw filter for incoming msgs
