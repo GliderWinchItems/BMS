@@ -55,8 +55,8 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->modulev_max = (16*3600); // Battery module max limit (mv)
    p->modulev_min = (16*2600); // Battery module min limit (mv)
 
-   p->balnummax    = 18;  // Max number of cells to discharge at one time
-   p->cellv_hyster = 75;  // Voltage below cellv_max to start recharging (mv)
+   p->balnummax    = 700;  // Max number of cells to discharge at one time
+   p->cellv_hyster = 100;  // Voltage below cellv_max to start recharging (mv)
 
    p->cellbal_del  = 2; // Legacy
 
@@ -68,7 +68,7 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
 
    /* Relate cell numbers to cell positions. (indices are ("number"-1) */
 #define EighteenPositionBox
-  #define EighteenCellsInEighteenBox
+//  #define EighteenCellsInEighteenBox
    
 #ifdef EighteenPositionBox
 
@@ -103,16 +103,16 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->cellpos[ 5]  =  5; // 
    p->cellpos[ 6]  =  6; // 
    p->cellpos[ 7]  =  7; // Cell #8 is installed in cell position #8
-   p->cellpos[ 8]  =  CELLNONE; // No cell in cell position 8
-   p->cellpos[ 9]  =  CELLNONE; // No cell in cell position 9
-   p->cellpos[10]  =  8; // Cell #9 is installed in cell position 10
-   p->cellpos[11]  =  9; // ...
-   p->cellpos[12]  = 10; 
-   p->cellpos[13]  = 11; 
-   p->cellpos[14]  = 12; 
-   p->cellpos[15]  = 13; 
-   p->cellpos[16]  = 14; 
-   p->cellpos[17]  = 15; // Cell #16 is installed in cell position #18
+   p->cellpos[ 8]  =  8; 
+   p->cellpos[ 9]  =  9;
+   p->cellpos[10]  = 10; 
+   p->cellpos[11]  = 11; 
+   p->cellpos[12]  = 12; 
+   p->cellpos[13]  = 13; 
+   p->cellpos[14]  = 14; 
+   p->cellpos[15]  = 15; 
+   p->cellpos[16]  = CELLNONE; // No cell in cell position #17
+   p->cellpos[17]  = CELLNONE; // No cell in cell position #18
  #endif
 
 #else

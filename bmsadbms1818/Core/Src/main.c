@@ -1533,7 +1533,7 @@ extern uint8_t dbgf;
       yprintf(&pbuf1,"%s",pcheader);
 
 int32_t csum = 0;
-      yprintf(&pbuf2,"\n\rcellv[i] : ");
+      yprintf(&pbuf2,"\n\rJcellv[i]: ");
       for (i = 0; i < 18; ++i)
       {
         csum += bqfunction.cellv[i];
