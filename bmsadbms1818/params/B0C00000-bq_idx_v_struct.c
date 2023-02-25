@@ -55,8 +55,8 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->modulev_max = (16*3600); // Battery module max limit (mv)
    p->modulev_min = (16*2600); // Battery module min limit (mv)
 
-   p->balnummax    = 700;  // Max number of cells to discharge at one time
-   p->cellv_hyster = 100;  // Voltage below cellv_max to start recharging (mv)
+   p->balnummax    = 18;  // Max number of cells to discharge at one time
+   p->cellv_hyster = 700;  // Voltage below cellv_max to start recharging (mv)
 
    p->cellbal_del  = 2; // Legacy
 
