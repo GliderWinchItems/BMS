@@ -888,7 +888,11 @@ static void MX_TIM1_Init(void)
 
   /* USER CODE BEGIN TIM1_Init 1 */
   errorcode = 992; // Error_Handler morse_trap code
-  
+     /* *** Note: the following htim1.Init.Period setting is
+            overwritten in chgr_items.c initialization
+            using the parameter tim1_arr_init from the 
+            parameter file.
+     *** */
   /* USER CODE END TIM1_Init 1 */
   htim1.Instance = TIM1;
   htim1.Init.Prescaler = 0;

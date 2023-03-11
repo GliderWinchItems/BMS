@@ -198,11 +198,11 @@ if (frame==1)
 
 // 0.1 ohm current sense resistor mounting tabs
 senseRtab([-50+9-3,len/2-2-2,pcboff+bot+(60-2*pcboff-10)],1.5,90);
-senseRtab([-50+9-3,len/2-2-2,-2],1.5,90);
-
-// +/- Power pole wire strain relief
-senseRtab([-50+9-3,len/2-2-0,45],3.2,0);
-senseRtab([50+9-5,len/2-2-0,45],3.2,0);
+difference()
+{    
+  senseRtab([-50+9-3,len/2-2-2,-2],1.5,90);
+  translate([0,0,-1])cube([200,200,2],center=true);
+}
 
 boxNpost();
 
@@ -237,4 +237,4 @@ module clamp()
  }   
 }
 
-translate([0,0,35])clamp();
+//translate([0,0,35])clamp();

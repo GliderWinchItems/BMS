@@ -1,8 +1,8 @@
 /******************************************************************************
-* File Name          : B0E00000-adc_idx_v_struct.c
-* Date First Issued  : 08/20/2022
+* File Name          : B1000000-adc_idx_v_struct.c
+* Date First Issued  : 03/06/2023
 * Board              : bmsadbms1818
-* Description        : Load ADC parameter struct: B0E00000 ADBMS1818 board #3
+* Description        : Load ADC parameter struct: B1000000 ADBMS1818 board #4
 *******************************************************************************/
 /* 10/23/2020: Revised for Levelwind */
 /* 03/01/2022: Revised for bmsmax14921 */
@@ -68,10 +68,11 @@ int adc_idx_v_struct_hardcode_params(struct ADCLC* p)
 	p->cabs[ADC1IDX_PA3_FET_CUR1].iir_f1.skipctr  = SKIPCT;  // Initial skip
 	p->cabs[ADC1IDX_PA3_FET_CUR1].scale     = 3.8156288E-03f; // 
 	p->cabs[ADC1IDX_PA3_FET_CUR1].ioffset    = 0;  // Offset before scale
+
 // ADC1IDX_PA7_HV_DIV    3	// IN12	640.5	4
 	p->cabs[ADC1IDX_PA7_HV_DIV].iir_f1.coef     = CELLTC; // Filter time constant
 	p->cabs[ADC1IDX_PA7_HV_DIV].iir_f1.skipctr  = SKIPCT;  // Initial skip
-	p->cabs[ADC1IDX_PA7_HV_DIV].scale     = 5.424129E-04f; // Apply calibration below 
+	p->cabs[ADC1IDX_PA7_HV_DIV].scale     = 6.531239E-4f;//5.424129E-04f; // Apply calibration below 
 	p->cabs[ADC1IDX_PA7_HV_DIV].ioffset    = 0;  // Offset before scale
 
 // ADC1IDX_PC4_THERMSP1  4	// IN13	247.5	6

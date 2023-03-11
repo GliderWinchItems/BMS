@@ -6,6 +6,10 @@
 *******************************************************************************/
 /* 10/23/2020: Revised for Levelwind */
 /* 03/01/2022: Revised for bmsmax14921 */
+/*
+Circa 01/2023, the original pcb board was "blown" with the ELCON charger testing.
+*/
+
 
 #include "adc_idx_v_struct.h"
 

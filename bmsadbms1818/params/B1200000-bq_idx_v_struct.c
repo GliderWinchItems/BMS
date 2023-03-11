@@ -1,12 +1,10 @@
 /******************************************************************************
-* File Name          : B0C00000-bq_idx_v_struct.c
-* Date First Issued  : 08/20/2022
+* File Name          : B01200000-bq_idx_v_struct.c
+* Date First Issued  : 03/06/2023
 * Board              : bmsadbms1818
-* Description        : Load BQ parameter struct: B0C00000 ADBMS1818 board #2
+* Description        : Load BQ parameter struct: B1200000 ADBMS1818 board #5
 *******************************************************************************/
-/*
-Circa 01/2023, the original pcb board was "blown" with the ELCON charger testing.
-*/
+
 #include "bq_idx_v_struct.h"
 #include "SerialTaskReceive.h"
 #include "morse.h"
@@ -36,29 +34,28 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
 
    p->hbct_t       = 4000; // Heartbeat ct: milliseconds between sending 
    p->hbct         = 64;    // Number of swctr ticks between heartbeats
-
 //   p->adc_hb       = 64;     // Number of ticks for heartbeat ADC readout
 
    p->CanComm_hb = 1000; // CanCommTask 'wait' RTOS ticks per heartbeat sending
  
    /* Charger: timer and comparator settings. */
-   p->dac1_hv_setting  = 3600; // HV volt limit (DAC setting)
-   p->dac2_ix_setting  = 110;  // Current sense level setting (DAC setting)
-   p->tim1_ccr1_on     =  55;  // PWM ON count: Normal charge rate
-   p->tim1_ccr1_on_vlc =   2;  // PWM ON count: Very Low Charge rate required
-   p->tim1_arr_init    =  79;  // At 16 MHz: count of 80 = 5 us PWM frame
+   p->dac1_hv_setting  = 3950; // HV volt limit (DAC setting)
+   p->dac2_ix_setting  =   95; // Current sense level setting (DAC setting)
+   p->tim1_ccr1_on     =   38; // PWM ON count: Normal charge rate
+   p->tim1_ccr1_on_vlc =    2; // PWM ON count: Very Low Charge rate required
+   p->tim1_arr_init    =   44; // At 16 MHz: count of 80 = 5 us PWM frame
 
    p->cellv_max   = 3900; // Max limit (mv) for charging any cell
    p->cellv_min   = 2800; // Min limit (mv) for any discharging
    p->cellv_vlc   = 2550; // Below this (mv) Very Low Charge (vlc)required
-   p->cellv_tgtdelta = 0; // Target delta (mv)
+   p->cellv_tgtdelta = 1; // Target delta (mv)   
    p->cellopen_hi = 4300; // Above this voltage cell wire is assumed open (mv)
    p->cellopen_lo =  333; // Below this voltage cell wire is assumed open (mv)
    p->modulev_max = (16*3600); // Battery module max limit (mv)
    p->modulev_min = (16*2600); // Battery module min limit (mv)
 
    p->balnummax    = 18;  // Max number of cells to discharge at one time
-   p->cellv_hyster = 700;  // Voltage below cellv_max to start recharging (mv)
+   p->cellv_hyster = 70;  // Voltage below cellv_max to start recharging (mv)
 
    p->cellbal_del  = 2; // Legacy
 
@@ -70,7 +67,7 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
 
    /* Relate cell numbers to cell positions. (indices are ("number"-1) */
 #define EighteenPositionBox
-//  #define EighteenCellsInEighteenBox
+  #define EighteenCellsInEighteenBox
    
 #ifdef EighteenPositionBox
 
@@ -105,16 +102,16 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->cellpos[ 5]  =  5; // 
    p->cellpos[ 6]  =  6; // 
    p->cellpos[ 7]  =  7; // Cell #8 is installed in cell position #8
-   p->cellpos[ 8]  =  8; 
-   p->cellpos[ 9]  =  9;
-   p->cellpos[10]  = 10; 
-   p->cellpos[11]  = 11; 
-   p->cellpos[12]  = 12; 
-   p->cellpos[13]  = 13; 
-   p->cellpos[14]  = 14; 
-   p->cellpos[15]  = 15; 
-   p->cellpos[16]  = CELLNONE; // No cell in cell position #17
-   p->cellpos[17]  = CELLNONE; // No cell in cell position #18
+   p->cellpos[ 8]  =  CELLNONE; // No cell in cell position 8
+   p->cellpos[ 9]  =  CELLNONE; // No cell in cell position 9
+   p->cellpos[10]  =  8; // Cell #9 is installed in cell position 10
+   p->cellpos[11]  =  9; // ...
+   p->cellpos[12]  = 10; 
+   p->cellpos[13]  = 11; 
+   p->cellpos[14]  = 12; 
+   p->cellpos[15]  = 13; 
+   p->cellpos[16]  = 14; 
+   p->cellpos[17]  = 15; // Cell #16 is installed in cell position #18
  #endif
 
 #else
@@ -243,6 +240,7 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
       p->bmscal[i].iir_f1.onemcoef = 1 - p->bmscal[i].iir_f1.coef;
    }
 
+
    /* Auxilarly GPIO 1 No Connection */
    p->bmsaux[BMSAUX_1_NC].coef[0] = 0;
    p->bmsaux[BMSAUX_1_NC].coef[1] = 1;
@@ -323,7 +321,7 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->thermcal[1].installed = 1; // GPIO 3 JP4
    p->thermcal[2].installed = 1; // GPIO 4 JP5
 
-   p->temp_fan_min = 27.5f; // Between max & min fan proporational
+   p->temp_fan_min = 31.0f; // Between max & min fan proporational
    p->temp_fan_max = 48.0f; // Above max fan is 100%
 
 // List of CAN ID's for setting up hw filter for incoming msgs
@@ -331,6 +329,6 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->cid_uni_bms_pc_i      = CANID_UNI_BMS_PC_I;      // B0200000 UNIversal From PC,  Incoming msg to BMS: X4=target CANID');   
 
 // CAN ids BMS sends, others receive
-   p->cid_msg_bms_cellvsmr = I_AM_CANID; // B0C00000
+   p->cid_msg_bms_cellvsmr = I_AM_CANID; // B0A00000
 	return;
 }

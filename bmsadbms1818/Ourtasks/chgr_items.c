@@ -60,6 +60,10 @@ void chgr_items_init(void)
 	ret = HAL_COMP_Start(&hcomp2);
 	if (ret != HAL_OK) morse_trap(707);
 
+	/* PWM frame (i.e. rep-rate) */
+	if (bqfunction.lc.tim1_arr_init < 35) morse_trap(486);
+	TIM1->ARR = bqfunction.lc.tim1_arr_init;
+
 	/* Working value for FET ON duration in PWM frame */
 	bqfunction.tim1_ccr1 = bqfunction.lc.tim1_ccr1_on; 
 
