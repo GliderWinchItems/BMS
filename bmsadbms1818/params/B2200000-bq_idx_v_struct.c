@@ -1,11 +1,11 @@
 /******************************************************************************
-* File Name          : B1000000-bq_idx_v_struct.c
-* Date First Issued  : 03/06/2023
+* File Name          : B02200000-bq_idx_v_struct.c
+* Date First Issued  : 03/16/2023
 * Board              : bmsadbms1818
-* Description        : Load BQ parameter struct: B1200000 ADBMS1818 board #4
+* Description        : Load BQ parameter struct: B2200000 ADBMS1818 board #12
 *******************************************************************************/
-/*
-16 pin CAN ISO1042
+/* 
+8 pin CAN ADM3050
 */
 #include "bq_idx_v_struct.h"
 #include "SerialTaskReceive.h"
@@ -43,9 +43,9 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    /* Charger: timer and comparator settings. */
    p->dac1_hv_setting  = 3950; // HV volt limit (DAC setting)
    p->dac2_ix_setting  =   95; // Current sense level setting (DAC setting)
-   p->tim1_ccr1_on     =   55; // PWM ON count: Normal charge rate
+   p->tim1_ccr1_on     =   38; // PWM ON count: Normal charge rate
    p->tim1_ccr1_on_vlc =    2; // PWM ON count: Very Low Charge rate required
-   p->tim1_arr_init    =   79; // At 16 MHz: count of 80 = 5 us PWM frame
+   p->tim1_arr_init    =   44; // At 16 MHz: count of 80 = 5 us PWM frame
 
    p->cellv_max   = 3900; // Max limit (mv) for charging any cell
    p->cellv_min   = 2800; // Min limit (mv) for any discharging

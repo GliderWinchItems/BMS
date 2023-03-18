@@ -4,6 +4,9 @@
 * Board              : bmsadbms1818
 * Description        : Load BQ parameter struct: B0A00000 ADBMS1818 board #1
 *******************************************************************************/
+/*
+16 pin CAN ISO1042
+*/
 
 #include "bq_idx_v_struct.h"
 #include "SerialTaskReceive.h"
