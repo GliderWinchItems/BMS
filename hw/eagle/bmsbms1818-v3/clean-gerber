@@ -1,0 +1,9 @@
+rm *.gpi
+rm *.sts
+rm *.stc
+rm *.plc
+rm *.sol
+rm *.cmp
+rm *.pls
+rm *.drd
+rm *.drl
