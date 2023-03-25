@@ -1,0 +1,32 @@
+ERRATA.txt
+03/22/2023
+
+1. U$8 - 8 pin CAN driver Tx/Rx reversed
+
+The Tx & Rx connections to the 8 pin CAN driver are reversed.
+
+The error is in the eagle footprint and is carried over from
+earlier boards that were never tested.
+
+The original mistake was the footprint for TI ISO-1050 8 pin
+isolated CAN driver. The smd pads are longer and further apart
+than those on the 8 pin TI ISO-1042 (and substitute part, 
+ADM3050), which are SIOC 8 packages, but they will still reach
+the longer, further apart, pads for the ISO-1050 that is on
+this version of the pcb.
+
+Cutting the traces and wiring jumpers is relatively easy as
+the Tx and Rx traces from the processor to the 8 pin driver
+have a pair of vias at each end. The traces can be cut and
+jumpers can be soldered to the vias.
+
+This footprint error is correct on the 'V3 pcb layout. That
+layout eliminates the option of installing the disharge
+resistors (in the three hole configuration) so that external 
+FETs are not needed. 'V3 includes the option of using SMD 
+discharge resistors instead of thru-hole types.
+
+The 16 pin CAN driver connections are corrrect for the 'V0 and 'V1
+versions of this board. The V3 version corrects the 8 pin error
+and also eliminates 16 pin CAN driver option.
+
