@@ -1,6 +1,6 @@
 EAGLE Version 4.13 Copyright (c) 1988-2004 CadSoft
 
-Electrical Rule Check for /mnt/home/deh/GliderWinchItems/BMS/hw/eagle/bmsbms1818-v3/bms1818.sch at  3/22/2023 14:37:18 
+Electrical Rule Check for /mnt/home/deh/GliderWinchItems/BMS/hw/eagle/bmsbms1818-v3/bms1818.sch at  5/27/2023 14:25:17 
 
 WARNING: Sheet 1/1: POWER Pin IC101 VDD connected to +15V
 WARNING: Sheet 1/1: POWER Pin U1POWER VDD_1 connected to VCC
@@ -28,9 +28,9 @@ WARNING: Sheet 1/1: POWER Pin U$5G$8 DTEN connected to +5V/1
 WARNING: Sheet 1/1: POWER Pin IC1P VCC connected to +5V/1
 WARNING: Sheet 1/1: POWER Pin U$100G$2 V+ connected to +5V/1
 WARNING: Sheet 1/1: POWER Pin U$100G$2 V- connected to GND
-WARNING: Sheet 1/1: POWER Pin U$8 GND2 connected to GNDA
-WARNING: Sheet 1/1: POWER Pin U$8 VCC1 connected to VCC
-WARNING: Sheet 1/1: POWER Pin U$8 GND1 connected to GND
+WARNING: Sheet 1/1: POWER Pin CAN101 GND2 connected to GNDA
+WARNING: Sheet 1/1: POWER Pin CAN101 VCC1 connected to VCC
+WARNING: Sheet 1/1: POWER Pin CAN101 GND1 connected to GND
 
 Board and schematic are consistent
 
