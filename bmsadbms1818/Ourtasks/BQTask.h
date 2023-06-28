@@ -133,6 +133,12 @@ struct BQFUNCTION
 	uint32_t hysterbits_lo; // Bits for cells that fell below hysterv_lo
 	uint8_t  hyster_sw;     // Hysteresis switch: 1 = peak was reached
 
+	// Adjustment to hold charger power taken from DC-DC converter constant
+	uint8_t dcdc_oto;   // One-time-only calibration sw
+	float dcdc_adjnom;  // Calibration adjustment factor
+	float dcdc_adjfac;  // Cal adjustment factor * current factor 
+	uint16_t tim1_arr_work; // Working ARR (PWM frame) count - 1
+
 	/* Filter raw readings for calibration purposes. */
 	struct FILTERIIRF1 filtiirf1_raw[ADCBMSMAX]; // Filter parameters
 	float raw_filt[ADCBMSMAX]; // Filtered output

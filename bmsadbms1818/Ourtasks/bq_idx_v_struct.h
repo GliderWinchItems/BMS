@@ -81,6 +81,9 @@ struct BQLC
 
    uint32_t CanComm_hb; // CanCommTask 'wait' RTOS ticks per heartbeat sending
 
+   float dcdc_v; // Isolated DC-DC converter output voltage (e.g. 15.0v)
+   float dcdc_w; // Charger power max taken from DC-DC converter (e.g. 5.5W)
+   float dcdc_calv; // Module voltage used in following settings (e.g. 57.6v)
    uint16_t dac1_hv_setting;  // DAC setting for 65.2 volt limit
    uint16_t dac2_ix_setting;  // DAC setting for 62 ma current sense level setting
    uint16_t tim1_ccr1_on;     // PWM ON count: Normal charge rate
@@ -95,6 +98,7 @@ struct BQLC
    int16_t cellv_max;    // Max limit for charging any cell (mv)
    int16_t cellv_min;    // Min limit for any discharging (mv)
    int16_t cellv_vlc;    // Below this Very Low Charge (_vlc)required
+
 
    int16_t cellv_hyster; // Relax-to-voltage = (cellv_max - cellv_hyster)
    uint32_t trip_max;   // Cells that have tripped max voltage when hyster_sw = 0;

@@ -60,8 +60,17 @@ void chgr_items_init(void)
 	ret = HAL_COMP_Start(&hcomp2);
 	if (ret != HAL_OK) morse_trap(707);
 
+	/* Adjustment for module voltage affecting charger current */
+	// Nominal factor used for calibration computed only once
+	if ((bqfunction.lc.dcdc_calv - bqfunction.lc.dcdc_v) < 3)
+	{ // Here the voltage at calibration is wrong
+		morse_trap(708);
+	}
+	bqfunction.dcdc_adjnom = (bqfunction.lc.dcdc_calv - bqfunction.lc.dcdc_v)/bqfunction.lc.dcdc_v;
+	bqfunction.dcdc_oto = 1;
+
 	/* PWM frame (i.e. rep-rate) */
-	if (bqfunction.lc.tim1_arr_init < 35) morse_trap(486);
+	if (bqfunction.lc.tim1_arr_init < 30) morse_trap(486);
 	TIM1->ARR = bqfunction.lc.tim1_arr_init;
 
 	/* Working value for FET ON duration in PWM frame */

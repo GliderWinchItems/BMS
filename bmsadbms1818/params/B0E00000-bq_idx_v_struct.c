@@ -71,7 +71,7 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
 
    /* Relate cell numbers to cell positions. (indices are ("number"-1) */
 #define EighteenPositionBox
- // #define EighteenCellsInEighteenBox 
+ #define EighteenCellsInEighteenBox 
    
 #ifdef EighteenPositionBox
 
