@@ -41,6 +41,10 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
 //   p->adc_hb       = 64;     // Number of ticks for heartbeat ADC readout
 
    p->CanComm_hb = 1000; // CanCommTask 'wait' RTOS ticks per heartbeat sending
+
+   p->dcdc_v    = 15.0; // Isolated DC-DC converter output voltage (e.g. 15.0v)
+   p->dcdc_w    =  5.2; // Charger power max taken from DC-DC converter (e.g. 5.5W)
+   p->dcdc_calv = 69.1; // Module voltage used in following settings (e.g. 57.6v)   
  
    /* Charger: timer and comparator settings. */
    p->dac1_hv_setting  = 3600; // HV volt limit (DAC setting)
@@ -55,8 +59,8 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->cellv_tgtdelta = 1; // Target delta (mv)
    p->cellopen_hi = 4000; // Above this voltage cell wire is assumed open (mv)
    p->cellopen_lo =  333; // Below this voltage cell wire is assumed open (mv)
-   p->modulev_max = (16*3600); // Battery module max limit (mv)
-   p->modulev_min = (16*2100); // Battery module min limit (mv)
+   p->modulev_max = (18*3600); // Battery module max limit (mv)
+   p->modulev_min = (18*2100); // Battery module min limit (mv)
 
    p->balnummax    = 18;  // Max number of cells to discharge at one time
    p->cellv_hyster = 75;  // Voltage below cellv_max to start recharging (mv)
