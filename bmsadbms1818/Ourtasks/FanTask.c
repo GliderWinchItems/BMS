@@ -3,6 +3,35 @@
 * Date First Issued  : 10/02/2021
 * Description        : Led blinking Task
 *******************************************************************************/
+/* gsm email:  07/04/2023
+Some thinking about temperature related battery module status and operation. This assumes pack heating does not use the dump or heating FETs under autonomous BMS control. (The pack could be commanded to turn on dump and heater by EMC.) All the numbers are working and placeholders. I would expect parameters in the per module struct for those. (I made some numbers specifically different to suggest separate parameters.) No urgency in implementing any of this but just to capture my thoughts on this and get yours.
+
+Module Status related to temperature:
+If pack temperature is greater than 50C, red status for too hot for operation.
+If pack temperature is between 40C and 50C, yellow status for warm pack
+if pack temperature is between 5C and 10C, yellow status for cold pack.
+If pack temperature is below 5C, red status for too cold for operation
+If exit air temperature is greater that 10C above ambient temperature, red status for possible fire.
+If fan cannot be started when commanded, yellow status for fan inoperative.
+
+Winch operations can continue and be initiated so long as pack temperature does not take status to red. (Expect status value (1 byte) to be 0 for normal, <0 for red, and > 0 for yellow. Probably conditions bit mapped beyond that.)
+
+Fan Behavior: 
+
+For pack temperatures between 8C and 20C, no fan.
+
+When fan is to be started, I expect initial 100% PWM until fan motion is detected falling to values specified below once operation is detected. (Essentially what you seem to be doing when the BMS does boot up status checks.)
+
+EMC may command fan to operate at a specified PWM for whatever purpose it desires. This disables the autonomous behaviors specified below until a command reverting the module to autonomous fan control. This command could be module specific or all modules in a string. Examples of this would be in anticipation of an imminent launch when the module pack is getting warm and ambient is below the pack temperature. Or the EMC has commanded heating when modules are in a doghouse enclosure and it wants to circulate the air for warming.
+
+Autonomous Cooling: Pack above 20C
+
+Fan starts at 10% PWM when pack temperature is 3C above ambient temperature. Fan PWM increases linearly to 100% as temperature differential increases to 10C and 100% for above.
+
+Autonomous Heating: Pack is below 8C
+
+Fan turns on at 12% when ambient temperature is 3C greater than pack temperature. Fan speed increases linearly to 100% as temperature differential increases to 8C and 100% for above.
+*/
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"

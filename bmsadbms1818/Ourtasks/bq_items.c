@@ -157,7 +157,6 @@ dbgtrc = 0; // bits for checking logic
 	pbq->cellv_min_bits = 0; // Cells below cellv_min
 	pbq->cellv_vlc_bits = 0; // Cells below very low
 	pbq->cellv_low      = pbq->lc.cellopen_hi; // Lowest cell initial voltage
-
 /*   p->cellv_max   = 3500; // Max limit (mv) for charging any cell
    p->cellv_min   = 2600; // Min limit (mv) for any discharging
    p->cellv_vlc   = 2550; // Below this (mv) Very Low Charge (vlc)required */
@@ -196,6 +195,16 @@ dbgtrc = 0; // bits for checking logic
 					pbq->cellbal        |= (1 << i); // Set bit for discharge FET
 					pbq->celltrip       |= (1 << i); // Cell "tripped" max (cumulative)
 					pbq->battery_status |= BSTATUS_CELLTOOHI; // One or more cells above max limit
+				}
+				if (pbq->hyster_sw == 0)
+				{// Here, in charge mode (not relaxation mode)
+					if (idata > pbq->cellv_tmdelta) // (cellv_max - cellv_tgtdelta)
+					{ // Here, voltrage is between max and (max - delta)
+						if ((pbq->celltrip & (1<<i)) != 0)
+						{ // Here, this cell has tripped max
+							pbq->cellbal |= (1 << i); // Set bit for discharge FET
+						}
+					}
 				}
 				if (idata < pbq->hysterv_lo)
 				{ // Cell below (target-hysteresis) voltage

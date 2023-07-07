@@ -26,7 +26,6 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
 
 	/* Timings in milliseconds. Converted later to timer ticks. */
 
-
    /* Identification of this module node. */
    p->winchnum     = 1; // Winch number (1 - 4)
    if ((p->winchnum == 0) || (p->winchnum > 4)) morse_trap(700);
@@ -37,7 +36,6 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
 
    p->hbct_t       = 4000; // Heartbeat ct: milliseconds between sending 
    p->hbct         = 64;    // Number of swctr ticks between heartbeats
-
 //   p->adc_hb       = 64;     // Number of ticks for heartbeat ADC readout
 
    p->CanComm_hb = 1000; // CanCommTask 'wait' RTOS ticks per heartbeat sending
@@ -48,19 +46,17 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
  
    /* Charger: timer and comparator settings. */
    p->dac1_hv_setting  = 3600; // HV volt limit (DAC setting)
-   p->dac2_ix_setting  =  110; // Current sense level setting (DAC setting)
-   p->tim1_ccr1_on     =   55; // PWM ON count: Normal charge rate
+   p->dac2_ix_setting  =   72; // Current sense level setting (DAC setting)
+   p->tim1_ccr1_on     =   45; // PWM ON count: Normal charge rate
    p->tim1_ccr1_on_vlc =    2; // PWM ON count: Very Low Charge rate required
-   p->tim1_arr_init    =   79; // At 16 MHz: count of 80 = 5 us PWM frame
+   p->tim1_arr_init    =   40; // At 16 MHz: count of 80 = 5 us PWM frame
 
    p->cellv_max   = 3482; // Max limit (mv) for charging any cell
    p->cellv_min   = 2200; // Min limit (mv) for any discharging
    p->cellv_vlc   = 2100; // Below this (mv) Very Low Charge (vlc)required
-   p->cellv_tgtdelta = 1; // Target delta (mv)
+   p->cellv_tgtdelta = 3; // Target delta (mv)
    p->cellopen_hi = 4000; // Above this voltage cell wire is assumed open (mv)
    p->cellopen_lo =  333; // Below this voltage cell wire is assumed open (mv)
-   p->modulev_max = (18*3600); // Battery module max limit (mv)
-   p->modulev_min = (18*2100); // Battery module min limit (mv)
 
    p->balnummax    = 18;  // Max number of cells to discharge at one time
    p->cellv_hyster = 75;  // Voltage below cellv_max to start recharging (mv)
@@ -72,6 +68,9 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
 
    if (p->ncell > NCELLMAX) morse_trap(702); // Error trap as it needs fixing
    p->npositions  = 18;  // Number of cell =>positions<= in module "box"
+
+   p->modulev_max = (p->ncell*p->cellv_max); // Battery module max limit (mv)
+   p->modulev_min = (p->ncell*p->cellv_min); // Battery module min limit (mv)
 
    /* Relate cell numbers to cell positions. (indices are ("number"-1) */
 #define EighteenPositionBox

@@ -1,5 +1,5 @@
 /******************************************************************************
-* File Name          : B02000000-bq_idx_v_struct.c
+* File Name          : B1E000000-bq_idx_v_struct.c
 * Date First Issued  : 03/16/2023
 * Board              : bmsadbms1818
 * Description        : Load BQ parameter struct: B2000000 ADBMS1818 board #12
@@ -7,6 +7,7 @@
 /*  
 16 pin CAN ISO1042
 */
+
 #include "bq_idx_v_struct.h"
 #include "SerialTaskReceive.h"
 #include "morse.h"
@@ -25,7 +26,6 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
 
 	/* Timings in milliseconds. Converted later to timer ticks. */
 
-
    /* Identification of this module node. */
    p->winchnum     = 1; // Winch number (1 - 4)
    if ((p->winchnum == 0) || (p->winchnum > 4)) morse_trap(700);
@@ -42,34 +42,34 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
  
    p->dcdc_v    = 15.0; // Isolated DC-DC converter output voltage (e.g. 15.0v)
    p->dcdc_w    =  5.2; // Charger power max taken from DC-DC converter (e.g. 5.5W)
-   p->dcdc_calv = 69.1; // Module voltage used in following settings (e.g. 57.6v)
+   p->dcdc_calv = 68.5; // Module voltage used in following settings (e.g. 57.6v)
 
    /* Charger: timer and comparator settings. */
    p->dac1_hv_setting  = 3950; // HV volt limit (DAC setting, not mv!)
-   p->dac2_ix_setting  =   72; // Current sense level setting (DAC setting)
-   p->tim1_ccr1_on     =   45; // PWM ON count: Normal charge rate
-   p->tim1_ccr1_on_vlc =    2; // PWM ON count: Very Low Charge rate required
-   p->tim1_arr_init    =   40; // At 16 MHz: count of 80 = 5 us PWM frame
+   p->dac2_ix_setting  =   87; // Current sense level setting (DAC setting)
+   p->tim1_ccr1_on     =   55; // PWM ON count: Normal charge rate
+   p->tim1_ccr1_on_vlc =   25; // PWM ON count: Very Low Charge rate required
+   p->tim1_arr_init    =   15; // At 16 MHz: count of 80 = 5 us PWM frame
 
-   p->cellv_max   = 3820; // Max limit (mv) for charging any cell
+   p->cellv_max   = 3950; // Max limit (mv) for charging any cell
    p->cellv_min   = 2800; // Min limit (mv) for any discharging
    p->cellv_vlc   = 2550; // Below this (mv) Very Low Charge (vlc)required
-   p->cellv_tgtdelta = 1; // Target delta (mv)   
+   p->cellv_tgtdelta = 3; // Target delta (mv)   
    p->cellopen_hi = 4300; // Above this voltage cell wire is assumed open (mv)
    p->cellopen_lo =  333; // Below this voltage cell wire is assumed open (mv)
-   p->modulev_max = (16*3600); // Battery module max limit (mv)
-   p->modulev_min = (16*2600); // Battery module min limit (mv)
 
    p->balnummax    = 18;  // Max number of cells to discharge at one time
-   p->cellv_hyster = 70;  // Voltage below cellv_max to start recharging (mv)
+   p->cellv_hyster = 60;  // Voltage below cellv_max to start recharging (mv)
 
    p->cellbal_del  = 2; // Legacy
 
   /* Arrays compiled using NCELLMAX [18] */
    p->ncell = 18; // Number of series cells in this module
-
    if (p->ncell > NCELLMAX) morse_trap(702); // Error trap as it needs fixing
    p->npositions  = 18;  // Number of cell =>positions<= in module "box"
+
+   p->modulev_max = (p->ncell*p->cellv_max); // Battery module max limit (mv)
+   p->modulev_min = (p->ncell*p->cellv_min); // Battery module min limit (mv)
 
    /* Relate cell numbers to cell positions. (indices are ("number"-1) */
 #define EighteenPositionBox

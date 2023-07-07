@@ -99,6 +99,19 @@ void cellbal_do(void)
 					pbq->hysterbits_hi |= (1<<i); // Show it tripped the max
 				}				
 			}
+			if (pbq->hyster_sw == 0)
+			{// Here, in charge mode (not relaxation mode)
+				if (idata > pbq->cellv_tmdelta) // (cellv_max - cellv_tgtdelta)
+morse_trap(555);
+X
+				{ // Here, voltrage is between max and (max - delta)
+					if ((pbq->hysterbits_hi & (1<<i)) != 0)
+					{ // Here, this cell has tripped max
+morse_trap(666);
+						bq->cellbal  |= (1<<i); // Set discharge fet for this cell
+					}
+				}
+			}
 		}
 	}
 

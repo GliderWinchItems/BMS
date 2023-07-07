@@ -70,7 +70,7 @@ void chgr_items_init(void)
 	bqfunction.dcdc_oto = 1;
 
 	/* PWM frame (i.e. rep-rate) */
-	if (bqfunction.lc.tim1_arr_init < 30) morse_trap(486);
+	if (bqfunction.lc.tim1_arr_init < 1) morse_trap(486);
 	TIM1->ARR = bqfunction.lc.tim1_arr_init;
 
 	/* Working value for FET ON duration in PWM frame */
