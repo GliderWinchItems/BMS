@@ -45,11 +45,11 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->dcdc_calv = 69.1; // Module voltage used in following settings (e.g. 57.6v)   
  
    /* Charger: timer and comparator settings. */
-   p->dac1_hv_setting  = 3600; // HV volt limit (DAC setting)
-   p->dac2_ix_setting  =   72; // Current sense level setting (DAC setting)
-   p->tim1_ccr1_on     =   45; // PWM ON count: Normal charge rate
+   p->dac1_hv_setting  = 3800; // HV volt limit (DAC setting)
+   p->dac2_ix_setting  =   95; // Current sense level setting (DAC setting)
+   p->tim1_ccr1_on     =   55; // PWM ON count: Normal charge rate
    p->tim1_ccr1_on_vlc =    2; // PWM ON count: Very Low Charge rate required
-   p->tim1_arr_init    =   40; // At 16 MHz: count of 80 = 5 us PWM frame
+   p->tim1_arr_init    =   45; // At 16 MHz: count of 80 = 5 us PWM frame
 
    p->cellv_max   = 3482; // Max limit (mv) for charging any cell
    p->cellv_min   = 2200; // Min limit (mv) for any discharging
