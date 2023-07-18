@@ -39,11 +39,6 @@ extern CAN_HandleTypeDef hcan1;
 static void do_req_codes(struct CANRCVBUF* pcan);
 static uint8_t q_do(struct CANRCVBUF* pcan);
 
-uint32_t dbgCanCommTask1;
-uint32_t dbgCanCommTask1_noteval;
-uint32_t dbgcancommloop;
-uint32_t dbgcancommmsg;
-
 //static void canfilt(uint16_t mm, struct MAILBOXCAN* p);
 
 #ifdef TEST_WALK_DISCHARGE_FET_BITS // See main.h
@@ -293,11 +288,11 @@ notification and it would be lost. */
 
 		xTaskNotifyWait(0,0xffffffff, &noteval, timeoutwait);
 //		xTaskNotifyWait(0,noteval, &noteval, timeoutwait);//timeoutwait);
-dbgCanCommTask1_noteval = noteval;
 		
 /* ******* CAN msg to all nodes. EMC poll msg. */
 		if ((noteval & CANCOMMBIT00) != 0) // CAN id: cid_uni_bms_emc_i [B0000000]
 		{ // 
+//morse_trap(777);
 			pcan = &p->pmbx_cid_uni_bms_emc_i->ncan.can;
 			if (for_us(pcan,p) == 0)
 			{ // This CAN msg includes us.
@@ -307,7 +302,7 @@ dbgCanCommTask1_noteval = noteval;
 
 /* ******* CAN msg to all nodes. PC poll msg. */
 		if ((noteval & CANCOMMBIT01) != 0) // CAN id: cid_uni_bms_pc_i [B0200000]
-		{ //     
+		{ //   
 			pcan = &p->pmbx_cid_uni_bms_pc_i->ncan.can;
 			if (for_us(pcan,p) == 0)
 			{ // This CAN msg includes us.
@@ -460,6 +455,7 @@ struct TOOSOON
 #define TOOSOONSIZE 2
 #define TS_EMC 0  // EMC
 #define TS_PC  1  // PC
+#if 0
 struct TOOSOON toosoon[TOOSOONSIZE];
 
 static uint8_t toosoonchk(struct CANRCVBUF* pcan)
@@ -484,7 +480,7 @@ static uint8_t toosoonchk(struct CANRCVBUF* pcan)
 	// Note: this would catch a bogus CAN ID
 	return 1; // Don't respond
 };
-
+#endif
 /* *************************************************************************
  * static void do_req_codes(struct CANRCVBUF* pcan);
  *	@brief	: Respond to the CAN msg request code
@@ -516,8 +512,11 @@ static void do_req_codes(struct CANRCVBUF* pcan)
 		break;
 
 	default:
-		bqfunction.warning = 551;
+		if (pcan->cd.uc[0] > LDR_CHKSUM)
+		{
+			bqfunction.warning = 551;
 morse_trap(551);
+		}
 		break;
 	}
 	return;

@@ -46,10 +46,10 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
 
    /* Charger: timer and comparator settings. */
    p->dac1_hv_setting  = 3950; // HV volt limit (DAC setting, not mv!)
-   p->dac2_ix_setting  =   87; // Current sense level setting (DAC setting)
-   p->tim1_ccr1_on     =   55; // PWM ON count: Normal charge rate
+   p->dac2_ix_setting  =   85; // Current sense level setting (DAC setting)
+   p->tim1_ccr1_on     =  999; // PWM ON count: Normal charge rate
    p->tim1_ccr1_on_vlc =   25; // PWM ON count: Very Low Charge rate required
-   p->tim1_arr_init    =   15; // At 16 MHz: count of 80 = 5 us PWM frame
+   p->tim1_arr_init    =   25; // At 16 MHz: count of 80 = 5 us PWM frame
 
    p->cellv_max   = 4050; // Max limit (mv) for charging any cell
    p->cellv_min   = 2800; // Min limit (mv) for any discharging
@@ -59,7 +59,7 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->cellopen_lo =  333; // Below this voltage cell wire is assumed open (mv)
 
    p->balnummax    = 18;  // Max number of cells to discharge at one time
-   p->cellv_hyster = 20;  // Voltage below cellv_max to start recharging (mv)
+   p->cellv_hyster = 100;  // Voltage below cellv_max to start recharging (mv)
 
    p->cellbal_del  = 2; // Legacy
 

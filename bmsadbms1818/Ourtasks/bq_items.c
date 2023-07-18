@@ -288,10 +288,11 @@ dbgtrc |= (1<<9);
 	/* HHH: Healthy Hysteresis Handling. */
 	if (pbq->hyster_sw == 0)
 	{ // Charging/balancing is in effect
+		pbq->fet_status &= ~FET_HEATER; 
 		if (pbq->celltrip == pbq->cellspresent)
 		{ // Here, all installed cells are over the (target voltage - delta)	
-			pbq->hyster_sw     = 1; // Set "relaxation" mode
 			pbq->hysterbits_lo = 0; // Reset low cell bits
+			pbq->hyster_sw     = 1; // Set "relaxation" mode
 			pbq->cellbal       = 0; // Discharge FETs off.
 			// Everybody off.
 			pbq->fet_status &= ~(FET_DUMP|FET_HEATER|FET_DUMP2|FET_CHGR|FET_CHGR_VLC);
@@ -302,13 +303,25 @@ dbgtrc |= (1<<5);
 	{ // Relaxation/hysteresis is in effect
 		// Everything off
 		pbq->cellbal   = 0;
-		pbq->fet_status &= ~(FET_DUMP|FET_HEATER|FET_DUMP2|FET_CHGR|FET_CHGR_VLC);
+
+		if (pbq->discharge_test_sw != 0)
+		{ // Here, turn DUMP2 (external chgr), FET charger off
+			pbq->fet_status &= ~(FET_DUMP2|FET_CHGR|FET_CHGR_VLC);
+			// Turn on heavy load for discharge testing
+			pbq->fet_status |= FET_HEATER;
+		}
+		else
+		{ // Here, turn all loads and chargers off
+			pbq->fet_status &= ~(FET_DUMP|FET_HEATER|FET_DUMP2|FET_CHGR|FET_CHGR_VLC);
+		}
 dbgtrc |= (1<<6);
 		// Stop relaxation when one or more cells hits hysteresis low end
 		if (pbq->hysterbits_lo != 0)
 		{ // One or more cells hit the low end of hysteresis
+			pbq->hysterbits_lo_save = pbq->hysterbits_lo;
 			pbq->hyster_sw     = 0; // Set hysteresis switch off
 			pbq->celltrip      = 0; // Reset cells that went over max
+			pbq->discharge_test_sw = 0; // Reset discharge test, if it was on.
 dbgtrc |= (1<<7);			
 		}
 	}

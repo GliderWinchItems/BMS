@@ -146,7 +146,7 @@ DMA_HandleTypeDef hdma_usart1_tx;
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
-  .stack_size = 384 * 4,
+  .stack_size = 448 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* USER CODE BEGIN PV */
@@ -293,6 +293,7 @@ int main(void)
   // Initialize struct for BQ. */
   bq_func_init();
 
+
   /* definition and creation of CanTxTask - CAN driver TX interface. */
   QueueHandle_t QHret = xCanTxTaskCreate(osPriorityNormal, 48); // CanTask priority, Number of msgs in queue
   if (QHret == NULL) morse_trap(120); // Panic LED flashing
@@ -330,7 +331,7 @@ int main(void)
     CAN_IT_RX_FIFO1_MSG_PENDING    );
 
   /* Init some things used by tasks. */
-  bq_func_init();
+  //bq_func_init();
   chgr_items_init();
   fanop_init();
   bmsspi_preinit();
@@ -1289,6 +1290,11 @@ char* ptripcode ="0123456789ABCDEFGH";
 static uint8_t idxtripcode;
 static char tripline[LSPC*18+2];
 static uint32_t celltrip_prev;
+static uint32_t celltrip_time[18];
+static uint32_t celltrip_time_offset;
+static uint32_t celltrip_time_offset_discharge;
+static uint32_t celltrip_time_lo;
+static uint8_t hyster_sw_prev;
 
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void *argument)
@@ -1377,6 +1383,9 @@ extern  dbgcancommloop;
 uint32_t dbgcancommloop_prev;
 #endif
 
+uint32_t ticks_secs = 0;
+uint32_t ticks_next = xTaskGetTickCount();
+
 uint32_t dbgsendcellctr_prev=0;
 uint32_t dbgsendcelldtw_prev=0;
 
@@ -1388,6 +1397,13 @@ uint32_t dbgsendcelldtw_prev=0;
   for(;;) /* Loop polls various operations. */
   {  
     vTaskDelayUntil( &tickcnt, xPeriod );
+
+    /* Keep a running count of secs. */
+    if ( (int)(xTaskGetTickCount() - ticks_next) > 1000)
+    {
+      ticks_next += 1000;
+      ticks_secs += 1;
+    }
 
 #if 1 // Processor ADC display
     adcctr += 1;
@@ -1544,27 +1560,35 @@ int32_t csum = 0;
         yprintf(&pbuf2," %6.0f",bqfunction.cellv[i]);
       }
       yprintf(&pbuf1," %d",csum);
+
+      // Line with FETs turned ON
       yprintf(&pbuf2,"\n\r%5d %02d FETS    ",fctr++,dbgf+1);
       memset(cline,' ',(LSPC*18));
       // Build a nice ASCII line whilst previous line prints
       for (i=0; i < 18; i++)
       {
         if ((dcc & (1<<i)) != 0)
-          cline[i*LSPC] = '#';
+          cline[i*LSPC] = '#'; // ON
         else
-          cline[i*LSPC] = '.';
+          cline[i*LSPC] = '.'; // OFF
       }
-      cline[18*LSPC] = 0;
-      yprintf(&pbuf1,"%s",cline);
+      cline[18*LSPC] = 0; // Output line
+      yprintf(&pbuf1,"%s",cline); 
 
 
-      yprintf(&pbuf2,"\n\r%5d %02d TRIPPED ",fctr++,dbgf+1);
+      // Line with cells tripped (over max) and trip sequence (0 to max H)
+      yprintf(&pbuf2,"\n\r%5d %02d TRIPPED ",fctr,dbgf+1);
       if(bqfunction.celltrip == 0)
       { // Reset display line
         for (i = 0; i < 18; i++) tripline[i*LSPC] = '.';
         idxtripcode = 0;
         celltrip_prev = 0;
       }
+
+      // tmptime is from last boot or switch from discharge to charge
+      uint32_t tmptime = (ticks_secs - celltrip_time_offset);
+
+      // Check for any changes in tripped cells
       uint32_t ttx = bqfunction.celltrip ^ celltrip_prev;
       if (ttx != 0)
       {
@@ -1574,6 +1598,7 @@ int32_t csum = 0;
           if ((ttx & (1<<i)) != 0)
           { // Cell trip
               tripline[i*LSPC] = *(ptripcode+idxtripcode);
+              celltrip_time[i] = tmptime; // Save time of trip
           } 
         }
         idxtripcode += 1;
@@ -1581,7 +1606,33 @@ int32_t csum = 0;
       }
       yprintf(&pbuf1,"%s",tripline);        
 
-      yprintf(&pbuf1,"\n\r%5d %02d MAX|MIN ",fctr++,dbgf+1);
+      // Time cell tripped
+      yprintf(&pbuf2,"\n\rTRIPT %5d",tmptime);
+        for (i=0; i < 18; i++)
+        {
+          yprintf(&pbuf1,"%7d",celltrip_time[i]);
+        }
+
+     // Reset time reference when change is to charging (from self-discharging)
+      if (hyster_sw_prev != bqfunction.hyster_sw)
+      { // Changed charge/relaxation status
+        hyster_sw_prev = bqfunction.hyster_sw;
+
+        if (bqfunction.hyster_sw == 0)
+        { // Change to charging
+          // Save start of charging time
+          celltrip_time_offset = ticks_secs;
+          // Zero out time-to-trip max for each cell. 
+          for (i=0; i < 18; i++) celltrip_time[i] = 0;
+        }
+        else
+        { // Changed to relaxation (all cells tripped)
+          celltrip_time_offset_discharge = ticks_secs;
+        }
+      }
+
+
+      yprintf(&pbuf1,"\n\r%5d %02d MAX|MIN ",fctr,dbgf+1);
       memset(cline,' ',(LSPC*18));
       // Build a nice ASCII line whilst previous line prints
       for (i=0; i < 18; i++)
@@ -1592,25 +1643,56 @@ int32_t csum = 0;
         if ((bqfunction.cellv_min_bits & (1<<i)) != 0)
           cline[i*LSPC] = '-';
       }
-      cline[18*LSPC] = 0;
-      yprintf(&pbuf2,"%s",cline);  
+      cline[18*LSPC] = 0; // Line terminatior
+      yprintf(&pbuf2,"%s",cline); 
+
+
+      yprintf(&pbuf1,"\n\rLOWTRIP          ");
+      memset(cline,' ',(LSPC*18));
+      // Build a nice ASCII line whilst previous line prints
+      for (i=0; i < 18; i++)
+      {
+        cline[i*LSPC] = '.';
+        if ((bqfunction.hysterbits_lo_save & (1<<i)) != 0)
+          cline[i*LSPC] = 'o';
+        else
+          cline[i*LSPC] = '.';
+      }
+      cline[18*LSPC] = 0; // Line terminatior
+      yprintf(&pbuf2,"%s",cline); 
+
+      /* During discharge the elapsed time since tripped max displays.
+      and during charge it doesn't change. */
+      if (bqfunction.hyster_sw != 0)
+      {
+        celltrip_time_lo = ticks_secs - celltrip_time_offset_discharge;
+      }
+      yprintf(&pbuf1,"\n\rhyster_sw: %d hysterbits lo 0x%05X, discharge_test_sw: %d discharge time (secs): %4d",
+        bqfunction.hyster_sw,
+        bqfunction.hysterbits_lo, 
+        bqfunction.discharge_test_sw,
+        celltrip_time_lo );
+
+
 extern uint32_t dbgtrc;
-      yprintf(&pbuf1,"\n\rFETSTAT: 0x%02X  battery_status: 0x%02X dbgtrc: 0x%04x ",bqfunction.fet_status,bqfunction.battery_status,dbgtrc);     
+      yprintf(&pbuf1,"\n\rFETSTAT: 0x%02X  battery_status: 0x%02X dbgtrc: 0x%04x ",
+        bqfunction.fet_status,
+        bqfunction.battery_status,
+        dbgtrc);     
 
 #if 0  
       yprintf(&pbuf1,"\n\rcellv_latest[i]: ");
       for (i = 0; i < 18; ++i) yprintf(&pbuf2," %5d",bqfunction.cellv_latest[i]);
 #endif
-      yprintf(&pbuf2,"\n\rcellspresent: %05X",bqfunction.cellspresent); 
-      yprintf(&pbuf1,"\n\rcellv_hi: x %2d v %5d",bqfunction.cellx_high,bqfunction.cellv_high);
-      yprintf(&pbuf2,"\n\rcellv_lo: x %2d v %5d",bqfunction.cellx_low, bqfunction.cellv_low);
-      yprintf(&pbuf1,"\n\rhyster_sw: %d hysterbits lo %05X",bqfunction.hyster_sw,bqfunction.hysterbits_lo);
-      yprintf(&pbuf1,"\n\rcellv_tmdelta: %5d",bqfunction.cellv_tmdelta);      
-      yprintf(&pbuf2,"\n\rhysterv_lo: %6.1f",bqfunction.hysterv_lo);
-      yprintf(&pbuf1,"\n\rcellv_max: %5d cellv_max: %05X",bqfunction.lc.cellv_max,bqfunction.cellv_max_bits);
-      yprintf(&pbuf2,"\n\rcellv_min: %5d cellv_min: %05X",bqfunction.lc.cellv_min,bqfunction.cellv_min_bits);
-      yprintf(&pbuf1,"\n\rcellv_vls: %5d cellv_vlc_bits: %05X",bqfunction.lc.cellv_vlc, bqfunction.cellv_vlc_bits);
-      yprintf(&pbuf2,"\n\rcallbal:   %05X  fet_status: %04X FET_CHRG: %01X",bqfunction.cellbal,
+      yprintf(&pbuf2,"\n\rcellspresent: 0x%05X",bqfunction.cellspresent); 
+      yprintf(&pbuf1,"\n\rcellv_hi: #%2d %5dmv",bqfunction.cellx_high+1,bqfunction.cellv_high);
+      yprintf(&pbuf2,"\n\rcellv_lo: #%2d %5dmv",bqfunction.cellx_low+1, bqfunction.cellv_low);
+      yprintf(&pbuf1,"\n\rcellv_tmdelta:%5dmv",bqfunction.cellv_tmdelta);      
+      yprintf(&pbuf2,"\n\rhysterv_lo:    %6.1fmv",bqfunction.hysterv_lo);
+      yprintf(&pbuf1,"\n\rcellv_max: %5d cellv_max_bits: 0x%05X",bqfunction.lc.cellv_max,bqfunction.cellv_max_bits);
+      yprintf(&pbuf2,"\n\rcellv_min: %5d cellv_min_bits: 0x%05X",bqfunction.lc.cellv_min,bqfunction.cellv_min_bits);
+      yprintf(&pbuf1,"\n\rcellv_vls: %5d cellv_vlc_bits: 0x%05X",bqfunction.lc.cellv_vlc, bqfunction.cellv_vlc_bits);
+      yprintf(&pbuf2,"\n\rcallbal: 0x%05X  fet_status: 0x%04X FET_CHRG: 0x%01X",bqfunction.cellbal,
           bqfunction.fet_status,(bqfunction.fet_status & FET_CHGR));
       if ((bqfunction.fet_status & FET_DUMP2) != 0)
         yprintf(&pbuf1,"\t\t\t\t\tDUMP2 ON");
@@ -1618,8 +1700,8 @@ extern uint32_t dbgtrc;
         yprintf(&pbuf1,"\t\t\t\t\tDUMP2 OFF");
 
 
-      extern uint32_t dbgcellbal;
-      yprintf(&pbuf1,"\n\rdbgcellbal:%05X",dbgcellbal);
+ //     extern uint32_t dbgcellbal;
+ //     yprintf(&pbuf1,"\n\rdbgcellbal:%05X",dbgcellbal);
 
       yprintf(&pbuf2,"\n\r config:   %04X %04X %04X %04X %04X %04X",
         bmsspiall.configreg[0],bmsspiall.configreg[1],bmsspiall.configreg[2],

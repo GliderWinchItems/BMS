@@ -49,6 +49,7 @@ void bq_func_init(void)
     p->hyster_sw      = 0; // 1 = means hysteresis (relaxation) currently in effect
     p->celltrip       = 0; // 1 = cell went over max (cumulative) for not hysteresis mode
     p->dcdc_oto       = 0; // OTO DC-DC power adjustment calibration computation
+    p->discharge_test_sw = 0; // sw = 1, heater load on when hyster_sw on.
 
 	p->state      = 0;  // main state
 	p->substateA  = 0;  // 

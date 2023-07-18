@@ -134,7 +134,7 @@ dbgsendcellctr += 1;
 		pf += 3;
 		xQueueSendToBack(CanTxQHandle,&p->canmsg,4);
 	}
-   	p->HBcellv_ctr = xTaskGetTickCount() + p->hbct_k; // Next HB for cellv gets delayed	
+//   	p->HBcellv_ctr = xTaskGetTickCount() + p->hbct_k; // Next HB for cellv gets delayed	
 	return;
 }
 /* *************************************************************************
@@ -170,32 +170,32 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
    	 	{
    	 		// Warning: Unexpectd CAN ID
    	 	}
-   	// Send cell voltages: 6 CAN msgs
- 	cancomm_items_sendcell(pi, &p->cellv[0]);
+   	 // Send cell voltages: 6 CAN msgs
+ 	 cancomm_items_sendcell(pi, &p->cellv[0]);
 
- 	return;
-   }
-      	// Set code in response that identifies who polled
-   	 if (pi->id == p->lc.cid_uni_bms_emc_i)
-   	 	po->cd.uc[0] = CMD_CMD_MISCPC; // EMC polled cell voltages
-   	 else if (pi->id == p->lc.cid_uni_bms_pc_i)
-   	 	po->cd.uc[0] = CMD_CMD_MISCEMC; // PC polled cell voltages
-   	 else if (pi->id == p->lc.cid_msg_bms_cellvsmr)
-   	 	{
-			po->cd.uc[0] = CMD_CMD_MISCHB; // Heartbeat timeout cell voltages
-//			bqfunction.hbseq += 1; // Group sequence number
-   	 	}  
-   	 	else
-   	 	{
-   	 		// Warning: Unexpectd CAN ID
-   	 	}
+ 	 return;
+    }
+	// Set code in response that identifies who polled
+	if (pi->id == p->lc.cid_uni_bms_emc_i)
+		po->cd.uc[0] = CMD_CMD_MISCPC; // EMC polled cell voltages
+	else if (pi->id == p->lc.cid_uni_bms_pc_i)
+	 	po->cd.uc[0] = CMD_CMD_MISCEMC; // PC polled cell voltages
+	else if (pi->id == p->lc.cid_msg_bms_cellvsmr)
+	{
+	 	po->cd.uc[0] = CMD_CMD_MISCHB; // Heartbeat timeout cell voltages
+	//			bqfunction.hbseq += 1; // Group sequence number
+	}  
+	else
+	{
+	 	// Warning: Unexpectd CAN ID
+	}
 
 	/* Command code. 
 	If a BMSTask request was needed this would have been taken care of
 	in CanCommTask before this routine is called. To queue a request
 	here could result in an endless loop. 
 	*/
-	switch(pi->cd.uc[1])
+	switch(pi->cd.uc[2])
 	{
 	case MISCQ_STATUS:      // 1 status
 		status_group(po);
@@ -276,6 +276,12 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
 	case MISCQ_CURRENT_ADC: // 25 Below cell #1 minus, current resistor: adc counts		
 		not_implemented(po);
  		break;
+
+ 	case MISCQ_SETDCHGTST: // 28 Set discharge test with heater fet load
+ 		p->hyster_sw = 0;  // Stop self-discharge if sw is on.
+ 		p->discharge_test_sw = 1; // Enable heater when hyster_sw comes on
+ 		break;
+
 
 	}
 	if (skip == 0)

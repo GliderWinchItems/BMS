@@ -127,11 +127,13 @@ struct BQFUNCTION
 	float current;   // Op-amp sensing: amps current
 	float temperature[3]; // Thermistors: Deg C temperature
 
-	// Cell balancing & relaxation hysteresis
+	// Cell balancing & relaxation/self-discharge hysteresis
 //	uint32_t targetv;       // Balance voltage target
 	float    hysterv_lo;    // Hysteresis bottom voltage.
 	uint32_t hysterbits_lo; // Bits for cells that fell below hysterv_lo
+	uint32_t hysterbits_lo_save;
 	uint8_t  hyster_sw;     // Hysteresis switch: 1 = peak was reached
+	uint8_t  discharge_test_sw; // sw = 1, heater load on when hyster_sw on.
 
 	// Adjustment to hold charger power taken from DC-DC converter constant
 	uint8_t dcdc_oto;   // One-time-only calibration sw
