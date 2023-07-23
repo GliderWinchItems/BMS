@@ -135,7 +135,7 @@ osThreadId xBMSTaskCreate(uint32_t taskpriority)
 	xRet = xTaskCreate(
 		StartBMSTask,     /* Function that implements the task. */
 		"BMSTask",        /* Text name for the task. */
-		256,              /* Stack size in words, not bytes. */
+		(256+128),              /* Stack size in words, not bytes. */
 		NULL,             /* Parameter passed into the task. */
 		taskpriority,     /* Priority at which the task is created. */
 		&BMSTaskHandle ); /* Used to pass out the created task's handle. */ 

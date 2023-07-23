@@ -123,7 +123,7 @@ HAL_GPIO_WritePin(GPIOB,GPIO_PIN_1,GPIO_PIN_RESET); // RED ON
 osDelay(20);                 // Short delay for red led blink
 			// Turn off Cell #3 power
 			HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13,GPIO_PIN_RESET);
-			while(1==1);
+			while(1==1) osDelay(1);
 		}
   	}
   	return; // Never never

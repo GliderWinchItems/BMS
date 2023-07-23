@@ -1,11 +1,11 @@
 /******************************************************************************
 * File Name          : filterminicom.c
-* Date First Issued  : 07/08/2023
+* Date First Issued  : 07/18/23
 * Board              : Linux PC
-* Description        : Average & decimate BMS ascii cell readings
+* Description        : Select (filter) lines from input file for output based on arguments
 *******************************************************************************/
 /*
-07/08/2023 example with averaging length of 4 as argument--
+Compile and execute example with two arguements to select lines from input--
 gcc filterminicom.c -o filterminicom -lm && ./filterminicom ADCVAX Jcellv < G*ems/BMS/minicom-230714-155954.txt
 
                  1      2      3      4      5      6      7      8      9     10     11     12     13     14     15     16     17     18
@@ -13,6 +13,9 @@ gcc filterminicom.c -o filterminicom -lm && ./filterminicom ADCVAX Jcellv < G*em
                  1      2      3      4      5      6      7      8      9     10     11     12     13     14     15     16     17     18
 Jcellv[i]:   39310  39317  39333  39324  39330  39328  39312  39319  39318  39338  39327  39345  39315  39313  39330  39327  39343  39330 707859
 
+Procedure--
+- Save minicom serial monitoring of BMS board with CtlA Z L and give file name
+- Run filterminicom using the path/name for file.
 */
 
 #include <stdio.h>

@@ -23,6 +23,8 @@
 
 #include "morse.h"
 
+uint32_t bmsspi_trapflag; 
+
 /* Uncomment to enable EXTI4 MISO/SDO conversion detection code. */
 //#define USESDOTOSIGNALENDCONVERSION
 
@@ -52,9 +54,10 @@ enum TIMSTATE
 	TIMSTATE_TO,
 };
 
-#define CSBDELAYFALL (6+10) // CSB falling delay: 6 us with 1 MHz timer clock
-#define CSBDELAYRISE (5+10) // CSB rising delay: 5 us with 1 MHz timerclock
-#define DELAYCONVERTMIN (55+10) // Minimum end of conversion command delay
+#define EXDLY 20
+#define CSBDELAYFALL (6+EXDLY) // CSB falling delay: 6 us with 1 MHz timer clock
+#define CSBDELAYRISE (5+EXDLY) // CSB rising delay: 5 us with 1 MHz timerclock
+#define DELAYCONVERTMIN (55+EXDLY) // Minimum end of conversion command delay
 
 static uint8_t rwtype; // code: command, command + data, etc.
 
@@ -143,6 +146,13 @@ void bmsspi_readbms(void)
 			 x * x * pf->coef[2];
 		pf +=1;
 	}
+
+for (i = 0; i < NCELLMAX; i++)
+{	
+	if ((pbq->cellv[i] < 20000) ||
+		(pbq->cellv[i] > 40000) )
+		bmsspi_trapflag += 1;
+}
 	// Restore status of FETs
 //	bmsspi_setfets();
 
@@ -301,7 +311,8 @@ uint8_t bmsspi_keepawake(void)
 		bmsspi_writereg(WRITECONFIG);
 		break;
 	case 4:	// Read cells and GPIO1 GPIO2
-		bmsspi_readstuff(READCELLSGPIO12); 
+//		bmsspi_readstuff(READCELLSGPIO12); 
+		bmsspi_readbms();
 		break;
 	case 5:
 		bmsspi_readstuff(READAUX);

@@ -317,11 +317,13 @@ int main(void)
   Cret = canfilter_setup_first(0, &hcan1, 15); // CAN1
   if (Cret == HAL_ERROR) morse_trap(122);
 
-  TaskHandle_t retT = xBMSTaskCreate(osPriorityNormal+1);  
+  TaskHandle_t retT = xBMSTaskCreate(osPriorityNormal);  
+//  TaskHandle_t retT = xBMSTaskCreate(osPriorityNormal+1);  
   if (retT == NULL) morse_trap(123);
 
   /* CAN communication */
-  retT = xCanCommCreate(osPriorityNormal+1);
+  retT = xCanCommCreate(osPriorityNormal);
+//  retT = xCanCommCreate(osPriorityNormal+1);
   if (retT == NULL) morse_trap(121);
 
     /* Select interrupts for CAN1 */
@@ -1386,13 +1388,15 @@ uint32_t dbgcancommloop_prev;
 uint32_t ticks_secs = 0;
 uint32_t ticks_next = xTaskGetTickCount();
 
-uint32_t dbgsendcellctr_prev=0;
-uint32_t dbgsendcelldtw_prev=0;
+//uint32_t dbgsendcellctr_prev=0;
+//uint32_t dbgsendcelldtw_prev=0;
 
   memset(tripline,' ',(LSPC*18));
   for (i = 0; i < 18; i++) tripline[i*LSPC] = '.';
   tripline[18*LSPC] = 0;
   celltrip_prev = 0;
+
+  uint32_t bmsspi_trapflag_prev = 0;
 
   for(;;) /* Loop polls various operations. */
   {  
@@ -1598,7 +1602,6 @@ int32_t csum = 0;
           if ((ttx & (1<<i)) != 0)
           { // Cell trip
               tripline[i*LSPC] = *(ptripcode+idxtripcode);
-              celltrip_time[i] = tmptime; // Save time of trip
           } 
         }
         idxtripcode += 1;
@@ -1610,6 +1613,11 @@ int32_t csum = 0;
       yprintf(&pbuf2,"\n\rTRIPT %5d",tmptime);
         for (i=0; i < 18; i++)
         {
+          if ((bqfunction.celltrip & (1<<i)) == 0)
+          {
+            if ((bqfunction.battery_status & BSTATUS_CHARGING) != 0)
+              celltrip_time[i] = tmptime; // Save time of trip
+          }
           yprintf(&pbuf1,"%7d",celltrip_time[i]);
         }
 
@@ -1661,6 +1669,9 @@ int32_t csum = 0;
       cline[18*LSPC] = 0; // Line terminatior
       yprintf(&pbuf2,"%s",cline); 
 
+      extern uint32_t bmsspi_trapflag;
+        yprintf(&pbuf1,"\n\rbmsspi_trapflag: %d",bmsspi_trapflag);
+
       /* During discharge the elapsed time since tripped max displays.
       and during charge it doesn't change. */
       if (bqfunction.hyster_sw != 0)
@@ -1699,7 +1710,6 @@ extern uint32_t dbgtrc;
       else
         yprintf(&pbuf1,"\t\t\t\t\tDUMP2 OFF");
 
-
  //     extern uint32_t dbgcellbal;
  //     yprintf(&pbuf1,"\n\rdbgcellbal:%05X",dbgcellbal);
 
@@ -1716,57 +1726,54 @@ extern uint32_t dbgCanTask1;
 yprintf(&pbuf2,"\n\rdbCanTask1: %d", dbgCanTask1);
 
   #if 0 /* RTC register check. */
-      switch (state_defaultTask)
+  switch (state_defaultTask)
+  {
+    case 0:
+      bmsreq_1.reqcode = REQ_RTCREAD;
+      bmsreq_1.done = 1; // Show req is queued
+      int ret = xQueueSendToBack(BMSTaskReadReqQHandle, &pbmsreq_1, 0);
+      if (ret != pdPASS) morse_trap(109);      
+      state_defaultTask = 1;
+    case 1:          
+      if (bmsreq_1.done != 0) 
+        break;
+      uint32_t* prtc32 = (uint32_t*)&RTC->BKP0R;
+      yprintf(&pbuf1,"\n\rRTC: F:%05X H:%05X L:%05X",*(prtc32+0),*(prtc32+1),*(prtc32+2));
+      
+      uint16_t* prtc16 = (uint16_t*)&RTC->BKP0R + 6;
+      for (i = 0; i < 18; i++)
       {
-        case 0:
-          bmsreq_1.reqcode = REQ_RTCREAD;
-          bmsreq_1.done = 1; // Show req is queued
-          int ret = xQueueSendToBack(BMSTaskReadReqQHandle, &pbmsreq_1, 0);
-          if (ret != pdPASS) morse_trap(109);      
-          state_defaultTask = 1;
-        case 1:          
-          if (bmsreq_1.done != 0) 
-            break;
-          uint32_t* prtc32 = (uint32_t*)&RTC->BKP0R;
-          yprintf(&pbuf1,"\n\rRTC: F:%05X H:%05X L:%05X",*(prtc32+0),*(prtc32+1),*(prtc32+2));
-          
-          uint16_t* prtc16 = (uint16_t*)&RTC->BKP0R + 6;
-          for (i = 0; i < 18; i++)
-          {
-            yprintf(&pbuf2," %5d",*prtc16);
-            prtc16 += 1;
-          }
+        yprintf(&pbuf2," %5d",*prtc16);
+        prtc16 += 1;
+      }
 
-          uint8_t* prtc8 = (uint8_t*)prtc16;
-          yprintf(&pbuf1," H:%02X B:%02X F:%02X E:%02X ",*(prtc8+0),*(prtc8+1),*(prtc8+2),*(prtc8+3));
+      uint8_t* prtc8 = (uint8_t*)prtc16;
+      yprintf(&pbuf1," H:%02X B:%02X F:%02X E:%02X ",*(prtc8+0),*(prtc8+1),*(prtc8+2),*(prtc8+3));
 
-          if (bmsreq_1.other == 0)
-          {
-            yprintf(&pbuf2," OK");
-          }
-          else
-          {
-            yprintf(&pbuf2," NOT OK");
-            /* if NOT OK do an update. */
-            bmsreq_1.reqcode = REQ_RTCUPDATE;
-            bmsreq_1.done = 1; // Show req is queued
-            int ret = xQueueSendToBack(BMSTaskReadReqQHandle, &pbmsreq_1, 0);
-            if (ret != pdPASS) morse_trap(108);      
-            state_defaultTask = 2;
-          }
-        case 2:
-          if (bmsreq_1.done != 0) 
-            break;
-          state_defaultTask = 0;
-          break;
-      }         
+      if (bmsreq_1.other == 0)
+      {
+        yprintf(&pbuf2," OK");
+      }
+      else
+      {
+        yprintf(&pbuf2," NOT OK");
+        /* if NOT OK do an update. */
+        bmsreq_1.reqcode = REQ_RTCUPDATE;
+        bmsreq_1.done = 1; // Show req is queued
+        int ret = xQueueSendToBack(BMSTaskReadReqQHandle, &pbmsreq_1, 0);
+        if (ret != pdPASS) morse_trap(108);      
+        state_defaultTask = 2;
+      }
+    case 2:
+      if (bmsreq_1.done != 0) 
+        break;
+      state_defaultTask = 0;
+      break;
+  } 
   #endif
-
     }
 #endif    
   } 
-
-
 
   /* USER CODE END 5 */
 }

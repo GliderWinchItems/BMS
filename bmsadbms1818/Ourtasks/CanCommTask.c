@@ -408,7 +408,7 @@ notification and it would be lost. */
 TaskHandle_t xCanCommCreate(uint32_t taskpriority)
 {
 	BaseType_t ret = xTaskCreate(StartCanComm, "CanComm",\
-     (128+32), NULL, taskpriority,\
+     (128+64), NULL, taskpriority,\
      &CanCommHandle);
 	if (ret != pdPASS) return NULL;
 
