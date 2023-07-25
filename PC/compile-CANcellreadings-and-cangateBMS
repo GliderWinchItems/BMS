@@ -1,0 +1,21 @@
+# compile-CANcellreadings-and-cangateBMS
+# 07/25/2023
+
+# CANcellreadings
+echo
+echo "################### CANcellreadings ######################"
+echo "gcc CANcellreadings.c -o CANcellreadings -lm"
+echo
+cd ~/GliderWinchCommons/embed/svn_sensor/PC/CANcellreadings
+gcc CANcellreadings.c -o CANcellreadings -lm
+
+# cangateBMS
+echo
+echo "################### cangateBMS ##########################"
+echo "./mm"
+echo
+
+cd ~/GliderWinchCommons/embed/svn_discoveryf4/PC/sensor/cangateBMS/trunk
+./mm
+
+exit

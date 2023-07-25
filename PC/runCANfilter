@@ -1,0 +1,29 @@
+# runCANfilter 
+# 07/23/2023
+# Select BMS CAN msgs from logged CAN file and save
+
+# $1 = CAN ID e.g. B0A00000
+# $2 == path/file for logged CAN msgs without extension, e.g. ~/GliderWinchItems/BMS/minicom-230720-170910
+# Example--
+# Note: GliderWinchItems spelled out, i.e. no wilds * or ?
+# ./runCANfilter B0A00000 ~/GliderWinchItems/BMS/minicom-230723-202530
+
+# Directory of this mess
+cd ~/GliderWinchCommons/embed/svn_sensor/PC/CANcellreadings
+
+# Compile
+gcc CANcellreadings.c -o CANcellreadings -lm
+
+# Execute: select, display and save
+./CANcellreadings $1 < $2.CAN | tee $2.$1
+
+echo "running logexam"
+
+cd ~/GliderWinchItems/BMS/PC/logexam
+
+# Compile
+gcc logexam.c -o logexam -lm 
+
+# Execute
+./logexam 1 2 2000.0 3910.0 < $2.$1
+

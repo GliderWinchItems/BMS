@@ -64,12 +64,13 @@ struct EXTRACTCONFIGREG
 struct BMSSPIALL
 {
 	uint16_t configreg[2*3]; // Configuration regs: A B
-	uint16_t cellreg[6*3]; // Cell volt regs: A B C D E F
-	uint16_t auxreg [4*3]; // Aux regs: A B C D
-	uint16_t statreg[2*3]; // Status regs: A B
-	uint16_t commreg[1*3]; // COMM register
-	uint16_t sreg[1*3];    // S register
-	uint16_t pwmreg[2*3];  // PWM regs: A & B
+	uint16_t debugbuffer[6]; // Space for protecting cellreg
+	uint16_t cellreg  [6*3]; // Cell volt regs: A B C D E F
+	uint16_t auxreg   [4*3]; // Aux regs: A B C D
+	uint16_t statreg  [2*3]; // Status regs: A B
+	uint16_t commreg  [1*3]; // COMM register
+	uint16_t sreg     [1*3];    // S register
+	uint16_t pwmreg   [2*3];  // PWM regs: A & B
 	uint8_t  err1ct;       // Count number of times readreg loop required extra pass
 	uint8_t  err;          // TODO?
 };

@@ -301,8 +301,15 @@ dbgtrc |= (1<<5);
 	}
 	else
 	{ // Relaxation/hysteresis is in effect
-		// Everything off
-		pbq->cellbal   = 0;
+		// When all cells are above max, bring them down
+		if (pbq->cellv_max_bits == pbq->cellspresent)
+		{ // Here, all installed cells above max
+			pbq->cellbal = pbq->cellv_max_bits; // Discharge FETs on all
+		}
+		else
+		{ // Here, not all cells above max so relax/hyster
+			pbq->cellbal = 0; // Discharge FETs off.
+		}
 
 		if (pbq->discharge_test_sw != 0)
 		{ // Here, turn DUMP2 (external chgr), FET charger off

@@ -54,6 +54,8 @@ int main(int argc, char **argv)
 	if (argc < 2)
 	{
 		printf("\nNeed at least one argument: I see %d\n",argc-1);
+		printf("./filterminicom <selection list> < <input path/file\n");
+		printf("Example:\n./filterminicom ADCVAX Jcellv < G*ems/BMS/minicom-230714-155954.txt\n");
 		return -1;
 	}
 #if 0

@@ -59,7 +59,7 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->cellopen_lo =  333; // Below this voltage cell wire is assumed open (mv)
 
    p->balnummax    = 18;  // Max number of cells to discharge at one time
-   p->cellv_hyster = 10;  // Voltage below cellv_max to start recharging (mv)
+   p->cellv_hyster = 400;  // Voltage below cellv_max to start recharging (mv)
 
    p->cellbal_del  = 2; // Legacy
 

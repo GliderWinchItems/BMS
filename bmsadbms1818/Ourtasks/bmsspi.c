@@ -24,6 +24,7 @@
 #include "morse.h"
 
 uint32_t bmsspi_trapflag; 
+uint32_t bmsspi_trapevent; 
 
 /* Uncomment to enable EXTI4 MISO/SDO conversion detection code. */
 //#define USESDOTOSIGNALENDCONVERSION
@@ -54,7 +55,7 @@ enum TIMSTATE
 	TIMSTATE_TO,
 };
 
-#define EXDLY 20
+#define EXDLY 10
 #define CSBDELAYFALL (6+EXDLY) // CSB falling delay: 6 us with 1 MHz timer clock
 #define CSBDELAYRISE (5+EXDLY) // CSB rising delay: 5 us with 1 MHz timerclock
 #define DELAYCONVERTMIN (55+EXDLY) // Minimum end of conversion command delay
@@ -113,6 +114,7 @@ void bmsspi_readbms(void)
 	int i;
 	struct BMSCAL* pf;
 	float x;
+uint8_t tmp;	
 
 	/* Skip readout if previous request was too soon. */
 	if ((int)(DTWTIME - time_read_cells) < 0)
@@ -138,6 +140,7 @@ void bmsspi_readbms(void)
 	{
 		// Copy register array into cell array
 		pbq->cellv_latest[i] = bmsspiall.cellreg[i];
+
 		// Calibration
 		x = pbq->cellv_latest[i];
 		pbq->cellv[i] = 
@@ -147,12 +150,21 @@ void bmsspi_readbms(void)
 		pf +=1;
 	}
 
+tmp = 0;
 for (i = 0; i < NCELLMAX; i++)
 {	
-	if ((pbq->cellv[i] < 20000) ||
-		(pbq->cellv[i] > 40000) )
+	if ((bmsspiall.cellreg[i] < 20000) ||
+		(bmsspiall.cellreg[i] > 42000) )
+//	if ((pbq->cellv[i] < 20000) ||
+//		(pbq->cellv[i] > 40000) )
+	{
 		bmsspi_trapflag += 1;
-}
+		tmp = 1;
+	}
+}		
+
+bmsspi_trapevent += tmp;
+
 	// Restore status of FETs
 //	bmsspi_setfets();
 
@@ -196,11 +208,11 @@ void bmsspi_readstuff(uint8_t code)
 		readreg(ADSTAT,(1556+500),bmsspiall.statreg, cmdstat, 2);
 		break;
 
-	case READCONFIG: // Read configuration
-		readreg(     0,        0,bmsspiall.configreg,cmdconfig,2);
+	case READCONFIG: // Read configuration (original delay: 0)
+		readreg(     0,      500,bmsspiall.configreg,cmdconfig,2);
 
-	case READSREG: // Read S register
-		readreg(     0,        0,bmsspiall.sreg,cmdsreg,1);
+	case READSREG: // Read S register (original delay: 0)
+		readreg(     0,      500,bmsspiall.sreg,cmdsreg,1);
 		break;	
 
 	case READAUX: // ADC and Read all 9 GPIOs voltage registers: A B C D 
@@ -336,6 +348,8 @@ uint8_t bmsspi_keepawake(void)
  * *************************************************************************/
  void bmsspi_preinit(void)
 {
+for (int i = 0; i < 6; i++) bmsspiall.debugbuffer[i] = 0xdead; 	
+
 	 bmsspiall.err1ct = 0; // Extra loop err ct
 
 	/* DMA1 CH3 (SPI write) peripheral aand memory addresses: */

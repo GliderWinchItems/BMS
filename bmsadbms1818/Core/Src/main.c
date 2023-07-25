@@ -295,7 +295,7 @@ int main(void)
 
 
   /* definition and creation of CanTxTask - CAN driver TX interface. */
-  QueueHandle_t QHret = xCanTxTaskCreate(osPriorityNormal, 48); // CanTask priority, Number of msgs in queue
+  QueueHandle_t QHret = xCanTxTaskCreate(osPriorityNormal+1, 48); // CanTask priority, Number of msgs in queue
   if (QHret == NULL) morse_trap(120); // Panic LED flashing
 
   /* definition and creation of CanRxTask - CAN driver RX interface. */
@@ -304,7 +304,7 @@ int main(void)
 //  if (Qidret < 0) morse_trap(6); // Panic LED flashing
 
   /* Create MailboxTask */
-  xMailboxTaskCreate(osPriorityNormal); // (arg) = priority
+  xMailboxTaskCreate(osPriorityNormal+1); // (arg) = priority
 
   /* Create Mailbox control block w 'take' pointer for each CAN module. */
   struct MAILBOXCANNUM* pmbxret;
@@ -317,12 +317,12 @@ int main(void)
   Cret = canfilter_setup_first(0, &hcan1, 15); // CAN1
   if (Cret == HAL_ERROR) morse_trap(122);
 
-  TaskHandle_t retT = xBMSTaskCreate(osPriorityNormal);  
+  TaskHandle_t retT = xBMSTaskCreate(osPriorityNormal+1);  
 //  TaskHandle_t retT = xBMSTaskCreate(osPriorityNormal+1);  
   if (retT == NULL) morse_trap(123);
 
   /* CAN communication */
-  retT = xCanCommCreate(osPriorityNormal);
+  retT = xCanCommCreate(osPriorityNormal+1);
 //  retT = xCanCommCreate(osPriorityNormal+1);
   if (retT == NULL) morse_trap(121);
 
@@ -854,7 +854,7 @@ static void MX_SPI1_Init(void)
   hspi1.Init.CLKPolarity = SPI_POLARITY_HIGH;
   hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi1.Init.NSS = SPI_NSS_SOFT;
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_32;
   hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -1670,7 +1670,11 @@ int32_t csum = 0;
       yprintf(&pbuf2,"%s",cline); 
 
       extern uint32_t bmsspi_trapflag;
-        yprintf(&pbuf1,"\n\rbmsspi_trapflag: %d",bmsspi_trapflag);
+      extern uint32_t bmsspi_trapevent;
+      yprintf(&pbuf1,"\n\rbmsspi_trapflag: %3d bmsspi_trapevent %3d",bmsspi_trapflag,bmsspi_trapevent);
+      yprintf(&pbuf2," debugbuffer %04X %04X %04X %04X %04X %04X",
+        bmsspiall.debugbuffer[0],bmsspiall.debugbuffer[1],bmsspiall.debugbuffer[2],
+        bmsspiall.debugbuffer[3],bmsspiall.debugbuffer[4],bmsspiall.debugbuffer[5]);
 
       /* During discharge the elapsed time since tripped max displays.
       and during charge it doesn't change. */

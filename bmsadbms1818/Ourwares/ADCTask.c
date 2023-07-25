@@ -118,6 +118,9 @@ dbg_adcsum[8] = (pz + 8)->sum;
 			   which is connected when PC13 is ON. */
 			rtcregs_update(); // Update RTC registers
 
+			/* Make sure charger is OFF in case of a hang. */
+			TIM1->CCR1 = 0; // Initialize to OFF
+
 HAL_GPIO_WritePin(GPIOB,GPIO_PIN_0,GPIO_PIN_SET);   // GRN OFF
 HAL_GPIO_WritePin(GPIOB,GPIO_PIN_1,GPIO_PIN_RESET); // RED ON
 osDelay(20);                 // Short delay for red led blink
@@ -141,7 +144,7 @@ osThreadId xADCTaskCreate(uint32_t taskpriority)
 	xRet = xTaskCreate(
 		StartADCTask,     /* Function that implements the task. */
 		"ADCTask",        /* Text name for the task. */
-		256,              /* Stack size in words, not bytes. */
+		(256+64),              /* Stack size in words, not bytes. */
 		NULL,             /* Parameter passed into the task. */
 		taskpriority,     /* Priority at which the task is created. */
 		&ADCTaskHandle ); /* Used to pass out the created task's handle. */ 
