@@ -259,7 +259,7 @@ int main(void)
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
 
-  Thrdret = xADCTaskCreate(osPriorityNormal+2); // (arg) = priority
+  Thrdret = xADCTaskCreate(osPriorityNormal+1); // (arg) = priority
   if (Thrdret == NULL) morse_trap(117);
 
   /* Create serial task (priority) */
@@ -323,7 +323,6 @@ int main(void)
 
   /* CAN communication */
   retT = xCanCommCreate(osPriorityNormal+1);
-//  retT = xCanCommCreate(osPriorityNormal+1);
   if (retT == NULL) morse_trap(121);
 
     /* Select interrupts for CAN1 */
