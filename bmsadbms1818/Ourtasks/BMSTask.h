@@ -83,7 +83,7 @@ struct BMSREQ_Q
 	uint8_t done;         // 0 = done; 1 = busy;
 	uint8_t noteyes;      // 1 = Notify requesting task when complete
 	uint8_t reqcode;      // Code for specific service requested
-	int8_t other;        // BMSTask sends back something to requester.
+	int8_t other;         // BMSTask sends back something to requester.
 };	
 
 /* *************************************************************************/

@@ -374,7 +374,7 @@ notification and it would be lost. */
 		{ // Here, queued item is over 1/2 second old
 			bqfunction.warning = (656);
 			canqed[idxhb].busy = 0;
-	morse_trap(656);			
+//	morse_trap(656);			
 		}
 		idxhb += 1; if (idxhb >= CANQEDSIZE) idxhb = 0;	
 

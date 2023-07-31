@@ -192,6 +192,9 @@ void morse_trap(uint32_t x)
 	/* Disable global interrupts */
 __asm__ volatile ("CPSID I");
 
+	/* Turn charger off if on.. */
+	TIM1->CCR1 = 0; // 
+
 	/* Save trap code for storage in RTC registers. */
 	morse_err = x;
 	rtcregs_update(); // Refresh the back RTC sram registers

@@ -259,7 +259,7 @@ int main(void)
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
 
-  Thrdret = xADCTaskCreate(osPriorityNormal+1); // (arg) = priority
+  Thrdret = xADCTaskCreate(osPriorityNormal+2); // (arg) = priority
   if (Thrdret == NULL) morse_trap(117);
 
   /* Create serial task (priority) */
@@ -317,7 +317,7 @@ int main(void)
   Cret = canfilter_setup_first(0, &hcan1, 15); // CAN1
   if (Cret == HAL_ERROR) morse_trap(122);
 
-  TaskHandle_t retT = xBMSTaskCreate(osPriorityNormal+1);  
+  TaskHandle_t retT = xBMSTaskCreate(osPriorityNormal+2);  
 //  TaskHandle_t retT = xBMSTaskCreate(osPriorityNormal+1);  
   if (retT == NULL) morse_trap(123);
 
@@ -853,7 +853,7 @@ static void MX_SPI1_Init(void)
   hspi1.Init.CLKPolarity = SPI_POLARITY_HIGH;
   hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi1.Init.NSS = SPI_NSS_SOFT;
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_32;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16;
   hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -1395,7 +1395,7 @@ uint32_t ticks_next = xTaskGetTickCount();
   tripline[18*LSPC] = 0;
   celltrip_prev = 0;
 
-  uint32_t bmsspi_trapflag_prev = 0;
+  //uint32_t bmsspi_trapflag_prev = 0;
 
   for(;;) /* Loop polls various operations. */
   {  
@@ -1674,6 +1674,12 @@ int32_t csum = 0;
       yprintf(&pbuf2," debugbuffer %04X %04X %04X %04X %04X %04X",
         bmsspiall.debugbuffer[0],bmsspiall.debugbuffer[1],bmsspiall.debugbuffer[2],
         bmsspiall.debugbuffer[3],bmsspiall.debugbuffer[4],bmsspiall.debugbuffer[5]);
+
+      extern uint32_t bmsspi_tim15ccr[9];
+      float ftmp1 = bmsspi_tim15ccr[2];
+      float ftmp2 = bmsspi_tim15ccr[4];
+      yprintf(&pbuf1,"\n\rbqfunction.warning: %3d tim15ccr[0]: %4d [2]: %0.1f(usec) [4]: %0.1f(usec)",bqfunction.warning,
+        bmsspi_tim15ccr[0],ftmp1/16,ftmp2/16);
 
       /* During discharge the elapsed time since tripped max displays.
       and during charge it doesn't change. */
