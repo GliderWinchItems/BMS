@@ -1,22 +1,40 @@
-# runCANfilter 
-# 07/23/2023
+
+# runCANfilter
+# 07/31/2023
 # Select BMS CAN msgs from logged CAN file and save
 
-# $1 = CAN ID e.g. B0A00000
-# $2 == path/file for logged CAN msgs without extension, e.g. ~/GliderWinchItems/BMS/minicom-230720-170910
+# $1 = CAN ID, e.g., B0E00000
+# $2 = path for logged CAN msgs, e.g., ~/GliderWinchItems/BMS
+# $3 = file name for logged CAN msgs, e.g., minicom-230720-170910 (script adds .CAN
+#)
 # Example--
 # Note: GliderWinchItems spelled out, i.e. no wilds * or ?
-# ./runCANfilter B0A00000 ~/GliderWinchItems/BMS/minicom-230723-202530
-
-# Directory of this mess
-cd ~/GliderWinchCommons/embed/svn_sensor/PC/CANcellreadings
+# Example--
+# ./runCANfilter B0E00000   ~/GliderWinchItems/BMS   minicom-230723-202530
+# Select logged CAN msgs with CAN ID B0E00000
+# From directory: ~/GliderWinchItems/BMS [no wild cards]
+# Input file name: minicom-230723-202530 (scipt adds ".txt")
+# Output directory: Directory when this script was executed
+# Output file name: minicom-230723-202530.B0E00000 (script adds CAN ID)
+#
+# Save directory we are in
+DIRX=`(pwd)`
 
 # Compile
+cd ~/GliderWinchCommons/embed/svn_sensor/PC/CANcellreadings
 gcc CANcellreadings.c -o CANcellreadings -lm
+ 
+cd ~/GliderWinchItems/BMS/PC/bridgemissing
+gcc bridgemissing.c -o bridgemissing -lm
 
-# Execute: select, display and save
-./CANcellreadings $1 < $2.CAN | tee $2.$1
+~/GliderWinchCommons/embed/svn_sensor/PC/CANcellreadings/CANcellreadings $1 < $2/$3.CAN | ~/GliderWinchItems/BMS/PC/bridgemissing/bridgemissing 1 2 | tee $DIRX/$3.$1
 
+# Output file name just for checking
+echo $DIRX/$3.$1
+
+exit
+
+# Not executed and saved stuff
 echo "running logexam"
 
 cd ~/GliderWinchItems/BMS/PC/logexam
