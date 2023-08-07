@@ -28,7 +28,7 @@ uint32_t bmsspi_trapevent;
 uint32_t bmsspi_tim15ccr[9];
 
 /* Uncomment to enable EXTI4 MISO/SDO conversion detection code. */
-//#define USESDOTOSIGNALENDCONVERSION
+#define USESDOTOSIGNALENDCONVERSION
 
 extern SPI_HandleTypeDef hspi1;
 extern DMA_HandleTypeDef hdma_spi1_rx;
@@ -52,14 +52,15 @@ enum TIMSTATE
 	TIMSTATE_IDLE,
 	TIMSTATE_1,
 	TIMSTATE_2,
+	TIMSTATE_3OVR,
 	TIMSTATE_3,
 	TIMSTATE_TO,
 };
 
-#define EXDLY 10
+#define EXDLY 0 // Extra delay increment (debugging/test)
 #define CSBDELAYFALL (6+EXDLY) // CSB falling delay: 6 us with 1 MHz timer clock
 #define CSBDELAYRISE (5+EXDLY) // CSB rising delay: 5 us with 1 MHz timerclock
-#define DELAYCONVERTMIN (55+EXDLY) // Minimum end of conversion command delay
+#define DELAYCONVERTMIN (5+EXDLY) // Minimum end of conversion command delay
 
 static uint8_t rwtype; // code: command, command + data, etc.
 
@@ -96,6 +97,49 @@ static const uint16_t cmdsreg[READOUTSIZE_SCTRL] = {
 	RDSCTRL /* 0x016  // Read S Control Register Group */
 };
 
+/* Conversion delays for various commands. */
+static const uint32_t conv_delayADCV[8] = {
+	12816,   /*  422 Hz */
+	7230,    /*  1KHz   */
+	1121,    /* 27KHz   */
+	1296,    /* 14KHz   */
+	2343,    /*  7KHz   */
+	3041,    /*  3KHz   */
+	206325,  /*   26 Hz */
+	4437,    /*  2KHz   */
+};
+static const uint32_t conv_delayADAX[8] = {
+	21316,   /*  422 Hz */
+	12007,   /*  1KHz   */
+	1825,    /* 27KHz   */
+	2116,    /* 14KHz   */
+	3862,    /*  7KHz   */
+	5025,    /*  3KHz   */
+	335498,  /*   26 Hz */
+	7353,    /*  2KHz   */
+};
+static const uint32_t conv_delayADCVAX[8] = {
+	17104,   /*  422 Hz */
+	9657,    /*  1KHz   */
+	1511,    /* 27KHz   */
+	1744,    /* 14KHz   */
+	3140,    /*  7KHz   */
+	4071,    /*  3KHz   */
+	268450,  /*   26 Hz */
+	5933,    /*  2KHz   */
+};
+static const uint32_t conv_delayADSTAT[8] = {
+	8538,   /*  422 Hz 000 */
+	4814,    /*  1KHz  001 */
+	 742,    /* 27KHz  010 */
+	 858,    /* 14KHz  011 */
+	1556,    /*  7KHz  100 */
+	2022,    /*  3KHz  101 */
+  134211,    /*  26 Hz 110 */
+	2953,    /*  2KHz  111 */
+};
+
+
 /* Skip readouts that are too close together. */
 #define MINREADOUT (16*9000) // 9.00 ms
 // System ticks of last reading. 
@@ -104,6 +148,25 @@ uint32_t time_read_gpio;
 uint32_t time_read_aux; 
 
 uint8_t readbmsflag; // Let main know a BMS reading was made
+
+/* *************************************************************************
+ * void bmsspi_setrateADOPT(void);
+ * @brief	:
+ * *************************************************************************/
+void bmsspi_setrateADOPT(void)
+{
+//	if (pssb->rate != rate_last)
+	{ // Here, request changes the rate
+//		if ((pssb->rate & 0x1) != (rate_last & 0x1))
+		{ // Here, ADCOPT bit in CFGAR0 needs a re-write
+			rate_last = (pssb->rate & 0x1);
+			bmsspiall.configreg[0] &= ~(0x1 << 0);
+			bmsspiall.configreg[0] |= (pssb->rate & 0x1);
+			bmsspi_rw_cmd(WRCFGA, &bmsspiall.configreg[0],1);
+		}
+	}
+	return;
+}
 
 /* *************************************************************************
  * void bmsspi_readbms(void);
@@ -187,32 +250,51 @@ on the "normal" setting of 7 KHz ADC rate (and system clock of 16 MHz).
 */
 void bmsspi_readstuff(uint8_t code)
 {
+	uint32_t cnvdly;
+	uint16_t cmdz;
+	uint32_t tmp;
+
+//pssb->rate = 0; // DEBUG: set rate for all
+
+	/* ADOPT bit is low ord bit of rate selection. */
+	bmsspi_setrateADOPT(); // Update ADOPT in CFGRAR0 if necessary
+	tmp = ((pssb->rate & 0x6) << 6);
+
 	switch (code)
 	{
 	/* readreg args:
 	  1 - command that "starts" a conversion;, 0 = skip
-	  2 - TIM15 wait time (us) for conversion command
+	  2 - TIM15 wait time (us) for a conversion command to complete
 	  3 - pointer to store, or send, 6 byte register group
 	  4 - pointer to command array for read or write group
 	  5 - number of reads or writes of a group
 	*/
 	case READCELLSGPIO12: // ADC cell voltages + GPIO1 & GPIO2
+
 bmsspi_tim15ccr[0] += 1;
 bmsspi_tim15ccr[1] = DTWTIME;
 
-		readreg(ADCVAX,(3140+500),bmsspiall.cellreg, cmdv, 6); // ADC and Read cell volts
+		cmdz = ((ADCVAX & ~0x180) | tmp); // Set rate MD bits in command
+		cnvdly = conv_delayADCVAX[pssb->rate] + 100; // Look up conversion delay 
+		readreg(cmdz, cnvdly, bmsspiall.cellreg, cmdv, 6); // ADC and Read cell volts
+
 bmsspi_tim15ccr[2] = DTWTIME - bmsspi_tim15ccr[1];	
 bmsspi_tim15ccr[3] = DTWTIME;	
+
 		readreg(     0,       0,bmsspiall.auxreg, &cmdv[6], 1); // Read AUX reg A GPIOs 1-3
 bmsspi_tim15ccr[4] = DTWTIME - bmsspi_tim15ccr[3];		
 		break;
 
 	case READGPIO: // ADC and Read all 9 GPIOs voltage registers: A B C D 
-		readreg(  ADAX,(3862+500),bmsspiall.auxreg, cmdaux, 4);
+		cmdz = ((ADAX & ~0x180) | tmp); // Set rate MD bits in command
+		cnvdly = conv_delayADAX[pssb->rate] + 100;
+		readreg(cmdz, cnvdly, bmsspiall.auxreg, cmdaux, 4);
 		break;
 
 	case READSTAT: // ADC and Read status regs: A B
-		readreg(ADSTAT,(1556+500),bmsspiall.statreg, cmdstat, 2);
+		cmdz = ((ADSTAT & ~0x180) | tmp); // Set rate MD bits in command
+		cnvdly = conv_delayADSTAT[pssb->rate] + 100;
+		readreg(cmdz, cnvdly, bmsspiall.statreg, cmdstat, 2);
 		break;
 
 	case READCONFIG: // Read configuration (original delay: 0)
@@ -223,7 +305,9 @@ bmsspi_tim15ccr[4] = DTWTIME - bmsspi_tim15ccr[3];
 		break;	
 
 	case READAUX: // ADC and Read all 9 GPIOs voltage registers: A B C D 
-		readreg(  ADAX,(3900+500),bmsspiall.auxreg, cmdaux,4);
+		cmdz = ((ADAX & ~0x180) | tmp); // Set rate MD bits in command
+		cnvdly = conv_delayADAX[pssb->rate] + 100;
+		readreg(cmdz, cnvdly,bmsspiall.auxreg, cmdaux,4);
 		break;			
 
 	default: 
@@ -314,26 +398,35 @@ static uint8_t bmsspi_keepawake_state; // Step thru commands
 uint8_t bmsspi_keepawake(void)
 {
 	uint8_t retx;
+	/* Set up dummy request. */
+	pssb = &req_ka; 
+
 //bmsspi_keepawake_state = 0; // Debug
 	switch(bmsspi_keepawake_state)
 	{
 	case 0: /* Read config registers A & B. */
+		req_ka.reqcode = READCONFIG;
 		bmsspi_readstuff(READCONFIG);
 		break;
 	case 1: /* Read status registers A & B. */
+		req_ka.reqcode = READSTAT;
 		bmsspi_readstuff(READSTAT);
 		break;
 	case 2: // Read S Control register. */
+		req_ka.reqcode = READSREG;
 		bmsspi_readstuff(READSREG);
 		break;
 	case 3: // Write config register A */
+		req_ka.reqcode = WRITECONFIG;
 		bmsspi_writereg(WRITECONFIG);
 		break;
 	case 4:	// Read cells and GPIO1 GPIO2
-//		bmsspi_readstuff(READCELLSGPIO12); 
-		bmsspi_readbms();
+		req_ka.reqcode = READCELLSGPIO12;
+		bmsspi_readstuff(READCELLSGPIO12); 
+//		bmsspi_readbms();
 		break;
 	case 5:
+		req_ka.reqcode = READAUX;	
 		bmsspi_readstuff(READAUX);
 		break;
 	}
@@ -394,10 +487,10 @@ for (int i = 0; i < 6; i++) bmsspiall.debugbuffer[i] = 0xdead;
 
  #ifdef USESDOTOSIGNALENDCONVERSION 
  	/* EXTI SDO/MISO PB4 end of conversion detection interrupt. */
- 	EXTI->RTSR1 |= (1<<4); // Rising edge
+ //	EXTI->RTSR1 |= (1<<4); // Rising edge
 
  	/* Px4 EXTI selection clear. */
-	SYSCFG->EXTICR[1] &= ~(0x7 << 0);	
+//	SYSCFG->EXTICR[1] &= ~(0x7 << 0);	
 
 	/* EXTI4 ('1818 SDO conversion complete) interrupt initialize*/
   	HAL_NVIC_SetPriority(EXTI4_IRQn, 5, 0);
@@ -423,6 +516,13 @@ for (int i = 0; i < 6; i++) bmsspiall.debugbuffer[i] = 0xdead;
 //	GPIOC->MODER |=  (0x1 << 8);
 //	GPIOC->BSRR  = (1<<(4+16)); // Set PC4 low
 
+	/* PC4 EXTI */
+	//GPIOC->MODER &= ~(0x3 << 8); // Mode = input
+
+	/* PB4 EXTI */
+	SYSCFG->EXTICR[1] &= ~(0x7 << 0);	
+	SYSCFG->EXTICR[1] |= ~(0x1 << 0);	
+
 	/* Last reading time */
 	time_read_cells = DTWTIME; 
 	time_read_gpio  = time_read_cells;  
@@ -443,8 +543,11 @@ uint32_t dbstat1;
 uint32_t dbstat2;
 #define QQQCTR 10 // Repetition limit count
 uint16_t loopctr;
+uint32_t loopctr_save;
 
 uint32_t wait_isr;
+uint32_t wait_isr_ovr;
+
 static uint16_t readreg(uint16_t cmdx, uint32_t wait, uint16_t* p, const uint16_t* pcmdr, uint8_t n)
 {
 	uint16_t i;
@@ -474,11 +577,16 @@ dbstat2 = DTWTIME - dbstat1;
 		} while( (spirx12.u32[1] == 0xffffFFFF) && 
 			     (spirx12.u32[2] == 0xffffFFFF) && 
 			     (loopctr < QQQCTR) );
+
 		if (loopctr >= QQQCTR) morse_trap(58); // Loop reached limit
 		if (loopctr >       1) 
 		{
 			bmsspiall.err1ct += 1;
 //			morse_trap(59); // More than one pass
+			if (loopctr > loopctr_save)
+			{
+				loopctr_save = loopctr;
+			}
 		}
 
 		/* Check PEC15 matches. */
@@ -606,29 +714,10 @@ if (pdata == NULL) morse_trap(260);
 //	hdma_spi1_tx.Instance->CCR |= 1;  // Enable channel 	
 
 	/* Allow 5 us CSB (chip select) delay. Before enabling SPI. */
-/* In case interrupt or higher task priority inerrupts the setting
-   of TIM15 CCR prevent CNT from being higher than the new CCR1. */
-
-#if 0
-do
-{
-	bmsspi_tim15ccr[1] += 1; // Count number of "hits"
-	TIM15->CCR1 = (uint16_t)(TIM15->CNT + CSBDELAYFALL); 
-} while (((int16_t)(TIM15->CCR1 - (int16_t)(TIM15->CNT + CSBDELAYFALL))) < -1);
-bmsspi_tim15ccr[1] -= 1;
-if (bmsspi_tim15ccr[4] != bmsspi_tim15ccr[1])	
-{
-	bmsspi_tim15ccr[6] = DTWTIME - bmsspi_tim15ccr[5];
-	if (bmsspi_tim15ccr[6] > bmsspi_tim15ccr[7]) 
-		bmsspi_tim15ccr[7] = bmsspi_tim15ccr[6];
-	bmsspi_tim15ccr[8] += 1;
-}
-#endif
-
-	TIM15->CR1 = 0; // JIC
+	TIM15->CR1 = 0; // Disable timer JIC
 	TIM15->CNT = 0; // Counter starts from zero
 	TIM15->ARR = CSBDELAYFALL; // Length of count
-	timstate   = TIMSTATE_1;
+	timstate   = TIMSTATE_1; 
 	// Start counter (CEN), One pulse (OPM). Only overflow (URS)
 	TIM15->CR1 = 0xD; // OPM URS CEN
 
@@ -674,6 +763,7 @@ void bmsspi_tim15_IRQHandler(void)
 		SPI1->CR1 |= (1 << 6); // Enable SPE: SPI enable
 		// SPI rx interrupt expected next.	
 		timstate = TIMSTATE_TO; // JIC: AND it happened!
+		/* Next interrupt will be SPI/DMA */
 dbgTO = DTWTIME;		
  	 	return;
 
@@ -689,57 +779,42 @@ dbgTO_SR = SPI1->SR;
  	case TIMSTATE_2: // CSB rising delay expired
 		timstate = TIMSTATE_IDLE; // Set to idle, jic	
 
-		// Notify bmsspi_rw_cmd()
+		// Notify bmsspi_rw_cmd() that sequence is complete
 		xTaskNotifyFromISR(BMSTaskHandle, BMSTSKNOTEBIT00, eSetBits, &xHPT );
 		portYIELD_FROM_ISR( xHPT );		
 		return;
 
-	case TIMSTATE_3: // Wait for a conversion command timer expiration.
-		if ((wait_isr >> 16) != 0)
-		{ // Here, a timer turnover was set.
-			TIM15->ARR = 65535;
-			wait_isr -= (1 << 16); // Subtract the turnover count
-			if ((wait_isr >> 16) != 0)
-			{ // Another timer turnover is needed.
-				break;
-			}
-			else
-			{ // Remaining wait_isr count is less than one timer turnover
-				if (wait_isr < 6) wait_isr = 6; // Allow enough to assure next instruction
-#if 1				
-//				TIM15->CCR1 = (uint16_t)(TIM15->CNT + wait_isr); 
-				TIM15->CNT = 0;
-				TIM15->ARR = wait_isr;
-				TIM15->CR1 = 0xD;
-#else
-
-bmsspi_tim15ccr[2] += 1;
-do
-{
-	bmsspi_tim15ccr[3] += 1; // Count number of "hits"
-	TIM15->CCR1 = (uint16_t)(TIM15->CNT + wait_isr); 
-} while (((int16_t)(TIM15->CCR1 - (int16_t)(TIM15->CNT + wait_isr))) < -1);
-bmsspi_tim15ccr[3] -= 1;	
-#endif
-				break;
-			}
+	case TIMSTATE_3OVR: // Overflow: Timer repetition counter was set
+		wait_isr_ovr -= 1;
+		if (wait_isr_ovr > 0)
+		{
+			TIM15->CNT = 0;
+			TIM15->CR1 = 0xD;
+			return;
 		}
-		/* Here time delay accomplished! */
-#ifdef  USESDOTOSIGNALENDCONVERSION 
-		bmsspiall.err |= 1; 
-		// Disable EXTI4 interrupting
-		// Note: prior input MODER was input which is 0x0
-		SYSCFG->EXTICR[1] &= ~(0x7 << 0); 
-//		GPIOB->MODER |= (0x2 << 8); // Set AF mode SPI1		
-		EXTI->IMR1 &= ~(1<<4);
-		EXTI->EMR1 &= ~(1<<4);
-		EXTI->PR1   =  (1<<4); // Reset request: PB4
-#endif
-		CSB_GPIO_Port->BSRR = (CSB_Pin); // Set: CSB pin set high		
 
-		// Notify bmsspi_rw_cmd()
-		xTaskNotifyFromISR(BMSTaskHandle, BMSTSKNOTEBIT00, eSetBits, &xHPT );
-		portYIELD_FROM_ISR( xHPT );		
+		wait_isr &= 0xFFFF; // Subtract number of overflows timed out.
+		/* Time out remainder. */
+		if (wait_isr < 6)
+		{
+			TIM15->ARR = 6;
+		}
+		else
+		{
+			TIM15->ARR = wait_isr;
+		}
+		timstate = TIMSTATE_3; // 
+		TIM15->CNT = 0;
+		TIM15->CR1 = 0xD;
+		return;
+
+	case TIMSTATE_3: // Wait for a conversion command timer expiration.
+bmsspi_tim15ccr[2] += 1;
+		CSB_GPIO_Port->BSRR = (CSB_Pin); // Set: CSB pin set high
+		timstate = TIMSTATE_2; // 
+		TIM15->ARR = CSBDELAYRISE;
+		TIM15->CNT = 0;
+		TIM15->CR1 = 0xD;
 		return;
 	
 	default: morse_trap(810); 
@@ -752,6 +827,8 @@ bmsspi_tim15ccr[3] -= 1;
    ####################################################################### */
 uint32_t dbgexttim1;
 uint32_t dbgexttim2;
+uint32_t dbgpb4;
+uint32_t dbgwait_isr;
 
 void bmsspi_spidmarx_IRQHandler(DMA_HandleTypeDef* phdma_spi1_rx)
 {
@@ -759,14 +836,15 @@ void bmsspi_spidmarx_IRQHandler(DMA_HandleTypeDef* phdma_spi1_rx)
 	hdma_spi1_tx.Instance->CCR &= ~1; // Disable dma spi tx channel
 	hdma_spi1_rx.Instance->CCR &= ~1; // Disable dma spi rx channel
 	SPI1->CR1 &= ~(1 << 6); // Disable SPI
-	SPI1->CR2 &= ~0x3; // // Disable DMA: TXDMAEN | RXDMAEN
+	SPI1->CR2 &= ~0x3;      // Disable DMA: TXDMAEN | RXDMAEN
+	TIM15->CR1 = 0x0; // JIC timer is running shut it down
 
 	// Reset DMA SPI1 interrupt flags: DMA1: CH2,CH3
 	// Note: DMA1: CH1 is ADC1 DMA channel, but interrupt not used
 	hdma_spi1_rx.DmaBaseAddress->IFCR = 0xff0;
 
 // Pin for 'scope triggering
-GPIOC->BSRR = (1<<(4+16)); // Set PC4 pin low
+//GPIOC->BSRR = (1<<(4+16)); // Set PC4 pin low
 
 	/* ADC conversion cmmands require wait for end-of-conversion handling. */
 	if (rwtype == 3)
@@ -776,41 +854,47 @@ GPIOC->BSRR = (1<<(4+16)); // Set PC4 pin low
 #ifdef USESDOTOSIGNALENDCONVERSION 
 		/* Setup SPI MISO ('1818 SDO) to interrupt when it goes high. */
 		// Enable interrupt & event
-		EXTI->PR1   =  (1<<4); // Reset request: PB4		
-		EXTI->IMR1  |= (1<<4); // Interrupt mask register
-		EXTI->EMR1  |= (1<<4); // Event mask register
-		GPIOB->MODER &= ~(0x3 << 8); // Set PB4 mode to input (0x0)
-		SYSCFG->EXTICR[1] |=  (0x1 << 0); // Select PB4
+		EXTI->PR1   =  (1<<4); // Reset pending request: PB4		
+		EXTI->IMR1  |= (1<<4); // Interrupt mask register: not massked
+		EXTI->EMR1  |= (1<<4); // Event mask register: not masked
+//		EXTI->RTSR1 |= (1<<4); // Rising edge trigger
+//		GPIOB->MODER &= ~(0x3 << 8); // Set PB4 mode to input (0x0)
+//		SYSCFG->EXTICR[1] |=  (0x1 << 0); // Select PB4
+dbgpb4 = GPIOB->IDR;	
 dbgexttim1 = DTWTIME;		
 #endif
 
 	/* Timeout: JIC no EXTI4 interrupt, and debugging, and whatever... */
-		timstate = TIMSTATE_3; // Long timeout: count TIM15 16b turnovers
 
 if (wait_isr == 0) morse_trap(801); // What!!
+if (wait_isr > 65536)
+	dbgwait_isr = (wait_isr >> 16);
 
 		// Time counts greater than 65535 must count turnovers
 		if ((wait_isr >> 16) > 0)
 		{ // Overflow counting required.
-//			TIM15->CCR1 = (uint16_t)TIM15->CNT; // Time OV from "now"
-			TIM15->RCR = (wait_isr >> 16);
-			TIM15->ARR = 65535;
-			TIM15->CR1 = 0xD;
+			timstate = TIMSTATE_3OVR; // Long timeout: count TIM15 16b turnovers
+			// Set number of overflows before timer "event" triggers
+			wait_isr_ovr = (wait_isr >> 16); // Repitition counter
+			wait_isr &= 0xFFFF; // Hi-ord is timer overflow, so clear'em.
+
+			TIM15->CNT = 0; // Start count from zero
+			TIM15->ARR = 65535; // Max time count
+			TIM15->CR1 = 0xD; // Start counter; stop upon "event"
 			return;
 		}
 
 		// Here, wait_isr is less than one timer turnover
+		timstate = TIMSTATE_3; // 
+
 		// Allow a minimum timeout JIC
 		if (wait_isr > DELAYCONVERTMIN) 
 		{
-//			TIM15->CCR1 = (uint16_t)(TIM15->CNT + wait_isr); 
 			TIM15->ARR = wait_isr;
 		}
 		else
-		{ // Who would set such a low conversion timerout?
-			morse_trap(802); // Likely bogus
-//			TIM15->CCR1 = (uint16_t)(TIM15->CNT + DELAYCONVERTMIN); 
-			TIM15->ARR = DELAYCONVERTMIN;
+		{ // Who would set such a low conversion timeout?
+			morse_trap(802); // Assuredly bogus
 		}
 
 		TIM15->CNT = 0;
@@ -853,9 +937,13 @@ void bmsspi_spidmatx_IRQHandler(DMA_HandleTypeDef* phdma_spi1_tx)
  * PB4 SPI MISO pin-1818 SDO pin: interrupt upon rising edge
    ####################################################################### */
 uint32_t dbgexti4ctr;	
-void EXTI4_IRQHandler(void)
+void EXTI4_IRQHandler1(void)
 {
+
 dbgexttim2 = DTWTIME - dbgexttim1;
+morse_trap(886);
+//return;
+
 
 #ifndef USESDOTOSIGNALENDCONVERSION  /*  Use rising SDO to signal end of conversions. */		
 // Conversion time?	
@@ -872,12 +960,9 @@ dbgexti4ctr += 1;
 	EXTI->EMR1 &= ~(1<<4);
 	EXTI->PR1   =  (1<<4); // Reset request: PB4
 
-	// Note: prior input MODER was input which is 0x0
-//	GPIOB->MODER |= (0x2 << 8); // Set AF mode SPI1
-
 	// Assure CSB minimum pulse width before next SPI operation.
-	timstate = TIMSTATE_2;
-//	TIM15->CCR1 = (uint16_t)(TIM15->CNT + CSBDELAYRISE); 
+	timstate = TIMSTATE_3;
+	TIM15->CR1 = 0;
 	TIM15->ARR = CSBDELAYRISE;
 	TIM15->CNT = 0;
 	TIM15->CR1 = 0xD;	

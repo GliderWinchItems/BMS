@@ -46,10 +46,10 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
 
   /* Charger: timer and comparator settings. */
    p->dac1_hv_setting  = 3900; // HV volt limit (DAC setting, not mv!)
-   p->dac2_ix_setting  =   80; // Current sense level setting (DAC setting)
-   p->tim1_ccr1_on     =   38; // PWM ON count: Normal charge rate
-   p->tim1_ccr1_on_vlc =    2; // PWM ON count: Very Low Charge rate required
-   p->tim1_arr_init    =   44; // At 16 MHz: count of 80 = 5 us PWM frame
+   p->dac2_ix_setting  =   85; // Current sense level setting (DAC setting)
+   p->tim1_ccr1_on     =  999; // PWM ON count: Normal charge rate
+   p->tim1_ccr1_on_vlc =   10; // PWM ON count: Very Low Charge rate required
+   p->tim1_arr_init    =   25; // At 16 MHz: count of 80 = 5 us PWM frame
 
    p->cellv_max   = 3900; // Max limit (mv) for charging any cell
    p->cellv_min   = 2800; // Min limit (mv) for any discharging

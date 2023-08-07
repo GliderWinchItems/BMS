@@ -19,6 +19,7 @@
 #include "bms_items.h"
 #include "rtcregs.h"
 
+
 struct BMSSPIALL bmsspiall;
 struct EXTRACTCONFIGREG extractconfigreg;
 struct EXTRACTSTATREG   extractstatreg;
@@ -29,9 +30,13 @@ osMessageQId BMSTaskReadReqQHandle;
 
 struct BMSREQ_Q* pssb; // Pointer to struct for request details
 
+struct BMSREQ_Q req_ka; // Keepawake dummy request
+
 TaskHandle_t BMSTaskHandle;
 
 uint32_t bmsdbctr; // Debug counter
+
+uint8_t rate_last; // ADC rate code, last set
 
 /* '1818 Wakeup keep-alive */
 #define WAKETICKS 1000 // 1 sec of FreeRTOS timer ticks
@@ -55,6 +60,11 @@ void StartBMSTask(void *argument)
 	bms_items_cfg_int(); // Initialize (memory) configreg bits
 	bmsspi_writereg(WRITECONFIG); // Write configreg to '1818'
 
+	/* Dummy request for keepawake. */
+	req_ka.setfets  = 0; // Discharge fet bits off
+    req_ka.noteyes  = 0; // We will NOT wait for notification
+    req_ka.rate     = RATE26HZ; // RATE422HZ // RATE7KHZ; // ADC rate code
+
 	tickref= xTaskGetTickCount();
 
    	/* Infinite loop */
@@ -68,6 +78,12 @@ void StartBMSTask(void *argument)
 		ret = xQueueReceive(BMSTaskReadReqQHandle,&pssb,tickwait);
 		if (ret == pdPASS)
 		{ // Request arrived
+			if (pssb->rate > 7)
+			{ // Here rate request not in selection table
+				pssb->rate = 4; // Normal (7 KHz mode)
+morse_trap(808);
+			}
+
 			/* Execute request. */
 			switch (pssb->reqcode)
 			{
@@ -114,8 +130,10 @@ void StartBMSTask(void *argument)
 	  	}
 	  	else
 	  	{ // Timeout waiting for queued request. Execute a keep-awake command. */
-// Debug: dbgka used by main.c to clocking display	  		
+// Debug: dbgka used by main.c to clocking display	  
+//			pssb->done = 1; // Show request queued
 	  		dbgka = bmsspi_keepawake();
+//	  		pssb->done = 0; // Show request completed
 // Running count, debugging
 bmsdbctr += 1;	  	
 	  	}

@@ -37,6 +37,19 @@ union SPI12
 #define REQ_RTCREAD     7  // Read & check PEC15 on RTC registers
 #define REQ_RTCUPDATE   8  // Update w PEC15 RTC registers
 
+/* '1818 ADC rate */
+/* Bits 2 and 1 = MD bits in command
+   Bit 0 Configuration Register A bit */
+#define RATE422HZ  0 // 000
+#define RATE1KHZ   1 // 001
+#define RATE27KHZ  2 // 010 Fast mode
+#define RATE14KHZ  3 // 011
+#define RATE7KHZ   4 // 100 Normal (default)
+#define RATE3KHZ   5 // 101
+#define RATE26HZ   6 // 110 Filtered mode
+#define RATE2KHZ   7 // 111
+
+
 struct EXTRACTSTATREG
 {
 	float     sc;   // Sum of Cells (volts)
@@ -83,6 +96,7 @@ struct BMSREQ_Q
 	uint8_t done;         // 0 = done; 1 = busy;
 	uint8_t noteyes;      // 1 = Notify requesting task when complete
 	uint8_t reqcode;      // Code for specific service requested
+	uint8_t rate;         // Code for ADC rate (0-7)
 	int8_t other;         // BMSTask sends back something to requester.
 };	
 
@@ -104,6 +118,9 @@ extern struct EXTRACTCONFIGREG extractconfigreg;
 extern float current_sense;
 
 extern struct BMSREQ_Q* pssb; // Pointer to struct for request details
+
+extern uint8_t rate_last; // ADC rate code, last set
+extern struct BMSREQ_Q req_ka; // Keepawake dummy request
 
 
 #endif

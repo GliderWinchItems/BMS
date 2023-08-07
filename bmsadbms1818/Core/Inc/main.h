@@ -76,6 +76,9 @@ void Error_Handler(void);
 #define FAN_PWM_GPIO_Port GPIOA
 #define HV_div1_Pin GPIO_PIN_7
 #define HV_div1_GPIO_Port GPIOA
+#define PC4_PB4_Pin GPIO_PIN_4
+#define PC4_PB4_GPIO_Port GPIOC
+#define PC4_PB4_EXTI_IRQn EXTI4_IRQn
 #define Therm_spare2_Pin GPIO_PIN_5
 #define Therm_spare2_GPIO_Port GPIOC
 #define LED_GRN_Pin GPIO_PIN_0
@@ -84,6 +87,8 @@ void Error_Handler(void);
 #define LED_RED_GPIO_Port GPIOB
 #define HV_div2_Pin GPIO_PIN_2
 #define HV_div2_GPIO_Port GPIOB
+#define FANTach_Pin GPIO_PIN_10
+#define FANTach_GPIO_Port GPIOB
 #define PADxx_Pin GPIO_PIN_12
 #define PADxx_GPIO_Port GPIOB
 #define PAD7_Pin GPIO_PIN_15
@@ -104,6 +109,7 @@ void Error_Handler(void);
 #define BQ_LD_GPIO_Port GPIOD
 #define WDT_Pin GPIO_PIN_7
 #define WDT_GPIO_Port GPIOB
+#define WDT_EXTI_IRQn EXTI9_5_IRQn
 /* USER CODE BEGIN Private defines */
 // USART/UART assignments
 #define HUARTMON  huart1 // uart  for PC monitoring

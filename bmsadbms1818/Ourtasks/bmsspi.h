@@ -85,7 +85,7 @@ void bmsspi_spidmarx_IRQHandler(DMA_HandleTypeDef* phdma_spi1_rx);
 void bmsspi_spidmatx_IRQHandler(DMA_HandleTypeDef* phdma_spi1_tx);
 /* SPI tx & rs dma transfer complete (if enabled!)
    ####################################################################### */
-void EXTI4_IRQHandler(void);
+void EXTI4_IRQHandler1(void);
 /* PB4 SPI MISO pin-1818 SDO pin: interrupt upon rising edge
    ####################################################################### */	
 

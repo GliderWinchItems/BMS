@@ -1201,8 +1201,8 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, RTC_BAT_PWR_Pin|GPIO_PIN_4|DUMP2_Pin|DUMP_NOT_Pin
-                          |DUMP_Pin|HEATER_NOT_Pin|HEATER_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, RTC_BAT_PWR_Pin|DUMP2_Pin|DUMP_NOT_Pin|DUMP_Pin
+                          |HEATER_NOT_Pin|HEATER_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, LED_GRN_Pin|LED_RED_Pin, GPIO_PIN_SET);
@@ -1216,14 +1216,20 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(BQ_LD_GPIO_Port, BQ_LD_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : RTC_BAT_PWR_Pin PC4 DUMP_NOT_Pin DUMP_Pin
-                           HEATER_NOT_Pin HEATER_Pin */
-  GPIO_InitStruct.Pin = RTC_BAT_PWR_Pin|GPIO_PIN_4|DUMP_NOT_Pin|DUMP_Pin
-                          |HEATER_NOT_Pin|HEATER_Pin;
+  /*Configure GPIO pins : RTC_BAT_PWR_Pin DUMP_NOT_Pin DUMP_Pin HEATER_NOT_Pin
+                           HEATER_Pin */
+  GPIO_InitStruct.Pin = RTC_BAT_PWR_Pin|DUMP_NOT_Pin|DUMP_Pin|HEATER_NOT_Pin
+                          |HEATER_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PC4_PB4_Pin */
+  GPIO_InitStruct.Pin = PC4_PB4_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(PC4_PB4_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : LED_GRN_Pin LED_RED_Pin PADxx_Pin PAD7_Pin */
   GPIO_InitStruct.Pin = LED_GRN_Pin|LED_RED_Pin|PADxx_Pin|PAD7_Pin;
@@ -1232,11 +1238,11 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PB10 */
-  GPIO_InitStruct.Pin = GPIO_PIN_10;
+  /*Configure GPIO pin : FANTach_Pin */
+  GPIO_InitStruct.Pin = FANTach_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+  HAL_GPIO_Init(FANTach_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : DUMP2_Pin */
   GPIO_InitStruct.Pin = DUMP2_Pin;
@@ -1264,6 +1270,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(WDT_GPIO_Port, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI4_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI4_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI9_5_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
 
 }
 
@@ -1428,13 +1441,12 @@ extern uint32_t dwtdiff;
   #if 0     
       float tcf1 = adcparams_caltemp();
       yprintf(&pbuf1,"\n\r temp: %6.4f vref %0.5f cal1 %0.1f cal2 %0.1f caldiff %0.4f calrate %0.5f",tcf1,
-adc1.common.ts_vref,
-adc1.common.ts_cal1,      /* (float)(*PTS_CAL1); // Factory calibration */
-adc1.common.ts_cal2,      /* (float)(*PTS_CAL2); // Factory calibration */
-adc1.common.ts_caldiff,   /* (padccommon->ts_cal2 - padccommon->ts_cal1); */
-adc1.common.ts_calrate );
-
-  #endif      
+        adc1.common.ts_vref,
+        adc1.common.ts_cal1,      /* (float)(*PTS_CAL1); // Factory calibration */
+        adc1.common.ts_cal2,      /* (float)(*PTS_CAL2); // Factory calibration */
+        adc1.common.ts_caldiff,   /* (padccommon->ts_cal2 - padccommon->ts_cal1); */
+        adc1.common.ts_calrate );
+#endif      
 
   #if 1
       yprintf(&pbuf1,"\n\rADCi: %4d %6d",(adc1.ctr-adc1_ctr_prev),dwtdiff);     
@@ -1680,6 +1692,8 @@ int32_t csum = 0;
       float ftmp2 = bmsspi_tim15ccr[4];
       yprintf(&pbuf1,"\n\rbqfunction.warning: %3d tim15ccr[0]: %4d [2]: %0.1f(usec) [4]: %0.1f(usec)",bqfunction.warning,
         bmsspi_tim15ccr[0],ftmp1/16,ftmp2/16);
+      extern uint16_t loopctr_save;
+      yprintf(&pbuf2," loopctr_save: %d ",loopctr_save);
 
       /* During discharge the elapsed time since tripped max displays.
       and during charge it doesn't change. */

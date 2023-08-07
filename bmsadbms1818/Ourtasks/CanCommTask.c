@@ -149,14 +149,14 @@ static uint8_t for_us(struct CANRCVBUF* pcan, struct BQFUNCTION* p)
 	return 1; // Skip. This request is not for us.
 }
 /* *************************************************************************
- *  void CanComm_qreq(uint32_t reqcode, uint32_t setfets, struct CANRCVBUF* pcan);
+ *  void CanComm_qreq(uint8_t reqcode, uint32_t setfets, struct CANRCVBUF* pcan);
  *	@brief	: Queue request to BMSTask.c
  *  @param  : reqcode = see BMSTask.h 
  *  @param  : setfets = bits to set discharge fets (if so commanded)
  *  @param  : idx = this queue request slot
  *  @param  : notebit = notification bit when BMSTask completes request
  * *************************************************************************/
-void CanComm_qreq(uint32_t reqcode, uint32_t setfets, struct CANRCVBUF* pcan)
+void CanComm_qreq(uint8_t reqcode, uint32_t setfets, struct CANRCVBUF* pcan)
 {
 	struct CANQED* pcanqed;
 
@@ -177,6 +177,16 @@ morse_trap(654);
 	pcanqed->bmsreq_c.reqcode  = reqcode; // BMSTask request code
 	pcanqed->bmsreq_c.setfets  = setfets; // Discharge fet bits to set
     pcanqed->bmsreq_c.noteyes  = 1; // Yes, we will wait for notification
+
+    /* Code that sets rate for ADC conversion. */
+    if ((pcan->cd.uc[2] >> 8) > 7)
+    { // Keep within table lookup bounds
+    	pcanqed->bmsreq_c.rate = 4; // 7 KHz normal mode
+    }
+    else
+    {
+    	pcanqed->bmsreq_c.rate = (pcan->cd.uc[2] >> 8);
+    }
 
     // Timeout check for missing notifications (debugging?)
 	canqed_time = xTaskGetTickCount(); // Update time
@@ -330,7 +340,7 @@ notification and it would be lost. */
 		/* Use dummy CAN msg, then it looks the same as a request CAN msg. */
 			/* Get new cell readings. Queue a BMS cell readings request. */
 			can_hb.cd.uc[0] = CMD_CMD_CELLPOLL; // Cell readings request
-			can_hb.cd.uc[2] = (0x0F & hbctr++);
+			can_hb.cd.uc[2] = ((RATE26HZ << 8) | (0x0F & hbctr++));
 			do_req_codes(&can_hb); // Cell readings will queue a BMSTask request
 		}
 #if 0
@@ -555,7 +565,7 @@ static uint8_t q_do(struct CANRCVBUF* pcan)
 	case MISCQ_CURRENT_ADC: // 25 Below cell #1 minus, current resistor: adc counts	
 		qsw = 0; // No need to queue a reading
 		break;
-
+/* #### RATE7KHZ needs updating for CAN msg request. */
 	/* BMSTask: REQ_SETFETS */
  	/* ???? Does this require a read AUX registers? */
 	case MISCQ_SETFETBITS: //  27 // Set FET on/off discharge bits
