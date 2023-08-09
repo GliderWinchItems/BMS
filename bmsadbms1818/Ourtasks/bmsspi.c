@@ -11,7 +11,6 @@
 #include "bmsspi.h"
 #include "adcparams.h"
 #include "ADCTask.h"
-//#include "bmsdriver.h"
 #include "main.h"
 #include "FanTask.h"
 #include "BMSTask.h"
@@ -20,12 +19,7 @@
 #include "fetonoff.h"
 #include "pec15_reg.h"
 #include "bms_items.h"
-
 #include "morse.h"
-
-uint32_t bmsspi_trapflag; 
-uint32_t bmsspi_trapevent; 
-uint32_t bmsspi_tim15ccr[9];
 
 /* Uncomment to enable EXTI4 MISO/SDO conversion detection code. */
 #define USESDOTOSIGNALENDCONVERSION
@@ -214,21 +208,6 @@ uint8_t tmp;
 		pf +=1;
 	}
 
-tmp = 0;
-for (i = 0; i < NCELLMAX; i++)
-{	
-	if ((bmsspiall.cellreg[i] < 20000) ||
-		(bmsspiall.cellreg[i] > 42000) )
-//	if ((pbq->cellv[i] < 20000) ||
-//		(pbq->cellv[i] > 40000) )
-	{
-		bmsspi_trapflag += 1;
-		tmp = 1;
-	}
-}		
-
-bmsspi_trapevent += tmp;
-
 	// Restore status of FETs
 //	bmsspi_setfets();
 
@@ -248,13 +227,16 @@ bmsspi_trapevent += tmp;
 The time conversion delays below (second argument in readreg call) are based 
 on the "normal" setting of 7 KHz ADC rate (and system clock of 16 MHz).
 */
+uint16_t clrcell[24];
+uint16_t clrregs[18];
+
 void bmsspi_readstuff(uint8_t code)
 {
 	uint32_t cnvdly;
 	uint16_t cmdz;
 	uint32_t tmp;
 
-//pssb->rate = 0; // DEBUG: set rate for all
+//pssb->rate = 0; // DEBUG: set rate for all requests. 0 = 422 Hz
 
 	/* ADOPT bit is low ord bit of rate selection. */
 	bmsspi_setrateADOPT(); // Update ADOPT in CFGRAR0 if necessary
@@ -271,18 +253,16 @@ void bmsspi_readstuff(uint8_t code)
 	*/
 	case READCELLSGPIO12: // ADC cell voltages + GPIO1 & GPIO2
 
-bmsspi_tim15ccr[0] += 1;
-bmsspi_tim15ccr[1] = DTWTIME;
+//for (i = 0; i < 18; i++) clrregs[i] = 55555;
+//readreg(CLRCELL,0,&clrcell[0],&clrcell[0],0); // Clear cells
+//readreg(0      ,5, clrregs, cmdv, 6); // Read cell volts registers
 
 		cmdz = ((ADCVAX & ~0x180) | tmp); // Set rate MD bits in command
 		cnvdly = conv_delayADCVAX[pssb->rate] + 100; // Look up conversion delay 
 		readreg(cmdz, cnvdly, bmsspiall.cellreg, cmdv, 6); // ADC and Read cell volts
-
-bmsspi_tim15ccr[2] = DTWTIME - bmsspi_tim15ccr[1];	
-bmsspi_tim15ccr[3] = DTWTIME;	
+//readreg(cmdz, 5000, bmsspiall.cellreg, cmdv, 6); // Debug: experiment with delay
 
 		readreg(     0,       0,bmsspiall.auxreg, &cmdv[6], 1); // Read AUX reg A GPIOs 1-3
-bmsspi_tim15ccr[4] = DTWTIME - bmsspi_tim15ccr[3];		
 		break;
 
 	case READGPIO: // ADC and Read all 9 GPIOs voltage registers: A B C D 
@@ -557,8 +537,16 @@ static uint16_t readreg(uint16_t cmdx, uint32_t wait, uint16_t* p, const uint16_
 	{ // "Start conversion" command (waits for conversion)
 GPIOC->BSRR = (1<<4); // Set PC4 high
 dbstat1 = DTWTIME;	
+
 		wait_isr = wait; // Save for spi rx dma interrupt 	
-		bmsspi_rw_cmd(cmdx, NULL, 3); 
+		if ((wait_isr == 0) && (n == 0))
+		{ // Here, command with no wait or readback
+			bmsspi_rw_cmd(cmdx, NULL, 0); 
+		}
+		else
+		{ // Here command with or without wait and register readings
+			bmsspi_rw_cmd(cmdx, NULL, 3); 
+		}
 dbstat2 = DTWTIME - dbstat1;		
 //morse_trap(4);
 	}
@@ -809,7 +797,6 @@ dbgTO_SR = SPI1->SR;
 		return;
 
 	case TIMSTATE_3: // Wait for a conversion command timer expiration.
-bmsspi_tim15ccr[2] += 1;
 		CSB_GPIO_Port->BSRR = (CSB_Pin); // Set: CSB pin set high
 		timstate = TIMSTATE_2; // 
 		TIM15->ARR = CSBDELAYRISE;

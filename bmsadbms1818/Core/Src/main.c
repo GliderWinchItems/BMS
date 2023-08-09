@@ -1408,8 +1408,6 @@ uint32_t ticks_next = xTaskGetTickCount();
   tripline[18*LSPC] = 0;
   celltrip_prev = 0;
 
-  //uint32_t bmsspi_trapflag_prev = 0;
-
   for(;;) /* Loop polls various operations. */
   {  
     vTaskDelayUntil( &tickcnt, xPeriod );
@@ -1423,10 +1421,10 @@ uint32_t ticks_next = xTaskGetTickCount();
 
 #if 1 // Processor ADC display
     adcctr += 1;
-    if (adcctr > 20)
+    if (adcctr > 40)
     {
       adcctr = 0;
-extern uint32_t dwtdiff;      
+  extern uint32_t dwtdiff;      
   #if 1
       yprintf(&pbuf1,"\n\rADCf: %4d %6d:",(adc1.ctr-adc1_ctr_prev),dwtdiff);
       adc1_ctr_prev = adc1.ctr;
@@ -1576,6 +1574,14 @@ int32_t csum = 0;
       }
       yprintf(&pbuf1," %d",csum);
 
+#if 0 // Display cell registers after CLRCELL command
+extern uint16_t clrregs[18];  
+      yprintf(&pbuf2,"\n\rCLRCELL  : ");
+      for (i = 0; i < 18; ++i)
+      {
+        yprintf(&pbuf1," %6.0d",clrregs[i]);
+      }    
+#endif
       // Line with FETs turned ON
       yprintf(&pbuf2,"\n\r%5d %02d FETS    ",fctr++,dbgf+1);
       memset(cline,' ',(LSPC*18));
@@ -1618,7 +1624,9 @@ int32_t csum = 0;
         idxtripcode += 1;
         celltrip_prev = bqfunction.celltrip;
       }
-      yprintf(&pbuf1,"%s",tripline);        
+      yprintf(&pbuf1,"%s",tripline);   
+
+yprintf(&pbuf2," %08X",bqfunction.lc.cid_msg_bms_cellvsmr);
 
       // Time cell tripped
       yprintf(&pbuf2,"\n\rTRIPT %5d",tmptime);
@@ -1650,7 +1658,6 @@ int32_t csum = 0;
         }
       }
 
-
       yprintf(&pbuf1,"\n\r%5d %02d MAX|MIN ",fctr,dbgf+1);
       memset(cline,' ',(LSPC*18));
       // Build a nice ASCII line whilst previous line prints
@@ -1679,21 +1686,6 @@ int32_t csum = 0;
       }
       cline[18*LSPC] = 0; // Line terminatior
       yprintf(&pbuf2,"%s",cline); 
-
-      extern uint32_t bmsspi_trapflag;
-      extern uint32_t bmsspi_trapevent;
-      yprintf(&pbuf1,"\n\rbmsspi_trapflag: %3d bmsspi_trapevent %3d",bmsspi_trapflag,bmsspi_trapevent);
-      yprintf(&pbuf2," debugbuffer %04X %04X %04X %04X %04X %04X",
-        bmsspiall.debugbuffer[0],bmsspiall.debugbuffer[1],bmsspiall.debugbuffer[2],
-        bmsspiall.debugbuffer[3],bmsspiall.debugbuffer[4],bmsspiall.debugbuffer[5]);
-
-      extern uint32_t bmsspi_tim15ccr[9];
-      float ftmp1 = bmsspi_tim15ccr[2];
-      float ftmp2 = bmsspi_tim15ccr[4];
-      yprintf(&pbuf1,"\n\rbqfunction.warning: %3d tim15ccr[0]: %4d [2]: %0.1f(usec) [4]: %0.1f(usec)",bqfunction.warning,
-        bmsspi_tim15ccr[0],ftmp1/16,ftmp2/16);
-      extern uint16_t loopctr_save;
-      yprintf(&pbuf2," loopctr_save: %d ",loopctr_save);
 
       /* During discharge the elapsed time since tripped max displays.
       and during charge it doesn't change. */
@@ -1724,14 +1716,16 @@ extern uint32_t dbgtrc;
       yprintf(&pbuf1,"\n\rcellv_tmdelta:%5dmv",bqfunction.cellv_tmdelta);      
       yprintf(&pbuf2,"\n\rhysterv_lo:    %6.1fmv",bqfunction.hysterv_lo);
       yprintf(&pbuf1,"\n\rcellv_max: %5d cellv_max_bits: 0x%05X",bqfunction.lc.cellv_max,bqfunction.cellv_max_bits);
-      yprintf(&pbuf2,"\n\rcellv_min: %5d cellv_min_bits: 0x%05X",bqfunction.lc.cellv_min,bqfunction.cellv_min_bits);
-      yprintf(&pbuf1,"\n\rcellv_vls: %5d cellv_vlc_bits: 0x%05X",bqfunction.lc.cellv_vlc, bqfunction.cellv_vlc_bits);
+      yprintf(&pbuf2," cellv_min: %5d cellv_min_bits: 0x%05X",bqfunction.lc.cellv_min,bqfunction.cellv_min_bits);
+      yprintf(&pbuf1," cellv_vls: %5d cellv_vlc_bits: 0x%05X",bqfunction.lc.cellv_vlc, bqfunction.cellv_vlc_bits);
       yprintf(&pbuf2,"\n\rcallbal: 0x%05X  fet_status: 0x%04X FET_CHRG: 0x%01X",bqfunction.cellbal,
           bqfunction.fet_status,(bqfunction.fet_status & FET_CHGR));
       if ((bqfunction.fet_status & FET_DUMP2) != 0)
         yprintf(&pbuf1,"\t\t\t\t\tDUMP2 ON");
       else
         yprintf(&pbuf1,"\t\t\t\t\tDUMP2 OFF");
+
+      yprintf(&pbuf2,"\t %08X",bqfunction.lc.cid_msg_bms_cellvsmr); // CAN ID 
 
  //     extern uint32_t dbgcellbal;
  //     yprintf(&pbuf1,"\n\rdbgcellbal:%05X",dbgcellbal);
