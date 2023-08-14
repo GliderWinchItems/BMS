@@ -71,8 +71,13 @@ void StartBMSTask(void *argument)
   	for(;;)
   	{
   		/* Once per second with no slippage due to loop delay. */
-  		tickref += 500;//1000; //pdMS_TO_TICKS(1000);
+  		tickref += pdMS_TO_TICKS(WAKETICKS);
   		tickwait = tickref - xTaskGetTickCount();
+  		if (tickwait > pdMS_TO_TICKS(WAKETICKS))
+  		{
+  			tickref -= pdMS_TO_TICKS(WAKETICKS);
+  			tickwait = tickref - xTaskGetTickCount();
+  		}
 
   		/* Check queue of loaded items. */
 		ret = xQueueReceive(BMSTaskReadReqQHandle,&pssb,tickwait);

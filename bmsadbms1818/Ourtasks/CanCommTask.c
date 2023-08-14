@@ -179,13 +179,13 @@ morse_trap(654);
     pcanqed->bmsreq_c.noteyes  = 1; // Yes, we will wait for notification
 
     /* Code that sets rate for ADC conversion. */
-    if ((pcan->cd.uc[2] >> 8) > 7)
+    if ((pcan->cd.uc[2] >> 4) > 7)
     { // Keep within table lookup bounds
     	pcanqed->bmsreq_c.rate = 4; // 7 KHz normal mode
     }
     else
     {
-    	pcanqed->bmsreq_c.rate = (pcan->cd.uc[2] >> 8);
+    	pcanqed->bmsreq_c.rate = (pcan->cd.uc[2] >> 4);
     }
 
     // Timeout check for missing notifications (debugging?)
@@ -511,6 +511,7 @@ static void do_req_codes(struct CANRCVBUF* pcan)
 		// If sufficient time between requests, queue a BMSTask read. If
 		// the readings are not stale BMSTask will do an immediate notification.
 //		if (toosoonchk(pcan) == 0)
+			// Delay a heartbeat
 			CanComm_qreq(REQ_READBMS, 0, pcan);
 		break;
 

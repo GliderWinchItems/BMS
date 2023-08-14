@@ -490,7 +490,7 @@ static void MX_ADC1_Init(void)
   }
   /** Configure Regular Channel
   */
-  sConfig.Channel = ADC_CHANNEL_14;
+  sConfig.Channel = ADC_CHANNEL_13;
   sConfig.Rank = ADC_REGULAR_RANK_5;
   sConfig.SamplingTime = ADC_SAMPLETIME_247CYCLES_5;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
@@ -499,6 +499,7 @@ static void MX_ADC1_Init(void)
   }
   /** Configure Regular Channel
   */
+  sConfig.Channel = ADC_CHANNEL_14;
   sConfig.Rank = ADC_REGULAR_RANK_6;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
@@ -1225,12 +1226,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PC4_PB4_Pin */
-  GPIO_InitStruct.Pin = PC4_PB4_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(PC4_PB4_GPIO_Port, &GPIO_InitStruct);
-
   /*Configure GPIO pins : LED_GRN_Pin LED_RED_Pin PADxx_Pin PAD7_Pin */
   GPIO_InitStruct.Pin = LED_GRN_Pin|LED_RED_Pin|PADxx_Pin|PAD7_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -1272,9 +1267,6 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(WDT_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
-  HAL_NVIC_SetPriority(EXTI4_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(EXTI4_IRQn);
-
   HAL_NVIC_SetPriority(EXTI9_5_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
 
@@ -1693,18 +1685,30 @@ yprintf(&pbuf2," %08X",bqfunction.lc.cid_msg_bms_cellvsmr);
       {
         celltrip_time_lo = ticks_secs - celltrip_time_offset_discharge;
       }
-      yprintf(&pbuf1,"\n\rhyster_sw: %d hysterbits lo 0x%05X, discharge_test_sw: %d discharge time (secs): %4d",
+      yprintf(&pbuf1,"\n\rhyster_sw: %d hysterbits lo 0x%05X, discharge_test_sw: %d discharge time: %5d (secs)",
         bqfunction.hyster_sw,
         bqfunction.hysterbits_lo, 
         bqfunction.discharge_test_sw,
         celltrip_time_lo );
-
+      float ftmp = celltrip_time_lo;
+      yprintf(&pbuf2," %0.2f (hrs)",ftmp);
 
 extern uint32_t dbgtrc;
       yprintf(&pbuf1,"\n\rFETSTAT: 0x%02X  battery_status: 0x%02X dbgtrc: 0x%04x ",
         bqfunction.fet_status,
         bqfunction.battery_status,
-        dbgtrc);     
+        dbgtrc);  
+
+#if 0 // spibms readout duration
+extern uint32_t dbgread2;
+extern uint32_t dbgexttim2;
+  float f1 = dbgread2/16.0;
+  float f2 = dbgexttim2/16.0;
+
+      yprintf(&pbuf2,"\t dbgextim2: %d %0.1f dbgread2 ; %d %0.1f",dbgexttim2,f2, dbgread2,f1);
+      dbgexttim2 = 0;
+      dbgread2 = 0;
+#endif
 
 #if 0  
       yprintf(&pbuf1,"\n\rcellv_latest[i]: ");
@@ -1725,7 +1729,7 @@ extern uint32_t dbgtrc;
       else
         yprintf(&pbuf1,"\t\t\t\t\tDUMP2 OFF");
 
-      yprintf(&pbuf2,"\t %08X",bqfunction.lc.cid_msg_bms_cellvsmr); // CAN ID 
+//      yprintf(&pbuf2,"\t %08X",bqfunction.lc.cid_msg_bms_cellvsmr); // CAN ID 
 
  //     extern uint32_t dbgcellbal;
  //     yprintf(&pbuf1,"\n\rdbgcellbal:%05X",dbgcellbal);

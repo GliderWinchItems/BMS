@@ -172,7 +172,6 @@ void bmsspi_readbms(void)
 	int i;
 	struct BMSCAL* pf;
 	float x;
-uint8_t tmp;	
 
 	/* Skip readout if previous request was too soon. */
 	if ((int)(DTWTIME - time_read_cells) < 0)
@@ -227,8 +226,8 @@ uint8_t tmp;
 The time conversion delays below (second argument in readreg call) are based 
 on the "normal" setting of 7 KHz ADC rate (and system clock of 16 MHz).
 */
-uint16_t clrcell[24];
-uint16_t clrregs[18];
+uint32_t dbgread1;
+uint32_t dbgread2;
 
 void bmsspi_readstuff(uint8_t code)
 {
@@ -253,15 +252,13 @@ void bmsspi_readstuff(uint8_t code)
 	*/
 	case READCELLSGPIO12: // ADC cell voltages + GPIO1 & GPIO2
 
-//for (i = 0; i < 18; i++) clrregs[i] = 55555;
-//readreg(CLRCELL,0,&clrcell[0],&clrcell[0],0); // Clear cells
-//readreg(0      ,5, clrregs, cmdv, 6); // Read cell volts registers
+dbgread1 = DTWTIME;
 
 		cmdz = ((ADCVAX & ~0x180) | tmp); // Set rate MD bits in command
 		cnvdly = conv_delayADCVAX[pssb->rate] + 100; // Look up conversion delay 
 		readreg(cmdz, cnvdly, bmsspiall.cellreg, cmdv, 6); // ADC and Read cell volts
-//readreg(cmdz, 5000, bmsspiall.cellreg, cmdv, 6); // Debug: experiment with delay
-
+//readreg(cmdz, 30000, bmsspiall.cellreg, cmdv, 6); // Debug: experiment with delay
+dbgread2 = DTWTIME - dbgread1;
 		readreg(     0,       0,bmsspiall.auxreg, &cmdv[6], 1); // Read AUX reg A GPIOs 1-3
 		break;
 
@@ -466,15 +463,20 @@ for (int i = 0; i < 6; i++) bmsspiall.debugbuffer[i] = 0xdead;
  	pec15_reg_init();
 
  #ifdef USESDOTOSIGNALENDCONVERSION 
- 	/* EXTI SDO/MISO PB4 end of conversion detection interrupt. */
- //	EXTI->RTSR1 |= (1<<4); // Rising edge
+	/* PC4 EXTI */
+//	GPIOC->MODER &= ~(0x3 << 8); // Mode = input
 
- 	/* Px4 EXTI selection clear. */
-//	SYSCFG->EXTICR[1] &= ~(0x7 << 0);	
+ 	/* EXTI SDO/MISO PB4 end of conversion detection interrupt. */
+ 	EXTI->RTSR1 |= (1<<4); // Rising edge line 4
+
+ 	/* Disable interrupt masks. */
+	EXTI->IMR1 &= ~(1<<4);
+	EXTI->EMR1 &= ~(1<<4);
+	EXTI->PR1   =  (1<<4); // Reset pending request: EXTI 4	 	
 
 	/* EXTI4 ('1818 SDO conversion complete) interrupt initialize*/
-  	HAL_NVIC_SetPriority(EXTI4_IRQn, 5, 0);
-  	HAL_NVIC_EnableIRQ  (EXTI4_IRQn);  	
+//  	HAL_NVIC_SetPriority(EXTI4_IRQn, 5, 0);
+//  	HAL_NVIC_EnableIRQ  (EXTI4_IRQn);  	
 #endif
 
   	/* Make use of TIM15:CH1 OC for timing BMS delays. */
@@ -485,23 +487,10 @@ for (int i = 0; i < 6; i++) bmsspiall.debugbuffer[i] = 0xdead;
 //	TIM15->DIER = (1 << 1);  // Bit 1 CC1IE: Capture/Compare 1 interrupt enable
 //	TIM15->CR1 |= 1;       // Start counter
 
- #ifdef USESDOTOSIGNALENDCONVERSION 
-	/* Disable interrupt masks. */
-	EXTI->IMR1 &= ~(1<<4);
-	EXTI->EMR1 &= ~(1<<4);
-	EXTI->PR1   =  (1<<4); // Reset request: PB4
-#endif
-	/* PC4 as output. */
-//	GPIOC->MODER &= ~(0x3 << 8);
-//	GPIOC->MODER |=  (0x1 << 8);
-//	GPIOC->BSRR  = (1<<(4+16)); // Set PC4 low
-
-	/* PC4 EXTI */
-	//GPIOC->MODER &= ~(0x3 << 8); // Mode = input
-
-	/* PB4 EXTI */
+	/* Set port/pin for EXTI interrupt line 4. */
 	SYSCFG->EXTICR[1] &= ~(0x7 << 0);	
-	SYSCFG->EXTICR[1] |= ~(0x1 << 0);	
+//	SYSCFG->EXTICR[1] |=  (0x1 << 0); // PB4 EXTI
+	SYSCFG->EXTICR[1] |=  (0x2 << 0); // PC4 EXTI	
 
 	/* Last reading time */
 	time_read_cells = DTWTIME; 
@@ -798,10 +787,19 @@ dbgTO_SR = SPI1->SR;
 
 	case TIMSTATE_3: // Wait for a conversion command timer expiration.
 		CSB_GPIO_Port->BSRR = (CSB_Pin); // Set: CSB pin set high
-		timstate = TIMSTATE_2; // 
+
+		/* Disable further EXTI interrupts. */
+		EXTI->IMR1 &= ~(1<<4); // Mask interrupt
+		EXTI->EMR1 &= ~(1<<4); // Mask interrupt
+		EXTI->PR1   =  (1<<4); // Reset pending request: EXTI 4	 
+
+		/* Assure CSB mininum high duration. */
 		TIM15->ARR = CSBDELAYRISE;
 		TIM15->CNT = 0;
 		TIM15->CR1 = 0xD;
+
+		/* TIM15 signals End of sequence. */	
+		timstate = TIMSTATE_2; // 
 		return;
 	
 	default: morse_trap(810); 
@@ -841,13 +839,10 @@ void bmsspi_spidmarx_IRQHandler(DMA_HandleTypeDef* phdma_spi1_rx)
 #ifdef USESDOTOSIGNALENDCONVERSION 
 		/* Setup SPI MISO ('1818 SDO) to interrupt when it goes high. */
 		// Enable interrupt & event
-		EXTI->PR1   =  (1<<4); // Reset pending request: PB4		
-		EXTI->IMR1  |= (1<<4); // Interrupt mask register: not massked
+		EXTI->PR1   =  (1<<4); // Reset pending request: EXTI 4		
+		EXTI->IMR1  |= (1<<4); // Interrupt mask register: not masked
 		EXTI->EMR1  |= (1<<4); // Event mask register: not masked
-//		EXTI->RTSR1 |= (1<<4); // Rising edge trigger
-//		GPIOB->MODER &= ~(0x3 << 8); // Set PB4 mode to input (0x0)
-//		SYSCFG->EXTICR[1] |=  (0x1 << 0); // Select PB4
-dbgpb4 = GPIOB->IDR;	
+
 dbgexttim1 = DTWTIME;		
 #endif
 
@@ -928,9 +923,6 @@ void EXTI4_IRQHandler1(void)
 {
 
 dbgexttim2 = DTWTIME - dbgexttim1;
-morse_trap(886);
-//return;
-
 
 #ifndef USESDOTOSIGNALENDCONVERSION  /*  Use rising SDO to signal end of conversions. */		
 // Conversion time?	
@@ -942,14 +934,15 @@ dbgexti4ctr += 1;
 
 	CSB_GPIO_Port->BSRR = (CSB_Pin); // Set: CSB pin set high
 
-	// Disable interrupt & event
-	EXTI->IMR1 &= ~(1<<4);
-	EXTI->EMR1 &= ~(1<<4);
-	EXTI->PR1   =  (1<<4); // Reset request: PB4
+	/* Disable further EXTI interrupts. */
+	EXTI->IMR1 &= ~(1<<4); // Mask interrupt
+	EXTI->EMR1 &= ~(1<<4); // Mask interrupt
+	EXTI->PR1   =  (1<<4); // Reset pending request: EXTI 4	 	
 
 	// Assure CSB minimum pulse width before next SPI operation.
 	timstate = TIMSTATE_3;
-	TIM15->CR1 = 0;
+	TIM15->CR1 = 0; // Disable interrupts
+	TIM15->SR = ~(1 << 0); // Clear interrupt flag if pending
 	TIM15->ARR = CSBDELAYRISE;
 	TIM15->CNT = 0;
 	TIM15->CR1 = 0xD;	

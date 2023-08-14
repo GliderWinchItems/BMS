@@ -160,7 +160,7 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
    	 if (pi->id == p->lc.cid_uni_bms_emc_i)
    	 	po->cd.uc[0] = CMD_CMD_CELLEMC; // EMC polled cell voltages
    	 else if (pi->id == p->lc.cid_uni_bms_pc_i)
-   	 	po->cd.uc[0] = CMD_CMD_CELLEMC; // PC polled cell voltages
+   	 	po->cd.uc[0] = CMD_CMD_CELLPC; // PC polled cell voltages
    	 else if (pi->id == p->lc.cid_msg_bms_cellvsmr)
    	 	{
 			po->cd.uc[0] = CMD_CMD_CELLHB; // Heartbeat timeout cell voltages
@@ -171,15 +171,16 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
    	 		// Warning: Unexpectd CAN ID
    	 	}
    	 // Send cell voltages: 6 CAN msgs
+   	 bqfunction.HBcellv_ctr = xTaskGetTickCount() + bqfunction.hbct_k;
  	 cancomm_items_sendcell(pi, &p->cellv[0]);
 
  	 return;
     }
 	// Set code in response that identifies who polled
 	if (pi->id == p->lc.cid_uni_bms_emc_i)
-		po->cd.uc[0] = CMD_CMD_MISCPC; // EMC polled cell voltages
+		po->cd.uc[0] = CMD_CMD_MISCEMC; // EMC polled cell voltages
 	else if (pi->id == p->lc.cid_uni_bms_pc_i)
-	 	po->cd.uc[0] = CMD_CMD_MISCEMC; // PC polled cell voltages
+	 	po->cd.uc[0] = CMD_CMD_MISCPC; // PC polled cell voltages
 	else if (pi->id == p->lc.cid_msg_bms_cellvsmr)
 	{
 	 	po->cd.uc[0] = CMD_CMD_MISCHB; // Heartbeat timeout cell voltages
