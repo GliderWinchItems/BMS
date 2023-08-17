@@ -39,8 +39,8 @@
  #define MISCQ_CURRENT_ADC 25 // Below cell #1 minus, current resistor: adc counts
  #define MISCQ_UNIMPLIMENT 26 // Command requested is not implemented
  #define MISCQ_SETFETBITS  27 // Set FET on/off discharge bits
- #define MISCQ_SETDCHGTST  28 // Set discharge test with heater fet load
-
+ #define MISCQ_SETDCHGTST_ON  28 // Set discharge test with heater fet load: ON
+ #define MISCQ_SETDCHGTST_OFF 29 // Set discharge test with heater fet load: OFF
 
 /* *************************************************************************/
  void cancomm_items_init(void);

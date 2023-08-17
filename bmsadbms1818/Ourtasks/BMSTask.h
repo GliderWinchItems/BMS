@@ -39,7 +39,7 @@ union SPI12
 
 /* '1818 ADC rate */
 /* Bits 2 and 1 = MD bits in command
-   Bit 0 Configuration Register A bit */
+   Bit 0 Configuration Register A ADCOPT bit */
 #define RATE422HZ  0 // 000
 #define RATE1KHZ   1 // 001
 #define RATE27KHZ  2 // 010 Fast mode

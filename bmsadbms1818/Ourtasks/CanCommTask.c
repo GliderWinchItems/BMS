@@ -141,7 +141,7 @@ static uint8_t for_us(struct CANRCVBUF* pcan, struct BQFUNCTION* p)
     // Does this CAN node qualify for a response?
 	if  ((((code == (3 << 6))) ||
 		  ((code == (2 << 6)) && ((pcan->cd.uc[2] & (3 << 4)) == p->ident_string)) ||
-		  ((code == (1 << 6)) && ((pcan->cd.uc[2] & 0x0F) == p->ident_onlyus)) ||
+/*		  ((code == (1 << 6)) && ((pcan->cd.uc[2] & 0x0F) == p->ident_onlyus)) || */
 		  ((canid == p->lc.cid_msg_bms_cellvsmr))))
 	{
 		return 0; // Yes, respond.	
@@ -224,7 +224,7 @@ void CanComm_init(struct BQFUNCTION* p )
 
 	/* Pre-load a dummy CAN msg request for sending heartbeat CAN msg. 
 	   This looks like an incoming CAN msg is polling this unit. */
-	can_hb.id       = p->lc.cid_msg_bms_cellvsmr;
+	can_hb.id       = CANID_UNIT_99; // Dummy ID to signify as a heartbeat
 	can_hb.dlc      = 8;
 	can_hb.cd.ull   = 0; // Clear entire payload
 	can_hb.cd.uc[0] = CMD_CMD_CELLPOLL;  // request code (initial, changed later)
@@ -326,8 +326,8 @@ notification and it would be lost. */
 			p->HBstatus_ctr += p->hbct_k;
 			{
 			/* Use dummy CAN msg, then it looks the same as a request CAN msg. */
-				can_hb.cd.ull   = 0xffffffff; // Clear entire payooad
-				can_hb.cd.uc[0] = CMD_CMD_MISCHB; // Misc subcommands code
+				can_hb.cd.ull   = 0xffffffff; // Clear entire payload
+				can_hb.cd.uc[0] = CMD_CMD_TYPE2; // 
 				can_hb.cd.uc[1] = MISCQ_STATUS;   // status code
 				cancomm_items_sendcmdr(&can_hb);  // Handles as if incoming CAN msg.
 			}	

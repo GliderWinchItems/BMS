@@ -1716,25 +1716,28 @@ extern uint32_t dbgexttim2;
 #endif
       yprintf(&pbuf2,"\n\rcellspresent: 0x%05X",bqfunction.cellspresent); 
       yprintf(&pbuf1,"\n\rcellv_hi: #%2d %5dmv",bqfunction.cellx_high+1,bqfunction.cellv_high);
-      yprintf(&pbuf2,"\n\rcellv_lo: #%2d %5dmv",bqfunction.cellx_low+1, bqfunction.cellv_low);
-      yprintf(&pbuf1,"\n\rcellv_tmdelta:%5dmv",bqfunction.cellv_tmdelta);      
-      yprintf(&pbuf2,"\n\rhysterv_lo:    %6.1fmv",bqfunction.hysterv_lo);
-      yprintf(&pbuf1,"\n\rcellv_max: %5d cellv_max_bits: 0x%05X",bqfunction.lc.cellv_max,bqfunction.cellv_max_bits);
-      yprintf(&pbuf2," cellv_min: %5d cellv_min_bits: 0x%05X",bqfunction.lc.cellv_min,bqfunction.cellv_min_bits);
-      yprintf(&pbuf1," cellv_vls: %5d cellv_vlc_bits: 0x%05X",bqfunction.lc.cellv_vlc, bqfunction.cellv_vlc_bits);
-      yprintf(&pbuf2,"\n\rcallbal: 0x%05X  fet_status: 0x%04X FET_CHRG: 0x%01X",bqfunction.cellbal,
+      yprintf(&pbuf2,    " cellv_high_f: %7.1f",bqfunction.cellv_high_f*0.1);
+      yprintf(&pbuf1,"\n\rcellv_lo: #%2d %5dmv",bqfunction.cellx_low+1, bqfunction.cellv_low);
+      yprintf(&pbuf2,    "  cellv_low_f: %7.1f",bqfunction.cellv_low_f*0.1);
+      yprintf(&pbuf1,"\n\rcellv_tmdelta:%5dmv",bqfunction.cellv_tmdelta);
+      yprintf(&pbuf2,"    bqfunction.cellv_sum_f: %7.2fv",bqfunction.cellv_sum_f*0.0001);
+      yprintf(&pbuf1,"\n\rhysterv_lo:    %6.1fmv",bqfunction.hysterv_lo);
+      yprintf(&pbuf2,"\n\rcellv_max: %5d cellv_max_bits: 0x%05X",bqfunction.lc.cellv_max,bqfunction.cellv_max_bits);
+      yprintf(&pbuf1," cellv_min: %5d cellv_min_bits: 0x%05X",bqfunction.lc.cellv_min,bqfunction.cellv_min_bits);
+      yprintf(&pbuf2," cellv_vls: %5d cellv_vlc_bits: 0x%05X",bqfunction.lc.cellv_vlc, bqfunction.cellv_vlc_bits);
+      yprintf(&pbuf1,"\n\rcallbal: 0x%05X  fet_status: 0x%04X FET_CHRG: 0x%01X",bqfunction.cellbal,
           bqfunction.fet_status,(bqfunction.fet_status & FET_CHGR));
       if ((bqfunction.fet_status & FET_DUMP2) != 0)
-        yprintf(&pbuf1,"\t\t\t\t\tDUMP2 ON");
+        yprintf(&pbuf2,"\t\t\t\t\tDUMP2 ON");
       else
-        yprintf(&pbuf1,"\t\t\t\t\tDUMP2 OFF");
+        yprintf(&pbuf2,"\t\t\t\t\tDUMP2 OFF");
 
 //      yprintf(&pbuf2,"\t %08X",bqfunction.lc.cid_msg_bms_cellvsmr); // CAN ID 
 
  //     extern uint32_t dbgcellbal;
  //     yprintf(&pbuf1,"\n\rdbgcellbal:%05X",dbgcellbal);
 
-      yprintf(&pbuf2,"\n\r config:   %04X %04X %04X %04X %04X %04X",
+      yprintf(&pbuf1,"\n\r config:   %04X %04X %04X %04X %04X %04X",
         bmsspiall.configreg[0],bmsspiall.configreg[1],bmsspiall.configreg[2],
         bmsspiall.configreg[3],bmsspiall.configreg[4],bmsspiall.configreg[5]);
 

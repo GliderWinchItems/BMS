@@ -37,7 +37,7 @@
 #define BSTATUS_CELLTOOHI (1 << 2)  // One or more cells above max limit
 #define BSTATUS_CELLTOOLO (1 << 3)  // One or more cells below min limit
 #define BSTATUS_CELLBAL   (1 << 4)  // Cell balancing in progress
-#define BSTATUS_CHARGING  (1 << 5)  // Charging in progress
+#define BSTATUS_CHARGING  (1 << 5)  // Low power charger ON
 #define BSTATUS_DUMPTOV   (1 << 6)  // Discharge to a voltage in progress
 #define BSTATUS_CELLVRYLO (1 << 7)  // One or more cells very low
 
@@ -124,6 +124,9 @@ struct BQFUNCTION
 
 	float cellv[NCELLMAX]; // Cell voltage (calibrated volts)
 	float cellv_sort[NCELLMAX]; // cellv sorted
+	float cellv_high_f;
+	float cellv_low_f;
+	float cellv_sum_f;
 	float current;   // Op-amp sensing: amps current
 	float temperature[3]; // Thermistors: Deg C temperature
 

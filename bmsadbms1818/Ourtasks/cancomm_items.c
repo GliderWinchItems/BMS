@@ -152,6 +152,9 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
 	/* Pointer to payload 4 byte value is used often. */
 	uint8_t* puc = &po->cd.uc[4];
 
+	/* Response carries "our" CAN ID. */
+	po->id = p->lc.cid_msg_bms_cellvsmr;
+
 	skip = 0;
 
    if (pi->cd.uc[0] == CMD_CMD_CELLPOLL)// (code 42) Request to send cell
@@ -161,8 +164,8 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
    	 	po->cd.uc[0] = CMD_CMD_CELLEMC; // EMC polled cell voltages
    	 else if (pi->id == p->lc.cid_uni_bms_pc_i)
    	 	po->cd.uc[0] = CMD_CMD_CELLPC; // PC polled cell voltages
-   	 else if (pi->id == p->lc.cid_msg_bms_cellvsmr)
-   	 	{
+   	 else if (pi->id == CANID_UNIT_99)
+   	 	{ // Here Dummy CAN ID means heartbeat timeout trigger this
 			po->cd.uc[0] = CMD_CMD_CELLHB; // Heartbeat timeout cell voltages
 //			bqfunction.hbseq += 1; // Group sequence number
    	 	}  
@@ -176,114 +179,117 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
 
  	 return;
     }
-	// Set code in response that identifies who polled
-	if (pi->id == p->lc.cid_uni_bms_emc_i)
-		po->cd.uc[0] = CMD_CMD_MISCEMC; // EMC polled cell voltages
-	else if (pi->id == p->lc.cid_uni_bms_pc_i)
-	 	po->cd.uc[0] = CMD_CMD_MISCPC; // PC polled cell voltages
-	else if (pi->id == p->lc.cid_msg_bms_cellvsmr)
-	{
-	 	po->cd.uc[0] = CMD_CMD_MISCHB; // Heartbeat timeout cell voltages
-	//			bqfunction.hbseq += 1; // Group sequence number
-	}  
-	else
-	{
-	 	// Warning: Unexpectd CAN ID
-	}
+   if (pi->cd.uc[0] == CMD_CMD_TYPE2) // (code 42) Request to send cell
+   {    
+		// Set code in response that identifies who polled
+		if (pi->id == p->lc.cid_uni_bms_emc_i)
+			po->cd.uc[0] = CMD_CMD_MISCEMC; // EMC polled cell voltages
+		else if (pi->id == p->lc.cid_uni_bms_pc_i)
+		 	po->cd.uc[0] = CMD_CMD_MISCPC; // PC polled cell voltages
+		else if (pi->id == CANID_UNIT_99)
+		{ // Here Dummy CAN ID means heartbeat timeout trigger this
+		 	po->cd.uc[0] = CMD_CMD_MISCHB; // Heartbeat timeout cell voltages
+		//			bqfunction.hbseq += 1; // Group sequence number
+		}  
+		else
+		{
+		 	// Warning?: Unexpectd CAN ID
+		}
 
-	/* Command code. 
-	If a BMSTask request was needed this would have been taken care of
-	in CanCommTask before this routine is called. To queue a request
-	here could result in an endless loop. 
-	*/
-	switch(pi->cd.uc[2])
-	{
-	case MISCQ_STATUS:      // 1 status
-		status_group(po);
-		break;
+		/* Command code. 
+		If a BMSTask request was needed this would have been taken care of
+		in CanCommTask before this routine is called. To queue a request
+		here could result in an endless loop. 
+		*/
+		switch(pi->cd.uc[2])
+		{
+		case MISCQ_STATUS:      // 1 status
+			status_group(po);
+			break;
 
- 	case MISCQ_CELLV_CAL:   // 2 cell voltage: calibrated
-//		CanComm_qreq(REQ_READBMS, 0, pi); // Read cells + GPIO 1 & 2
- 		break;
+	 	case MISCQ_CELLV_CAL:   // 2 cell voltage: calibrated
+	//		CanComm_qreq(REQ_READBMS, 0, pi); // Read cells + GPIO 1 & 2
+	 		break;
 
- 	case MISCQ_CELLV_ADC:   // 3 cell voltage: adc counts
- 		send_bms_array(po, &p->raw_filt[0], p->lc.ncell);
- 		break;
+	 	case MISCQ_CELLV_ADC:   // 3 cell voltage: adc counts
+	 		send_bms_array(po, &p->raw_filt[0], p->lc.ncell);
+	 		break;
 
- 	case MISCQ_TEMP_CAL:    // 4 temperature sensor: calibrated
-//		CanComm_qreq(REQ_TEMPERATURE, 0, pi); // Read AUX
- 		send_bms_array(po, &bqfunction.cal_filt[16], 3);
- 		break;
+	 	case MISCQ_TEMP_CAL:    // 4 temperature sensor: calibrated
+	//		CanComm_qreq(REQ_TEMPERATURE, 0, pi); // Read AUX
+	 		send_bms_array(po, &bqfunction.cal_filt[16], 3);
+	 		break;
 
- 	case MISCQ_TEMP_ADC:    // 5 temperature sensor: adc counts
- 		send_bms_array(po, &p->raw_filt[16], 3);
- 		break;
+	 	case MISCQ_TEMP_ADC:    // 5 temperature sensor: adc counts
+	 		send_bms_array(po, &p->raw_filt[16], 3);
+	 		break;
 
- 	case MISCQ_DCDC_V:      // 6 isolated dc-dc converter output voltage
- 		loadfloat(puc, &adc1.abs[ADC1IDX_PA4_DC_DC].filt);
- 		break;
+	 	case MISCQ_DCDC_V:      // 6 isolated dc-dc converter output voltage
+	 		loadfloat(puc, &adc1.abs[ADC1IDX_PA4_DC_DC].filt);
+	 		break;
 
- 	case MISCQ_CHGR_V:      // 7 charger hv voltage
- 		loadfloat(puc, &adc1.abs[ADC1IDX_PA7_HV_DIV].filt);
- 		break;
+	 	case MISCQ_CHGR_V:      // 7 charger hv voltage
+	 		loadfloat(puc, &adc1.abs[ADC1IDX_PA7_HV_DIV].filt);
+	 		break;
 
- 	case MISCQ_HALL_CAL:    // 8 Hall sensor: calibrated
- 		not_implemented(po);
- 		break;
+	 	case MISCQ_HALL_CAL:    // 8 Hall sensor: calibrated
+	 		not_implemented(po);
+	 		break;
 
- 	case MISCQ_HALL_ADC:    // 9 Hall sensor: adc counts
- 		not_implemented(po);
- 		break;
+	 	case MISCQ_HALL_ADC:    // 9 Hall sensor: adc counts
+	 		not_implemented(po);
+	 		break;
 
- 	case MISCQ_CELLV_HI:   // 10 Highest cell voltage
- 		po->cd.uc[2] = p->cellx_high;
- 		loaduint32(puc, p->cellv_high);
- 		break;
+	 	case MISCQ_CELLV_HI:   // 10 Highest cell voltage
+	 		po->cd.uc[2] = p->cellx_high;
+	 		loaduint32(puc, p->cellv_high);
+	 		break;
 
- 	case MISCQ_CELLV_LO:   // 11 Lowest cell voltage
- 		po->cd.uc[2] = p->cellx_low;
- 		loaduint32(puc, p->cellv_low);
- 		break;
+	 	case MISCQ_CELLV_LO:   // 11 Lowest cell voltage
+	 		po->cd.uc[2] = p->cellx_low;
+	 		loaduint32(puc, p->cellv_low);
+	 		break;
 
- 	case MISCQ_FETBALBITS: // 12 FET on/off discharge bits
- 		loaduint32(puc,bqfunction.cellbal);
-		break;
+	 	case MISCQ_FETBALBITS: // 12 FET on/off discharge bits
+	 		loaduint32(puc,bqfunction.cellbal);
+			break;
 
-	case MISCQ_TOPOFSTACK: // BMS top-of-stack voltage
-		send_bms_array(po, &bqfunction.cal_filt[19], 1);
-		break;		
+		case MISCQ_TOPOFSTACK: // BMS top-of-stack voltage
+			send_bms_array(po, &bqfunction.cal_filt[19], 1);
+			break;		
 
- 	case MISCQ_PROC_CAL: // Processor ADC calibrated readings
- 		for (i = 0; i < ADCDIRECTMAX; i++) // Copy struct items to float array
- 			ftmp[i] = adc1.abs[i].filt;
- 		ftmp[1] = adc1.common.degC; // Insert special internal temperature calibration 
- 		send_bms_array(po, &ftmp[0], ADCDIRECTMAX);
- 		break;
+	 	case MISCQ_PROC_CAL: // Processor ADC calibrated readings
+	 		for (i = 0; i < ADCDIRECTMAX; i++) // Copy struct items to float array
+	 			ftmp[i] = adc1.abs[i].filt;
+	 		ftmp[1] = adc1.common.degC; // Insert special internal temperature calibration 
+	 		send_bms_array(po, &ftmp[0], ADCDIRECTMAX);
+	 		break;
 
- 	case MISCQ_PROC_ADC: // Processor ADC raw adc counts for making calibrations
-		for (i = 0; i < ADCDIRECTMAX; i++) // Copy struct items to float array
- 			ftmp[i] = adc1.abs[i].sumsave;
-		send_bms_array(po, &ftmp[0], ADCDIRECTMAX); 	
- 		break;
+	 	case MISCQ_PROC_ADC: // Processor ADC raw adc counts for making calibrations
+			for (i = 0; i < ADCDIRECTMAX; i++) // Copy struct items to float array
+	 			ftmp[i] = adc1.abs[i].sumsave;
+			send_bms_array(po, &ftmp[0], ADCDIRECTMAX); 	
+	 		break;
 
-	case MISCQ_R_BITS:      // 21 Dump, dump2, heater, discharge bits
-		send_allfets(po);
- 		break;
+		case MISCQ_R_BITS:      // 21 Dump, dump2, heater, discharge bits
+			send_allfets(po);
+	 		break;
 
-	case MISCQ_CURRENT_CAL: // 24 Below cell #1 minus, current resistor: calibrated
-		not_implemented(po);
- 		break;
+		case MISCQ_CURRENT_CAL: // 24 Below cell #1 minus, current resistor: calibrated
+			not_implemented(po);
+	 		break;
 
-	case MISCQ_CURRENT_ADC: // 25 Below cell #1 minus, current resistor: adc counts		
-		not_implemented(po);
- 		break;
+		case MISCQ_CURRENT_ADC: // 25 Below cell #1 minus, current resistor: adc counts		
+			not_implemented(po);
+	 		break;
 
- 	case MISCQ_SETDCHGTST: // 28 Set discharge test with heater fet load
- 		p->hyster_sw = 0;  // Stop self-discharge if sw is on.
- 		p->discharge_test_sw = 1; // Enable heater when hyster_sw comes on
- 		break;
+	 	case MISCQ_SETDCHGTST_ON: // 28 Set discharge test with heater fet load
+	 		p->hyster_sw = 0;  // Stop self-discharge if sw is on.
+	 		p->discharge_test_sw = 1; // Enable heater when hyster_sw comes on
+	 		break;
 
 
+		}
 	}
 	if (skip == 0)
 	{ // Here, single CAN msg has not been queued for sending
@@ -390,9 +396,10 @@ FETS--
 #define FET_CHGR_VLC (1 << 4) // 1 = Charger FET enabled: Very Low Charge rate
 */
 	struct BQFUNCTION* p = &bqfunction;
-	// Reserved byte
-	po->cd.uc[3] = 0;
-	// Status bytes (U8)
+	po->cd.uc[1] = MISCQ_STATUS; // 
+	po->cd.us[1] = 0; // uc[2]-[3] cleared
+	// Data payload bytes [4]-[7]
+	po->cd.ui[1] = 0; // Clear
 	po->cd.uc[4] = p->battery_status;
 	po->cd.uc[5] = p->fet_status;
 	skip = 0;
