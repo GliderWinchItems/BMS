@@ -13,6 +13,7 @@
 #define CANCOMMITEMSNOTE00 (1<<0) // CanCommTask TaskWait notification bit
 
 // payload [1] U8: TYPE2 Command code
+// NOTE: Skipped codes are available for new subcommands
  #define MISCQ_HEARTBEAT   0   // reserved for heartbeat
  #define MISCQ_STATUS      1 // status
  #define MISCQ_CELLV_CAL   2 // cell voltage: calibrated
@@ -25,11 +26,10 @@
  #define MISCQ_HALL_ADC    9 // Hall sensor: adc counts for making calibration
  #define MISCQ_CELLV_HI   10 // Highest cell voltage
  #define MISCQ_CELLV_LO   11 // Lowest cell voltage
- #define MISCQ_FETBALBITS 12 // Read FET on/off discharge bits
- #define MISCQ_DUMP_ON	  13 // Turn on Dump FET for no more than ‘payload [3]’ secs
- #define MISCQ_DUMP_OFF	  14 // Turn off Dump FET
- #define MISCQ_HEATER_ON  15 // Enable Heater mode to ‘payload [3] temperature
- #define MISCQ_HEATER_OFF 16 // Turn Heater mode off.
+ #define MISCQ_FETBALBITS 12 // Read FET on|off discharge bits
+ #define MISCQ_SET_DUMP	  13 // Set DUMP FET on|off
+ #define MISCQ_SET_DUMP2  14 // Set DUMP2 FET FET: on|off
+ #define MISCQ_SET_HEATER 15 // Set HEATER FET on|off
  #define MISCQ_TRICKL_OFF 17 // Turn trickle charger off for no more than ‘payload [3]’ secs
  #define MISCQ_TOPOFSTACK 18 // BMS top-of-stack voltage
  #define MISCQ_PROC_CAL   19 // Processor ADC calibrated readings
@@ -38,9 +38,17 @@
  #define MISCQ_CURRENT_CAL 24 // Below cell #1 minus, current resistor: calibrated
  #define MISCQ_CURRENT_ADC 25 // Below cell #1 minus, current resistor: adc counts
  #define MISCQ_UNIMPLIMENT 26 // Command requested is not implemented
- #define MISCQ_SETFETBITS  27 // Set FET on/off discharge bits
- #define MISCQ_SETDCHGTST_ON  28 // Set discharge test with heater fet load: ON
- #define MISCQ_SETDCHGTST_OFF 29 // Set discharge test with heater fet load: OFF
+ #define MISCQ_SET_FETBITS  27 // Set FET on/off discharge bits
+ #define MISCQ_SET_DCHGTST  28 // Set discharge test via heater fet load on|off
+ #define MISCQ_SET_DCHGFETS 30 // Set discharge FETs: all, on|off, or single
+
+/* MISCQ_SET_DCHGFETS Sub code for sending request. 
+Requester payload[3] 
+  0 = All FETs off
+  1-18 = FET number to turn ON.
+  111  = All FETs on
+*/  
+
 
 /* *************************************************************************/
  void cancomm_items_init(void);
