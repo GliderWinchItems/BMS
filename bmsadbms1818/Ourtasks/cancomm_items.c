@@ -22,6 +22,8 @@ static void status_group(struct CANRCVBUF* po);
 static void send_bms_array(struct CANRCVBUF* po, float* pout, uint8_t n);
 static void send_allfets(struct CANRCVBUF* po);
 static void not_implemented(struct CANRCVBUF* po);
+static void send_bms_one(struct CANRCVBUF* po, float* pout, uint8_t k);
+
 
 static uint8_t skip;
 /* *************************************************************************
@@ -201,6 +203,7 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
 		in CanCommTask before this routine is called. To queue a request
 		here could result in an endless loop. 
 		*/
+		po->cd.uc[1] = pi->cd.uc[2]; // MISCQ code
 		switch(pi->cd.uc[2])
 		{
 		case MISCQ_STATUS:      // 1 status
@@ -217,7 +220,10 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
 
 	 	case MISCQ_TEMP_CAL:    // 4 temperature sensor: calibrated
 	//		CanComm_qreq(REQ_TEMPERATURE, 0, pi); // Read AUX
-	 		send_bms_array(po, &bqfunction.cal_filt[16], 3);
+	 		po->cd.uc[2] = 0xA5; // Not used
+	 		send_bms_one(po, &bqfunction.lc.thermcal[0].temp,0);
+	 		send_bms_one(po, &bqfunction.lc.thermcal[1].temp,1);
+	 		send_bms_one(po, &bqfunction.lc.thermcal[2].temp,2);
 	 		break;
 
 	 	case MISCQ_TEMP_ADC:    // 5 temperature sensor: adc counts
@@ -283,9 +289,9 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
 			not_implemented(po);
 	 		break;
 
-	 	case MISCQ_SETDCHGTST_ON: // 28 Set discharge test with heater fet load
+	 	case MISCQ_SET_DCHGTST: // 28 Set discharge test with heater fet load
 	 		p->hyster_sw = 0;  // Stop self-discharge if sw is on.
-	 		p->discharge_test_sw = 1; // Enable heater when hyster_sw comes on
+	 		p->discharge_test_sw = pi->cd.uc[4] & 1; // Enable heater when hyster_sw comes on
 	 		break;
 
 
@@ -296,6 +302,21 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
 		/* Queue CAN msg response. */
 		xQueueSendToBack(CanTxQHandle, po, 4);
 	}
+	return;
+}
+/* *************************************************************************
+ * static void send_bms_one(struct CANRCVBUF* po, float* pout, uint8_t k);
+ *	@brief	: Prepare and send one CAN msgs w float
+ *  @param  : po = pointer response CAN msg
+ *  @param  : pout = pointer to output array of floats
+ *  @param  : k = identification number (e.g. thermistor #1)
+ * *************************************************************************/
+static void send_bms_one(struct CANRCVBUF* po, float* pout, uint8_t k)
+{
+	po->cd.uc[3] = k;
+	loadfloat(&po->cd.uc[4], pout);// Reading into 4 byte payload
+	xQueueSendToBack(CanTxQHandle,po,4);// Queue (copy) CAN msg
+	skip = 1;
 	return;
 }
 /* *************************************************************************

@@ -1491,18 +1491,18 @@ uint32_t ticks_next = xTaskGetTickCount();
         break;
 
       case 5: // Temperature (AUX reg)
-       yprintf(&pbuf2,"\n\r%5d AUX    %6d %6d %6d %6d",dbgka,
+       yprintf(&pbuf2,"\n\r%5d AUX %6d %6d %6d %6d",dbgka,
         bmsspiall.auxreg[0],bmsspiall.auxreg[1],bmsspiall.auxreg[2],bmsspiall.auxreg[3]);
        yprintf(&pbuf1," %6d %6d %6d %6d %6d %d",
         bmsspiall.auxreg[4],bmsspiall.auxreg[5],bmsspiall.auxreg[6],bmsspiall.auxreg[7],bmsspiall.auxreg[8],
         dbstat2/16);
 
       bms_items_extract_statreg();
-      yprintf(&pbuf2,"\n\r%5d        TS:%6.2f TMP:%5.1f VA:%6.3f VG:%6.3f",dbgka,
+      yprintf(&pbuf2,"\n\r%5d SC-sumcells:%6.2fv ITMP-internal-temp:%5.1fC VA-analog:%6.3fv VD-digital:%6.3fv",dbgka,
           extractstatreg.sc, extractstatreg.itmp,
           extractstatreg.va, extractstatreg.vd  );
 
-      bms_items_therm_temps(); // Convert thermistor readings to tempature (deg C)
+      bms_items_therm_temps(); // Convert thermistor readings to temperature (deg C)
       extern float fanrpm;
       yprintf(&pbuf1,"\n\rTEMP:%5.1f %5.1f %5.1f Fanpwm: %d Fanrpm: %0.3f Z",
           bqfunction.lc.thermcal[0].temp,
@@ -1523,7 +1523,7 @@ uint32_t ticks_next = xTaskGetTickCount();
 
 #if 1
     /* Update FAN control. (4/sec) */
-    bms_items_therm_temps(); // Convert thermistor readings to tempature (deg C)
+    bms_items_therm_temps(); // Convert thermistor readings to temperature (deg C)
     fanop();
 #endif
 

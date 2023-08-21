@@ -50,7 +50,7 @@ struct BMSCAL
    //int32_t  ioffset; // Offset before float conversion
 };
 
-struct BMSCALTEMP // Thermister->temperature calibration
+struct BMSCALTEMP // Thermistor->temperature calibration
 {
    float tt[3]; // coefficients for: x^0 x^1 x^2
    float temp;  // Temperature (deg C)

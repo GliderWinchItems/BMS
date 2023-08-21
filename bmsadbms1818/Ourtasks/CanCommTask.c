@@ -569,7 +569,7 @@ static uint8_t q_do(struct CANRCVBUF* pcan)
 /* #### RATE7KHZ needs updating for CAN msg request. */
 	/* BMSTask: REQ_SETFETS */
  	/* ???? Does this require a read AUX registers? */
-	case MISCQ_SETFETBITS: //  27 // Set FET on/off discharge bits
+	case MISCQ_FETBALBITS: //  27 // Set FET on/off discharge bits
  		CanComm_qreq(REQ_SETFETS, pcan->cd.ui[1], pcan);
  		break;
 
