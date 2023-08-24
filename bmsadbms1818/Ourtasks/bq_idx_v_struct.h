@@ -55,6 +55,7 @@ struct BMSCALTEMP // Thermistor->temperature calibration
    float tt[3]; // coefficients for: x^0 x^1 x^2
    float temp;  // Temperature (deg C)
    uint8_t installed; // Installed: 0 = no, 1 = yes
+   uint8_t zread; // 1 = current reading was zero
 };
 
 

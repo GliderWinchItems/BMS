@@ -20,6 +20,7 @@
 #include "rtcregs.h"
 
 
+
 struct BMSSPIALL bmsspiall;
 struct EXTRACTCONFIGREG extractconfigreg;
 struct EXTRACTSTATREG   extractstatreg;
@@ -42,6 +43,7 @@ uint8_t rate_last; // ADC rate code, last set
 #define WAKETICKS 1000 // 1 sec of FreeRTOS timer ticks
 TickType_t tickref;
 TickType_t tickwait;
+TickType_t tickka;
 
 /* *************************************************************************
  * void StartBMSTask(void const * argument);
@@ -63,9 +65,10 @@ void StartBMSTask(void *argument)
 	/* Dummy request for keepawake. */
 	req_ka.setfets  = 0; // Discharge fet bits off
     req_ka.noteyes  = 0; // We will NOT wait for notification
-    req_ka.rate     = RATE26HZ; // RATE422HZ // RATE7KHZ; // ADC rate code
+    req_ka.rate     = RATE7KHZ;//RATE26HZ; // RATE422HZ // RATE7KHZ; // ADC rate code
 
 	tickref= xTaskGetTickCount();
+	tickka = xTaskGetTickCount();
 
    	/* Infinite loop */
   	for(;;)
@@ -90,6 +93,7 @@ morse_trap(808);
 			}
 
 			/* Execute request. */
+		
 			switch (pssb->reqcode)
 			{
 			case REQ_BOGUS: // JIC debug
@@ -123,6 +127,7 @@ morse_trap(808);
 				morse_trap(806); // Debugging trap
 				break;
 			}
+		
 			/* Requesting task may not wait, but polls 'done' to signal completion. */
 			pssb->done = 0; // Show request completed
 
@@ -132,12 +137,18 @@ morse_trap(808);
 				ret = xTaskNotify(pssb->bmsTaskHandle, pssb->tasknote, eSetBits);
  				if (ret != pdPASS) morse_trap(247);
  			}
+ 			/* Insert some keepalive to keep updating temperature, etc. */
+ 			if ((int)(xTaskGetTickCount() - tickka) > 0)
+ 			{
+ 				dbgka = bmsspi_keepawake();
+ 				tickka += pdMS_TO_TICKS(WAKETICKS);
+ 			}
 	  	}
 	  	else
 	  	{ // Timeout waiting for queued request. Execute a keep-awake command. */
 // Debug: dbgka used by main.c to clocking display	  
-//			pssb->done = 1; // Show request queued
 	  		dbgka = bmsspi_keepawake();
+	  		tickka += pdMS_TO_TICKS(WAKETICKS);
 //	  		pssb->done = 0; // Show request completed
 // Running count, debugging
 bmsdbctr += 1;	  	

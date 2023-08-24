@@ -35,6 +35,10 @@ extern struct BMSSPIALL bmsspiall;
  union SPI12 spirx12; // SPI monitor received from '1818'
 static uint8_t  timstate;   // State for ISR handling: TIM
 
+
+static uint32_t wait_isr;
+static uint32_t wait_isr_ovr;
+
 uint32_t dbgt1,dbgt2;
 
 void bmsspi_readstuff(uint8_t code);
@@ -149,9 +153,9 @@ uint8_t readbmsflag; // Let main know a BMS reading was made
  * *************************************************************************/
 void bmsspi_setrateADOPT(void)
 {
-//	if (pssb->rate != rate_last)
+	if (pssb->rate != rate_last)
 	{ // Here, request changes the rate
-//		if ((pssb->rate & 0x1) != (rate_last & 0x1))
+		if ((pssb->rate & 0x1) != (rate_last & 0x1))
 		{ // Here, ADCOPT bit in CFGAR0 needs a re-write
 			rate_last = (pssb->rate & 0x1);
 			bmsspiall.configreg[0] &= ~(0x1 << 0);
@@ -272,6 +276,7 @@ void bmsspi_readstuff(uint8_t code)
 dbgread1 = DTWTIME;
 
 		cmdz = ((ADCVAX & ~0x180) | tmp); // Set rate MD bits in command
+//		cmdz = ((ADCV & ~0x180) | tmp); // Set rate MD bits in command
 		cnvdly = conv_delayADCVAX[pssb->rate] + 100; // Look up conversion delay 
 		readreg(cmdz, cnvdly, bmsspiall.cellreg, cmdv, 6); // ADC and Read cell volts
 //readreg(cmdz, 30000, bmsspiall.cellreg, cmdv, 6); // Debug: experiment with delay
@@ -279,10 +284,13 @@ dbgread2 = DTWTIME - dbgread1;
 		readreg(     0,       0,bmsspiall.auxreg, &cmdv[6], 1); // Read AUX reg A GPIOs 1-3
 		break;
 
+	case READAUX: // ADC and Read all 9 GPIOs voltage registers: A B C D 
 	case READGPIO: // ADC and Read all 9 GPIOs voltage registers: A B C D 
 		cmdz = ((ADAX & ~0x180) | tmp); // Set rate MD bits in command
-		cnvdly = conv_delayADAX[pssb->rate] + 100;
+		cnvdly = conv_delayADAX[pssb->rate] + 1000;
+//		readreg(cmdz, 360000, bmsspiall.auxreg, cmdaux, 4);
 		readreg(cmdz, cnvdly, bmsspiall.auxreg, cmdaux, 4);
+bms_items_therm_temps(); // Convert thermistor readings to temperature (deg C)
 		break;
 
 	case READSTAT: // ADC and Read status regs: A B
@@ -297,12 +305,6 @@ dbgread2 = DTWTIME - dbgread1;
 	case READSREG: // Read S register (original delay: 0)
 		readreg(     0,        0,bmsspiall.sreg,cmdsreg,1);
 		break;	
-
-	case READAUX: // ADC and Read all 9 GPIOs voltage registers: A B C D 
-		cmdz = ((ADAX & ~0x180) | tmp); // Set rate MD bits in command
-		cnvdly = conv_delayADAX[pssb->rate] + 100;
-		readreg(cmdz, cnvdly,bmsspiall.auxreg, cmdaux,4);
-		break;			
 
 	default: 
 		morse_trap (253);
@@ -363,8 +365,8 @@ void bmsspi_setfets(void)
  * *************************************************************************/
 void bms_gettemp(void)
 {
-	if ((int)(DTWTIME - time_read_aux) < 0)
-		return;
+//	if ((int)(DTWTIME - time_read_aux) < 0)
+//		return;
 	bmsspi_readstuff(READAUX);
 	time_read_aux = DTWTIME + MINREADOUT;
 	return;
@@ -382,6 +384,24 @@ void bmsspi_wakeseq(void)
 	CSB_GPIO_Port->BSRR = (CSB_Pin); // Set: CSB pin set high
 	osDelay(6); // Startup delay
 	return;
+}
+/* Loop if auxreg has some bad values. */
+uint32_t dbgaux;
+void readauxloop(void)
+{
+	dbgaux = 0;
+	req_ka.reqcode = READAUX;	
+	do
+	{
+		bmsspi_readstuff(READAUX);
+		if (!((bmsspiall.auxreg[1] < 60) ||
+			(bmsspiall.auxreg[2] < 60) ||
+			(bmsspiall.auxreg[3] < 60) ||
+			(bmsspiall.auxreg[5] < 6800)))
+			break;
+//		osDelay(1);
+		dbgaux += 1;
+	}while(dbgaux < 3);
 }
 /* *************************************************************************
  * uint8_t bmsspi_keepawake(void);
@@ -410,18 +430,20 @@ uint8_t bmsspi_keepawake(void)
 		req_ka.reqcode = READSREG;
 		bmsspi_readstuff(READSREG);
 		break;
-	case 3: // Write config register A */
+	case 3: // Write config register A */		
 		req_ka.reqcode = WRITECONFIG;
 		bmsspi_writereg(WRITECONFIG);
 		break;
 	case 4:	// Read cells and GPIO1 GPIO2
 		req_ka.reqcode = READCELLSGPIO12;
-		bmsspi_readstuff(READCELLSGPIO12); 
+//		bmsspi_readstuff(READCELLSGPIO12); 
 //		bmsspi_readbms();
 		break;
 	case 5:
 		req_ka.reqcode = READAUX;	
-		bmsspi_readstuff(READAUX);
+//		bmsspi_readstuff(READAUX);
+		readauxloop();
+
 		break;
 	}
 
@@ -531,8 +553,6 @@ uint32_t dbstat2;
 uint16_t loopctr;
 uint32_t loopctr_save;
 
-uint32_t wait_isr;
-uint32_t wait_isr_ovr;
 
 static uint16_t readreg(uint16_t cmdx, uint32_t wait, uint16_t* p, const uint16_t* pcmdr, uint8_t n)
 {

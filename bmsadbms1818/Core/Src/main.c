@@ -1491,27 +1491,29 @@ uint32_t ticks_next = xTaskGetTickCount();
         break;
 
       case 5: // Temperature (AUX reg)
-       yprintf(&pbuf2,"\n\r%5d AUX %6d %6d %6d %6d",dbgka,
-        bmsspiall.auxreg[0],bmsspiall.auxreg[1],bmsspiall.auxreg[2],bmsspiall.auxreg[3]);
-       yprintf(&pbuf1," %6d %6d %6d %6d %6d %d",
-        bmsspiall.auxreg[4],bmsspiall.auxreg[5],bmsspiall.auxreg[6],bmsspiall.auxreg[7],bmsspiall.auxreg[8],
-        dbstat2/16);
+       yprintf(&pbuf2,"\n\rAUX %6d %6d %6d",bmsspiall.auxreg[0],bmsspiall.auxreg[ 1],bmsspiall.auxreg[ 2]);
+       yprintf(&pbuf1," %6d %6d %6d",   bmsspiall.auxreg[3],bmsspiall.auxreg[ 4],bmsspiall.auxreg[ 5]);
+       yprintf(&pbuf2," %6d %6d %6d",   bmsspiall.auxreg[6],bmsspiall.auxreg[ 7],bmsspiall.auxreg[ 8]);
+       yprintf(&pbuf1," %6d %6d %6d %d",bmsspiall.auxreg[9],bmsspiall.auxreg[10],bmsspiall.auxreg[11], dbstat2/16);
+
+       extern uint32_t dbgaux;
+       yprintf(&pbuf2," %d",dbgaux);
 
       bms_items_extract_statreg();
-      yprintf(&pbuf2,"\n\r%5d SC-sumcells:%6.2fv ITMP-internal-temp:%5.1fC VA-analog:%6.3fv VD-digital:%6.3fv",dbgka,
+      yprintf(&pbuf1,"\n\r%5d SC-sumcells:%6.2fv ITMP-internal-temp:%5.1fC VA-analog:%6.3fv VD-digital:%6.3fv",dbgka,
           extractstatreg.sc, extractstatreg.itmp,
           extractstatreg.va, extractstatreg.vd  );
 
       bms_items_therm_temps(); // Convert thermistor readings to temperature (deg C)
       extern float fanrpm;
-      yprintf(&pbuf1,"\n\rTEMP:%5.1f %5.1f %5.1f Fanpwm: %d Fanrpm: %0.3f Z",
+      yprintf(&pbuf2,"\n\rTEMP:%5.1f %5.1f %5.1f Fanpwm: %d Fanrpm: %0.3f Z",
           bqfunction.lc.thermcal[0].temp,
           bqfunction.lc.thermcal[1].temp,
           bqfunction.lc.thermcal[2].temp, 
           bqfunction.fanspeed, fanrpm);
 
       bms_items_current_sense(); // Calibrate current sense readings
-      yprintf(&pbuf2,"\n\rCURRENT: %5.1f",current_sense);
+      yprintf(&pbuf1,"\n\rCURRENT: %5.1f",current_sense);
         break;
 
       default:

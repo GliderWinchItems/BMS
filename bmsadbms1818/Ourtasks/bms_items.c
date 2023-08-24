@@ -186,7 +186,7 @@ static void uvov(uint8_t* p, uint8_t s)
 }
 /* *************************************************************************
  * void bms_items_therm_temps(void);
- * @brief	: Convert to temperature the latest thermistor voltages
+ * @brief	: Convert to temperature from the latest thermistor voltages
  * *************************************************************************/
 void bms_items_therm_temps(void)
 {
@@ -194,15 +194,24 @@ void bms_items_therm_temps(void)
 	float tmpf;
 	float* pf;
 	uint16_t* paux = &bmsspiall.auxreg[1];
-		
+
+	/* auxreg[1],[2],[3] have thermistor readings. */
 	for (i = 0; i < 3; i++)
 	{
-		tmpf = *paux++;
-		pf = &bqfunction.lc.thermcal[i].tt[0];
-		bqfunction.lc.thermcal[i].temp = 
-		 (*(pf + 2) * tmpf * tmpf) +
- 		 (*(pf + 1) * tmpf) +
-		 (*(pf + 0)       );
+		/* Guard against partial AUX register readouts. */
+		if (*paux < 4)
+		{ // Here, a zero reading. Leave old computation in place. */
+			bqfunction.lc.thermcal[i].zread = 1; // Monitor/debug flag
+		}
+		else
+		{ // Here compute new calibrated temperature (a+bx+cx^2)
+			bqfunction.lc.thermcal[i].zread = 0; // Monitor/debug flag
+			tmpf = *paux; // Convert reading to float.
+			pf = &bqfunction.lc.thermcal[i].tt[0];// Ptr: coefficients
+			bqfunction.lc.thermcal[i].temp = 
+			(*(pf+0) + (*(pf+1) + *(pf+2) * tmpf) * tmpf);
+		}
+		paux += 1;
 	}
 	return;
 }

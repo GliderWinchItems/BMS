@@ -168,8 +168,6 @@ struct BQFUNCTION
 	uint32_t HBstatus_ctr; // Count RTOS ticks for hearbeat timing: status msg
 	uint32_t HBcellv_ctr; // Count RTOS ticks for hearbeat timing: cellv msg
 
-
-
 	/* balnumwrk might be adjusted based on chip temperature. */
 	uint8_t balnumwrk; // Max number of active cell bits (Working)
 
