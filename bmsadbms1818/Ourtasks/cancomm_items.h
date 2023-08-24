@@ -27,9 +27,9 @@
  #define MISCQ_CELLV_HI   10 // Highest cell voltage
  #define MISCQ_CELLV_LO   11 // Lowest cell voltage
  #define MISCQ_FETBALBITS 12 // Read FET on|off discharge bits
- #define MISCQ_SET_DUMP	  13 // Set DUMP FET on|off
- #define MISCQ_SET_DUMP2  14 // Set DUMP2 FET FET: on|off
- #define MISCQ_SET_HEATER 15 // Set HEATER FET on|off
+ #define MISCQ_SET_DUMP	  13 // Set ON|OFF DUMP FET on|off
+ #define MISCQ_SET_DUMP2  14 // Set ON|OFF DUMP2 FET FET: on|off
+ #define MISCQ_SET_HEATER 15 // Set ON|OFF HEATER FET on|off
  #define MISCQ_TRICKL_OFF 17 // Turn trickle charger off for no more than ‘payload [3]’ secs
  #define MISCQ_TOPOFSTACK 18 // BMS top-of-stack voltage
  #define MISCQ_PROC_CAL   19 // Processor ADC calibrated readings
@@ -41,6 +41,7 @@
  #define MISCQ_SET_FETBITS  27 // Set FET on/off discharge bits
  #define MISCQ_SET_DCHGTST  28 // Set discharge test via heater fet load on|off
  #define MISCQ_SET_DCHGFETS 30 // Set discharge FETs: all, on|off, or single
+ #define MISCQ_SET_SELFDCHG 31 // Set ON|OFF self-discharge mode
 
 /* MISCQ_SET_DCHGFETS Sub code for sending request. 
 Requester payload[3] 

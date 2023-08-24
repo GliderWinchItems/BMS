@@ -137,6 +137,7 @@ struct BQFUNCTION
 	uint32_t hysterbits_lo_save;
 	uint8_t  hyster_sw;     // Hysteresis switch: 1 = peak was reached
 	uint8_t  discharge_test_sw; // sw = 1, heater load on when hyster_sw on.
+	uint8_t  hyster_sw_trip; // Set by CAN msg to trip hyster_sw
 
 	// Adjustment to hold charger power taken from DC-DC converter constant
 	uint8_t dcdc_oto;   // One-time-only calibration sw

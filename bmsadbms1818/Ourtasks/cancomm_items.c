@@ -101,6 +101,7 @@ dbgsendcellctr += 1;
 	struct BQFUNCTION* p = &bqfunction;
 	uint8_t i;
 	uint8_t j;
+	//uint8_t uctmp;
 
 	// DLC is the same for all
 	p->canmsg.can.dlc = 8;
@@ -290,11 +291,31 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
 	 		break;
 
 	 	case MISCQ_SET_DCHGTST: // 28 Set discharge test with heater fet load
-	 		p->hyster_sw = 0;  // Stop self-discharge if sw is on.
-	 		p->discharge_test_sw = pi->cd.uc[4] & 1; // Enable heater when hyster_sw comes on
-	 		break;
-
-
+		 	if (pi->cd.uc[3] == 0)
+		 	{ // Here turn discharge test off
+		 		p->hyster_sw = 1;  // Stop self-discharge if sw is on.
+		 		p->discharge_test_sw = 0;//
+		 	}
+		 	else
+		 	{ // Here, maybe turn discharge test on, otherwise bogus uc[3]
+		 		if (pi->cd.uc[3] == 1)
+		 		{ // Here, definitely turn test on
+	 		 		p->hyster_sw = 0;  // Stop self-discharge if sw is on.
+	 		 		p->discharge_test_sw = 1; // Enable heater when hyster_sw comes on	
+		 		}
+		 	}
+			break;
+		case MISCQ_SET_SELFDCHG: // 31 Self-discharge mode on|off
+		 	if (pi->cd.uc[3] == 1)
+		 	{ // Here set self-discharge on
+		 		p->hyster_sw_trip = 1; // trip hyster_sw to self-discharge mode
+		 	}
+		 	else
+		 	{ // Here, set self-discharge off (charge for balancing)
+			 	if (pi->cd.uc[3] == 0) // Skip bogus value if [3] not 1 or 0
+	 		 		p->hyster_sw_trip = 0; // Trip to charge/balance mode
+		 	}
+			break;
 		}
 	}
 	if (skip == 0)

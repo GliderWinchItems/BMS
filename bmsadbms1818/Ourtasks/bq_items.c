@@ -289,8 +289,9 @@ dbgtrc |= (1<<9);
 	if (pbq->hyster_sw == 0)
 	{ // Charging/balancing is in effect
 		pbq->fet_status &= ~FET_HEATER; 
-		if (pbq->celltrip == pbq->cellspresent)
-		{ // Here, all installed cells are over the (target voltage - delta)	
+		if ((pbq->celltrip == pbq->cellspresent) || (pbq->hyster_sw_trip == 1))
+		{ // Here, all installed cells are over the (target voltage - delta)
+			pbq->hyster_sw_trip = 9; // Set bogus value 	
 			pbq->hysterbits_lo = 0; // Reset low cell bits
 			pbq->hyster_sw     = 1; // Set "relaxation" mode
 			pbq->cellbal       = 0; // Discharge FETs off.
@@ -304,6 +305,7 @@ dbgtrc |= (1<<5);
 		// When all cells are above max, bring them down
 		if (pbq->cellv_max_bits == pbq->cellspresent)
 		{ // Here, all installed cells above max
+/* This for bringing the pack down to a (new lower) target voltage. */			
 			pbq->cellbal = pbq->cellv_max_bits; // Discharge FETs on all
 		}
 		else
@@ -323,8 +325,9 @@ dbgtrc |= (1<<5);
 		}
 dbgtrc |= (1<<6);
 		// Stop relaxation when one or more cells hits hysteresis low end
-		if (pbq->hysterbits_lo != 0)
+		if ((pbq->hysterbits_lo != 0) || (pbq->hyster_sw_trip == 0))
 		{ // One or more cells hit the low end of hysteresis
+			pbq->hyster_sw_trip = 9; // Set bogus value 
 			pbq->hysterbits_lo_save = pbq->hysterbits_lo;
 			pbq->hyster_sw     = 0; // Set hysteresis switch off
 			pbq->celltrip      = 0; // Reset cells that went over max
