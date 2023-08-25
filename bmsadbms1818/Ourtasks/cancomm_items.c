@@ -305,6 +305,7 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
 		 		}
 		 	}
 			break;
+
 		case MISCQ_SET_SELFDCHG: // 31 Self-discharge mode on|off
 		 	if (pi->cd.uc[3] == 1)
 		 	{ // Here set self-discharge on
@@ -315,6 +316,24 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
 			 	if (pi->cd.uc[3] == 0) // Skip bogus value if [3] not 1 or 0
 	 		 		p->hyster_sw_trip = 0; // Trip to charge/balance mode
 		 	}
+			break;
+
+		case MISCQ_SET_DCHGFETS: // 30 Set discharge FETs all on, all off, of single
+			if (pi->cd.uc[3] == 111)
+			{ // 111 is code for ALL ON
+				p->cansetfet = 0x3ffff;
+				p->cansetfet_tim = xTaskGetTickCount() + pdMS_TO_TICKS(CANSETFET_TIM);
+			}
+			else if ((pi->cd.uc[3] > 0) || (pi->cd.uc[3] < 19))
+			{ // 1 - 18 sets one FET
+				p->cansetfet = (1 << (pi->cd.uc[3] - 1));
+				p->cansetfet_tim = xTaskGetTickCount() + pdMS_TO_TICKS(CANSETFET_TIM);
+			}
+			else if (pi->cd.uc[3] == 0)
+			{ // Code for all OFF. Timeout does not matter.
+				p->cansetfet = 0;
+			}
+			// [3] not mtching in the above is ignored.
 			break;
 		}
 	}

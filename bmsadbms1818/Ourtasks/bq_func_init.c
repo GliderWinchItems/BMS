@@ -51,6 +51,7 @@ void bq_func_init(void)
     p->dcdc_oto       = 0; // OTO DC-DC power adjustment calibration computation
     p->discharge_test_sw = 0; // sw = 1, heater load on when hyster_sw on.
     p->hyster_sw_trip    = 0; // Set by CAN msg to trip hyster_sw
+    p->cansetfet         = 0; // CAN msg command to set discharge fets
 
 	p->state      = 0;  // main state
 	p->substateA  = 0;  // 

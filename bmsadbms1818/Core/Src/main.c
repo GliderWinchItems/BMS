@@ -1727,12 +1727,14 @@ extern uint32_t dbgexttim2;
       yprintf(&pbuf2,"\n\rcellv_max: %5d cellv_max_bits: 0x%05X",bqfunction.lc.cellv_max,bqfunction.cellv_max_bits);
       yprintf(&pbuf1," cellv_min: %5d cellv_min_bits: 0x%05X",bqfunction.lc.cellv_min,bqfunction.cellv_min_bits);
       yprintf(&pbuf2," cellv_vls: %5d cellv_vlc_bits: 0x%05X",bqfunction.lc.cellv_vlc, bqfunction.cellv_vlc_bits);
-      yprintf(&pbuf1,"\n\rcallbal: 0x%05X  fet_status: 0x%04X FET_CHRG: 0x%01X",bqfunction.cellbal,
+      yprintf(&pbuf1,"\n\rcellbal: 0x%05X cansetfet: 0x%05X  fet_status: 0x%04X FET_CHRG: 0x%01X",bqfunction.cellbal,
+          bqfunction.cansetfet,
           bqfunction.fet_status,(bqfunction.fet_status & FET_CHGR));
       if ((bqfunction.fet_status & FET_DUMP2) != 0)
         yprintf(&pbuf2,"\t\t\t\t\tDUMP2 ON");
       else
         yprintf(&pbuf2,"\t\t\t\t\tDUMP2 OFF");
+yprintf(&pbuf1,"\n\rcanset_tim diff: %d cansetfet: 0x%06X",(int)(xTaskGetTickCount() - bqfunction.cansetfet_tim),bqfunction.cansetfet);      
 
 //      yprintf(&pbuf2,"\t %08X",bqfunction.lc.cid_msg_bms_cellvsmr); // CAN ID 
 

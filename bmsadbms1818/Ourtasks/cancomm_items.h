@@ -43,6 +43,8 @@
  #define MISCQ_SET_DCHGFETS 30 // Set discharge FETs: all, on|off, or single
  #define MISCQ_SET_SELFDCHG 31 // Set ON|OFF self-discharge mode
 
+#define CANSETFET_TIM 5000 // Timeout (ms) for MISCQ_SET_DCHGFETS
+
 /* MISCQ_SET_DCHGFETS Sub code for sending request. 
 Requester payload[3] 
   0 = All FETs off

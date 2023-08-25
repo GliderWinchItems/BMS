@@ -152,11 +152,12 @@ dbgtrc = 0; // bits for checking logic
 	pbq->battery_status = 0; // Reset battery status
 	pbq->cellv_total    = 0; // Sum of installed cell voltages
 	pbq->cellv_high     = 0; // Highest cell initial voltage
-	pbq->cellbal        = 0; // Discharge fet bits
 	pbq->cellv_max_bits = 0; // Cells over cellv_max
 	pbq->cellv_min_bits = 0; // Cells below cellv_min
 	pbq->cellv_vlc_bits = 0; // Cells below very low
+	pbq->cellbal = 0; // Discharge fet bits
 	pbq->cellv_low      = pbq->lc.cellopen_hi; // Lowest cell initial voltage
+
 /*   p->cellv_max   = 3500; // Max limit (mv) for charging any cell
    p->cellv_min   = 2600; // Min limit (mv) for any discharging
    p->cellv_vlc   = 2550; // Below this (mv) Very Low Charge (vlc)required */
@@ -310,7 +311,17 @@ dbgtrc |= (1<<5);
 		}
 		else
 		{ // Here, not all cells above max so relax/hyster
-			pbq->cellbal = 0; // Discharge FETs off.
+				/* CAN msgs can set FETs but no override high & low voltage limits.
+	   The timeout is set when the CAN command is received (cancomm_items.c) */
+			if ((int)(xTaskGetTickCount() - pbq->cansetfet_tim) < 0)
+			{ 
+				pbq->cellbal = pbq->cansetfet;
+			}
+			else
+			{
+				pbq->cansetfet = 0; // Avoid time rollover turning fets on.
+				pbq->cellbal = 0; // Discharge fet bits
+			}
 		}
 
 		if (pbq->discharge_test_sw != 0)

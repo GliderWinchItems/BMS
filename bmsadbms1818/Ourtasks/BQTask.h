@@ -154,6 +154,8 @@ struct BQFUNCTION
 	uint32_t cellbal;       // Bits to activate cell balance fets!!!!!!!!!!!
 	uint32_t celltrip;      // Bits for cell going over cellv_max
 	uint32_t cellspresent;  // Bits for cell positions that are installed
+	uint32_t cansetfet;     // Bits from CAN msg command sets FETs on|off
+	uint32_t cansetfet_tim; // RTOS ticks for timeout of cansetfet
 	uint8_t active_ct;      // Count of bits set in cellbal
 	uint8_t battery_status; // Cell status code bits 
 	uint8_t fet_status;     // This controls on/off of FETs
