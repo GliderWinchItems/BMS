@@ -42,7 +42,11 @@
  #define MISCQ_SET_DCHGTST  28 // Set discharge test via heater fet load on|off
  #define MISCQ_SET_DCHGFETS 30 // Set discharge FETs: all, on|off, or single
  #define MISCQ_SET_SELFDCHG 31 // Set ON|OFF self-discharge mode
+ #define MISCQ_PRM_MAXCHG   32 // Get Parameter: Max charging current
+ #define MISCQ_SET_ZEROCUR  33 // 1 = Zero external current in effect; 0 = maybe not.
 
+
+/* Keep alive for incoming CAN msgs that cause battery loads. */
 #define CANSETFET_TIM 5000 // Timeout (ms) for MISCQ_SET_DCHGFETS
 
 /* MISCQ_SET_DCHGFETS Sub code for sending request. 

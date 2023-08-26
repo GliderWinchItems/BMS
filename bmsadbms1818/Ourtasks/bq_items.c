@@ -230,6 +230,7 @@ dbgtrc = 0; // bits for checking logic
 dbgcellbal = pbq->cellbal;
 
 	/* Set FET status.  */
+
 #if 1
 	/* Unusual situation check. */
 	if (((pbq->battery_status & BSTATUS_NOREADING) != 0) ||
@@ -333,6 +334,24 @@ dbgtrc |= (1<<5);
 		else
 		{ // Here, turn all loads and chargers off
 			pbq->fet_status &= ~(FET_DUMP|FET_HEATER|FET_DUMP2|FET_CHGR|FET_CHGR_VLC);
+
+			for(i = 0; i < 3; i++)
+			{
+				if (pbq->bqreq[i].req == 1)
+				{ // Here, there is an active command in progress
+					if ((int)(xTaskGetTickCount()-pbq->bqreq[i].tim) > 0)
+					{ // Here, time has expired
+						pbq->bqreq[i].req = 0; // Reset command status
+					}
+					else
+					{ // Here, request is ON, and time not expired
+						if (i == REQ_DUMP  ) pbq->fet_status |= FET_DUMP; else
+						if (i == REQ_DUMP2 ) pbq->fet_status |= FET_DUMP2; else
+						if (i == REQ_HEATER) pbq->fet_status |= FET_HEATER;
+					}
+				}
+			}
+			
 		}
 dbgtrc |= (1<<6);
 		// Stop relaxation when one or more cells hits hysteresis low end

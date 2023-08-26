@@ -100,6 +100,8 @@ struct BQLC
    int16_t cellv_min;    // Min limit for any discharging (mv)
    int16_t cellv_vlc;    // Below this Very Low Charge (_vlc)required
 
+   uint16_t maxchrgcurrent; // Maximum charge current (0.1a)
+
 
    int16_t cellv_hyster; // Relax-to-voltage = (cellv_max - cellv_hyster)
    uint32_t trip_max;   // Cells that have tripped max voltage when hyster_sw = 0;

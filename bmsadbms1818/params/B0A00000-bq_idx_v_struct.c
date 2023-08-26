@@ -61,6 +61,9 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->balnummax    = 18;  // Max number of cells to discharge at one time
    p->cellv_hyster =500;  // Voltage below cellv_max to start recharging (mv)
 
+   /* Limit external charger current. */
+   p->maxchrgcurrent = 12; // Max (0.1a)
+
    p->cellbal_del  = 2; // Legacy
 
   /* Arrays compiled using NCELLMAX [18] */
@@ -278,8 +281,8 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->bmsaux[BMSAUX_REF].coef[2] = 0;
 
    /* Auxilarly GPIO 6 Current sense op amp */
-   p->bmsaux[BMSAUX_6_CUR_SENSE].coef[0] = 11582.7f;
-   p->bmsaux[BMSAUX_6_CUR_SENSE].coef[1] = 4.817729E-02f;
+   p->bmsaux[BMSAUX_6_CUR_SENSE].coef[0] = 11533.7f;
+   p->bmsaux[BMSAUX_6_CUR_SENSE].coef[1] = 9.03E-02f;
    p->bmsaux[BMSAUX_6_CUR_SENSE].coef[2] = 0;
 
    /* Auxilarly GPIO 7 U$12 w divider */

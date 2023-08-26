@@ -57,6 +57,12 @@ void bq_func_init(void)
 	p->substateA  = 0;  // 
 	p->substateB  = 0;  // spare substate 
 
+	for (i = 0; i < 3; i++)
+	{
+		p->bqreq[i].req = 0;
+		p->bqreq[i].tim = xTaskGetTickCount();
+	}
+
 	// Cell voltage hysteresis (relaxation)
     p->hysterbits_lo = 0; // Cell bit ON: voltage less than hysteresis low
     p->hysterv_lo = (p->lc.cellv_max - p->lc.cellv_hyster); // hyster volt low

@@ -259,6 +259,26 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
 
 	 	case MISCQ_FETBALBITS: // 12 FET on/off discharge bits
 	 		loaduint32(puc,bqfunction.cellbal);
+
+		case MISCQ_SET_DUMP: // 13 Set DUMP fet ON|OFF
+			if (pi->cd.uc[3] > 1)
+				break;
+			p->bqreq[REQ_DUMP].req = pi->cd.uc[3];
+			p->bqreq[REQ_DUMP].tim = xTaskGetTickCount() + pdMS_TO_TICKS(CANSETFET_TIM);			
+			break;
+
+		case MISCQ_SET_DUMP2: // 14 Set DUMP fet ON|OFF
+			if (pi->cd.uc[3] > 1)
+				break;
+			p->bqreq[REQ_DUMP2].req = pi->cd.uc[3];
+			p->bqreq[REQ_DUMP2].tim = xTaskGetTickCount() + pdMS_TO_TICKS(CANSETFET_TIM);			
+			break;
+
+		case MISCQ_SET_HEATER: // 15 Set DUMP fet ON|OFF
+			if (pi->cd.uc[3] > 1)
+				break;
+			p->bqreq[REQ_HEATER].req = pi->cd.uc[3];
+			p->bqreq[REQ_HEATER].tim = xTaskGetTickCount() + pdMS_TO_TICKS(CANSETFET_TIM);			
 			break;
 
 		case MISCQ_TOPOFSTACK: // BMS top-of-stack voltage
@@ -283,7 +303,7 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
 	 		break;
 
 		case MISCQ_CURRENT_CAL: // 24 Below cell #1 minus, current resistor: calibrated
-			not_implemented(po);
+			send_bms_one(po, &current_sense, 0);
 	 		break;
 
 		case MISCQ_CURRENT_ADC: // 25 Below cell #1 minus, current resistor: adc counts		
@@ -335,6 +355,12 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
 			}
 			// [3] not mtching in the above is ignored.
 			break;
+
+		case MISCQ_PRM_MAXCHG: // 32 Get Parameter: Max charging current
+			po->cd.us[2] = bqfunction.lc.maxchrgcurrent; // Maximum charge current (0.1a)
+			po->cd.us[2] = 0; // Reserved
+			skip = 0;
+			break;			
 		}
 	}
 	if (skip == 0)
@@ -348,7 +374,7 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
  * static void send_bms_one(struct CANRCVBUF* po, float* pout, uint8_t k);
  *	@brief	: Prepare and send one CAN msgs w float
  *  @param  : po = pointer response CAN msg
- *  @param  : pout = pointer to output array of floats
+ *  @param  : pout = pointer float
  *  @param  : k = identification number (e.g. thermistor #1)
  * *************************************************************************/
 static void send_bms_one(struct CANRCVBUF* po, float* pout, uint8_t k)

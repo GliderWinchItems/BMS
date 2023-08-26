@@ -48,6 +48,11 @@
 #define FET_CHGR     (1 << 3) // 1 = Charger FET enabled: Normal charge rate
 #define FET_CHGR_VLC (1 << 4) // 1 = Charger FET enabled: Very Low Charge rate
 
+/* Indices for CAN msg commands. */
+#define REQ_HEATER 0
+#define REQ_DUMP   1
+#define REQ_DUMP2  2
+
 /* CAN msgs are scaled to 100uv (see ADBMS1818 datasheet)
   BQ76952 can measure negative voltages, so these are coded into the upper values
   that are not possible. */
@@ -78,6 +83,12 @@ struct BQCELLV
 	int16_t v; // Cell voltage reading (mv)
 	uint8_t idx; // Cell array index (0 - 15)
 	uint8_t s; // Cell selection TBD (maybe not used)
+};
+
+struct BQREQ // CAN msg requests
+{
+	uint32_t tim; // RTOS timer timeout 
+	uint8_t req;  // 1 = request in progress; 0 = no request
 };
 
 /* Working struct for BQ function. */
@@ -159,6 +170,10 @@ struct BQFUNCTION
 	uint8_t active_ct;      // Count of bits set in cellbal
 	uint8_t battery_status; // Cell status code bits 
 	uint8_t fet_status;     // This controls on/off of FETs
+
+	/* CAN msgs command to turn on HEATER, DUMP, DUMP2. 
+	   request has timeout associated with it. */
+	struct BQREQ bqreq[3];
 
 	uint8_t fanspeed; // Fan speed (timer pwm setting): 14 = minimum for rotation; 100+ = full speed
 	float   fanrpm;   // Fan speed (rpm)

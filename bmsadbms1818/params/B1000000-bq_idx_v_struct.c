@@ -61,6 +61,9 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->balnummax    = 18;  // Max number of cells to discharge at one time
    p->cellv_hyster = 400;  // Voltage below cellv_max to start recharging (mv)
 
+   /* Limit external charger current. */
+   p->maxchrgcurrent = 6; // Max (0.1a)
+
    p->cellbal_del  = 2; // Legacy
 
   /* Arrays compiled using NCELLMAX [18] */

@@ -1506,7 +1506,7 @@ uint32_t ticks_next = xTaskGetTickCount();
 
       bms_items_therm_temps(); // Convert thermistor readings to temperature (deg C)
       extern float fanrpm;
-      yprintf(&pbuf2,"\n\rTEMP:%5.1f %5.1f %5.1f Fanpwm: %d Fanrpm: %0.3f Z",
+      yprintf(&pbuf2,"\n\rTEMP:%5.1f %5.1f %5.1f fanspeed: %d fanrpm: %0.3f",
           bqfunction.lc.thermcal[0].temp,
           bqfunction.lc.thermcal[1].temp,
           bqfunction.lc.thermcal[2].temp, 
@@ -1693,7 +1693,7 @@ yprintf(&pbuf2," %08X",bqfunction.lc.cid_msg_bms_cellvsmr);
         bqfunction.discharge_test_sw,
         celltrip_time_lo );
       float ftmp = celltrip_time_lo;
-      yprintf(&pbuf2," %0.2f (hrs)",ftmp);
+      yprintf(&pbuf2," %0.3f (hrs)",ftmp/3600.0);
 
 extern uint32_t dbgtrc;
       yprintf(&pbuf1,"\n\rFETSTAT: 0x%02X  battery_status: 0x%02X dbgtrc: 0x%04x ",
