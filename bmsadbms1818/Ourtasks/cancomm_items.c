@@ -150,6 +150,7 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
 	struct BQFUNCTION* p = &bqfunction;
 	struct CANRCVBUF* po = &p->canmsg.can;
 	float ftmp[ADCDIRECTMAX];
+	float fdeg;
 	uint8_t i;
 
 	/* Pointer to payload 4 byte value is used often. */
@@ -360,7 +361,24 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
 			po->cd.us[2] = bqfunction.lc.maxchrgcurrent; // Maximum charge current (0.1a)
 			po->cd.us[2] = 0; // Reserved
 			skip = 0;
-			break;			
+			break;	
+
+		case MISCQ_READ_AUX:// BMS responds with A,B,C,D AUX register readings (12 msgs)
+		 	po->cd.uc[2] = 0xAA; // Not used
+			for (i = 0; i < 12; i += 2) 		 
+			{		
+				po->cd.uc[3] = i;				
+				po->cd.us[2] = bmsspiall.auxreg[i];
+				po->cd.us[3] = bmsspiall.auxreg[i+1];
+	 			xQueueSendToBack(CanTxQHandle, po, 4);
+	 		}
+	 		skip = 1;
+			break;
+
+		case MISCQ_PROC_TEMP: // 36 Processor calibrated internal temperature (deg C)
+			fdeg = adcparams_caltemp();
+			send_bms_one(po, &fdeg,0);
+			break;
 		}
 	}
 	if (skip == 0)

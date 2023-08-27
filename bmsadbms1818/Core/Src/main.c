@@ -274,7 +274,7 @@ int main(void)
 
   /* Setup TX linked list for CAN  */
    // CAN1 (CAN_HandleTypeDef *phcan, uint8_t canidx, uint16_t numtx, uint16_t numrx);
-  pctl0 = can_iface_init(&hcan1, 0, 64, 32);       
+  pctl0 = can_iface_init(&hcan1, 0, 96, 32);       
   if (pctl0 == NULL) morse_trap(118); // Panic LED flashing
   if (pctl0->ret < 0) morse_trap(119);
 
@@ -1734,7 +1734,14 @@ extern uint32_t dbgexttim2;
         yprintf(&pbuf2,"\t\t\t\t\tDUMP2 ON");
       else
         yprintf(&pbuf2,"\t\t\t\t\tDUMP2 OFF");
-yprintf(&pbuf1,"\n\rcanset_tim diff: %d cansetfet: 0x%06X",(int)(xTaskGetTickCount() - bqfunction.cansetfet_tim),bqfunction.cansetfet);      
+yprintf(&pbuf1,"\n\rcanset_tim diff: %d cansetfet: 0x%06X",(int)(xTaskGetTickCount() - bqfunction.cansetfet_tim),bqfunction.cansetfet);
+
+/* Check for overrun of canmsg payload. */
+for (i = 0; i < 4; i++)
+{
+  if (bqfunction.pad[i] != 0)
+    yprintf(&pbuf1,"\n\rPAD[%d] %d 0X%X",bqfunction.pad[i],bqfunction.pad[i]);
+}  
 
 //      yprintf(&pbuf2,"\t %08X",bqfunction.lc.cid_msg_bms_cellvsmr); // CAN ID 
 

@@ -44,6 +44,9 @@
  #define MISCQ_SET_SELFDCHG 31 // Set ON|OFF self-discharge mode
  #define MISCQ_PRM_MAXCHG   32 // Get Parameter: Max charging current
  #define MISCQ_SET_ZEROCUR  33 // 1 = Zero external current in effect; 0 = maybe not.
+ #define MISCQ_READ_AUX     34 // BMS responds with A,B,C,D AUX register readings (12 msgs)
+ #define MISCQ_READ_ADDR    35 // BMS responds with 'n' bytes sent in [3]
+ #define MISCQ_PROC_TEMP    36 // Processor calibrated internal temperature (deg C)
 
 
 /* Keep alive for incoming CAN msgs that cause battery loads. */

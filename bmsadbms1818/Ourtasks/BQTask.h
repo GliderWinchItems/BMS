@@ -204,6 +204,8 @@ struct BQFUNCTION
 
 	/* CAN msgs */
 	struct CANTXQMSG canmsg;
+
+	uint32_t pad[4]; // Padding for debugging tests
 };
 /* *************************************************************************/
 TaskHandle_t xBQTaskCreate(uint32_t taskpriority);
