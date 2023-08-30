@@ -6,6 +6,7 @@
 *******************************************************************************/
 /*  
 16 pin CAN ISO1042
+08/28/23 - Hooking up proxy and big "pop"
 */
 
 #include "bq_idx_v_struct.h"
@@ -42,9 +43,10 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
  
    p->dcdc_v    = 15.0; // Isolated DC-DC converter output voltage (e.g. 15.0v)
    p->dcdc_w    =  5.2; // Charger power max taken from DC-DC converter (e.g. 5.5W)
-   p->dcdc_calv = 68.5; // Module voltage used in following settings (e.g. 57.6v)
+   p->dcdc_calv = 70.0; // Module voltage used in following settings (e.g. 57.6v)
 
   /* Charger: timer and comparator settings. */
+// 8/29/23: 78.1 ma with the following settings   
    p->dac1_hv_setting  = 3900; // HV volt limit (DAC setting, not mv!)
    p->dac2_ix_setting  =   85; // Current sense level setting (DAC setting)
    p->tim1_ccr1_on     =  999; // PWM ON count: Normal charge rate
