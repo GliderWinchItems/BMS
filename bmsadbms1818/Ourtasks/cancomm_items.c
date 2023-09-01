@@ -82,6 +82,24 @@ static void loadfloat(uint8_t* puc, float* pf)
 	*(puc+3) = uf.uc[3];
 	return;
 }
+/* *************************************************************************
+ * static int req_set(uint8_t idx, struct CANRCVBUF* pi);
+ *	@brief	: Prepare and queue CAN msgs for sending cell voltage array
+ *  @param  : idx: (0,1,2):(REQ_HEATER, REQ_DUMP, REQ_DUMP2)
+ *  @param  : pi = pointer to input CAN msg
+ *  @return : 0 = OK; -1 = rejected
+ * *************************************************************************/
+static int req_set(uint8_t idx, struct CANRCVBUF* pi)
+{	// Check if command is OFF = 0| ON = 1
+	struct BQFUNCTION* p = &bqfunction;
+	if (pi->cd.uc[3] > 1)
+		return -1; // Bogus argument
+	p->bqreq[idx].on  = pi->cd.uc[3]; // Set request ON|OFF
+	p->bqreq[idx].req = 1; // Show request is active
+	// Set timeout of request
+	p->bqreq[idx].tim = xTaskGetTickCount() + pdMS_TO_TICKS(CANSETFET_TIM);
+	return 0;
+}			
 
 /* *************************************************************************
  * void cancomm_items_sendcell(struct CANRCVBUF* pcan, float *pf);
@@ -140,11 +158,8 @@ dbgsendcellctr += 1;
 //   	p->HBcellv_ctr = xTaskGetTickCount() + p->hbct_k; // Next HB for cellv gets delayed	
 	return;
 }
-/* *************************************************************************
- * void cancomm_items_sendcmdr(struct CANRCVBUF* pi);
- *  @brief	: Prepare and send a response to a received command CAN msg
- *  @param  : pi = pointer to incoming CAN msg struct CANRCVBUF from mailbox 
- * *************************************************************************/
+	uint8_t on;
+
 void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
 {
 	struct BQFUNCTION* p = &bqfunction;
@@ -262,24 +277,15 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
 	 		loaduint32(puc,bqfunction.cellbal);
 
 		case MISCQ_SET_DUMP: // 13 Set DUMP fet ON|OFF
-			if (pi->cd.uc[3] > 1)
-				break;
-			p->bqreq[REQ_DUMP].req = pi->cd.uc[3];
-			p->bqreq[REQ_DUMP].tim = xTaskGetTickCount() + pdMS_TO_TICKS(CANSETFET_TIM);			
+			req_set(REQ_DUMP,pi);
 			break;
 
-		case MISCQ_SET_DUMP2: // 14 Set DUMP fet ON|OFF
-			if (pi->cd.uc[3] > 1)
-				break;
-			p->bqreq[REQ_DUMP2].req = pi->cd.uc[3];
-			p->bqreq[REQ_DUMP2].tim = xTaskGetTickCount() + pdMS_TO_TICKS(CANSETFET_TIM);			
+		case MISCQ_SET_DUMP2: // 14 Set DUMP2 fet ON|OFF
+			req_set(REQ_DUMP2,pi);
 			break;
 
-		case MISCQ_SET_HEATER: // 15 Set DUMP fet ON|OFF
-			if (pi->cd.uc[3] > 1)
-				break;
-			p->bqreq[REQ_HEATER].req = pi->cd.uc[3];
-			p->bqreq[REQ_HEATER].tim = xTaskGetTickCount() + pdMS_TO_TICKS(CANSETFET_TIM);			
+		case MISCQ_SET_HEATER: // 15 Set HEATER fet ON|OFF
+			req_set(REQ_HEATER,pi);
 			break;
 
 		case MISCQ_TOPOFSTACK: // BMS top-of-stack voltage

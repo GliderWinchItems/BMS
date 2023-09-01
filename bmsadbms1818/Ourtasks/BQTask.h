@@ -87,8 +87,9 @@ struct BQCELLV
 
 struct BQREQ // CAN msg requests
 {
-	uint32_t tim; // RTOS timer timeout 
-	uint8_t req;  // 1 = request in progress; 0 = no request
+	uint32_t tim;  // RTOS timer timeout 
+	uint8_t  on;   // 1 = req ON; 0 = req OFF
+	uint8_t  req;  // 1 = request in progress; 0 = no request
 };
 
 /* Working struct for BQ function. */

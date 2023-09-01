@@ -230,6 +230,43 @@ dbgtrc = 0; // bits for checking logic
 dbgcellbal = pbq->cellbal;
 
 	/* Set FET status.  */
+/* NOTE: DUMP2 is assumed to control an external module charger. */
+	/* Set CAN msg commanded FETs ON|OFF: DUMP DUMP2 HEATER */
+	// Initially set all off
+//	pbq->fet_status &= ~(FET_DUMP|FET_DUMP2|FET_HEATER);
+	// Set FETs if command active and not timed out
+	for(i = 0; i < 3; i++)
+	{
+		if (pbq->bqreq[i].req == 1)
+		{ // Here, active command in progress
+dbgtrc |= (1<<12); // Debug Trace			
+			if ((int)(xTaskGetTickCount()-pbq->bqreq[i].tim) > 0)
+			{ // Here, time has expired
+				pbq->bqreq[i].req = 0; // Reset command status
+				if (i == REQ_DUMP  ) pbq->fet_status &= ~FET_DUMP; else
+				if (i == REQ_DUMP2 ) pbq->fet_status &= ~FET_DUMP2;else
+				if (i == REQ_HEATER) pbq->fet_status &= ~FET_HEATER;				
+dbgtrc |= (1<<0); // Debug Trace				
+			}
+			else
+			{ // Here, request is active, and time has not expired
+				if (pbq->bqreq[i].on == 1)
+				{ // Here command was ON
+dbgtrc |= (1<<13); // Debug Trace				
+					if (i == REQ_DUMP  ) pbq->fet_status |= FET_DUMP; else
+					if (i == REQ_DUMP2 ) pbq->fet_status |= FET_DUMP2;else
+					if (i == REQ_HEATER) pbq->fet_status |= FET_HEATER;
+				}
+				else
+				{ // Here, command was OFF.
+					if (i == REQ_DUMP  ) pbq->fet_status &= ~FET_DUMP; else
+					if (i == REQ_DUMP2 ) pbq->fet_status &= ~FET_DUMP2;else
+					if (i == REQ_HEATER) pbq->fet_status &= ~FET_HEATER;									
+				}
+			}
+		}
+	}
+	// Let following cell voltage limits override the above FET status settings.
 
 #if 1
 	/* Unusual situation check. */
@@ -238,25 +275,26 @@ dbgcellbal = pbq->cellbal;
 	{ // Here serious problem, so no charging, or discharging
 		pbq->fet_status &= ~(FET_DUMP|FET_HEATER|FET_DUMP2|FET_CHGR|FET_CHGR_VLC);
 		pbq->cellbal = 0; // All cell balancing FETS off
-dbgtrc |= (1<<0);
+dbgtrc |= (1<<1); // Debug Trace
 		return;
 	}
 #endif	
 	// Here it looks like we have a normal situation with good readings
 	/* Check for out-of-limit voltages */
 
-	/* Is any cell too low? */
+	/* Is one or more cells too low? */
 	if (pbq->cellv_min_bits != 0) // Too low?
 	{ // Here, one or more cells are below min limit
 		pbq->fet_status &= ~(FET_DUMP|FET_HEATER); // Disable discharge
+pbq->hyster_sw_trip = 0; // Stop a discharge test (redundant)
+dbgtrc |= (1<<2);		
 		// The following assumes DUMP2 FET controls an external charger
-dbgtrc |= (1<<1);		
 		// Here, one or more are too low, but are any still too high?
 		if (pbq->cellv_high > pbq->lc.cellv_max)
 		{ // EGADS YES! We cannot charge, but can selectively discharge
 		  // until high cells become low enough to turn on charging.	
 			pbq->fet_status &= ~(FET_CHGR|FET_DUMP2); // Disable charging
-dbgtrc |= (1<<2);			
+dbgtrc |= (1<<3);			
 		}
 		else
 		{
@@ -269,46 +307,58 @@ dbgtrc |= (1<<2);
 	{ // Here, yes. One or more cells are over max limit
 		// No charging, but discharging is needed
 		pbq->fet_status &= ~(FET_CHGR|FET_DUMP2); // (DUMP2 external charger control)
-dbgtrc |= (1<<3);
+dbgtrc |= (1<<4);
 	}
 	else
 	{ // Here, no cells are too high. Set chargers on.
-		pbq->fet_status |= FET_CHGR; // Ob-board charger ON
-dbgtrc |= (1<<4);	
+		pbq->fet_status |= FET_CHGR; // On-board charger ON
 	}
+
+	/* DUMP charger only charges when no cells have tripped. */
 	if (pbq->celltrip == 0)
 	{ // Here, no cells have charged over max
-		pbq->fet_status |= FET_DUMP2; // (DUMP2 external charger control ON)
-dbgtrc |= (1<<8);		
+		if (!((pbq->bqreq[REQ_DUMP2].req == 1) && (pbq->bqreq[REQ_DUMP2].on == 0)))
+		{ // Here CAN command request is active and request is OFF
+/* DUMP2 would have been set OFF above if command was active and OFF (0), so
+   skip the following if that is the case. */			
+			pbq->fet_status |= FET_DUMP2; // (DUMP2 external charger control ON)
+		}
+dbgtrc |= (1<<5);		
 	}
+
+	/* DUMP charger turns OFF when first cell trips max. */
 	if (pbq->celltrip != 0)
 	{ // Here, one or more cells have charged over max.
 		pbq->fet_status &= ~FET_DUMP2; // (DUMP2 external charger control OFF)
-dbgtrc |= (1<<9);		
+dbgtrc |= (1<<6);		
 	}
 
 	/* HHH: Healthy Hysteresis Handling. */
 	if (pbq->hyster_sw == 0)
-	{ // Charging/balancing is in effect
-		pbq->fet_status &= ~FET_HEATER; 
+	{ // ======> Charging/balancing is in effect <=======		
 		if ((pbq->celltrip == pbq->cellspresent) || (pbq->hyster_sw_trip == 1))
 		{ // Here, all installed cells are over the (target voltage - delta)
-			pbq->hyster_sw_trip = 9; // Set bogus value 	
 			pbq->hysterbits_lo = 0; // Reset low cell bits
-			pbq->hyster_sw     = 1; // Set "relaxation" mode
+			pbq->hyster_sw     = 1; // ===> Set "relaxation" mode <===
 			pbq->cellbal       = 0; // Discharge FETs off.
 			// Everybody off.
 			pbq->fet_status &= ~(FET_DUMP|FET_HEATER|FET_DUMP2|FET_CHGR|FET_CHGR_VLC);
-dbgtrc |= (1<<5);
+			if (pbq->hyster_sw_trip == 1)
+			{
+				pbq->hyster_sw_trip = 9; // Set bogus value 	
+				pbq->fet_status |= FET_DUMP;  // Discharge test 
+			}			
+dbgtrc |= (1<<7);
 		}
 	}
 	else
-	{ // Relaxation/hysteresis is in effect
+	{ // ======> Relaxation/hysteresis is in effect <=======
 		// When all cells are above max, bring them down
 		if (pbq->cellv_max_bits == pbq->cellspresent)
 		{ // Here, all installed cells above max
 /* This for bringing the pack down to a (new lower) target voltage. */			
 			pbq->cellbal = pbq->cellv_max_bits; // Discharge FETs on all
+dbgtrc |= (1<<8);			
 		}
 		else
 		{ // Here, not all cells above max so relax/hyster
@@ -317,6 +367,7 @@ dbgtrc |= (1<<5);
 			if ((int)(xTaskGetTickCount() - pbq->cansetfet_tim) < 0)
 			{ 
 				pbq->cellbal = pbq->cansetfet;
+dbgtrc |= (1<<9);				
 			}
 			else
 			{
@@ -325,35 +376,22 @@ dbgtrc |= (1<<5);
 			}
 		}
 
+		/* Discharge test set switch from CAN msg. */
 		if (pbq->discharge_test_sw != 0)
-		{ // Here, turn DUMP2 (external chgr), FET charger off
+		{ // Here, discharge test ON: 
+			// Turn DUMP2 (external chgr), FET charger off
 			pbq->fet_status &= ~(FET_DUMP2|FET_CHGR|FET_CHGR_VLC);
 			// Turn on heavy load for discharge testing
-			pbq->fet_status |= FET_HEATER;
+			pbq->fet_status |= FET_DUMP;
+dbgtrc |= (1<<10);			
 		}
 		else
-		{ // Here, turn all loads and chargers off
-			pbq->fet_status &= ~(FET_DUMP|FET_HEATER|FET_DUMP2|FET_CHGR|FET_CHGR_VLC);
-
-			for(i = 0; i < 3; i++)
-			{
-				if (pbq->bqreq[i].req == 1)
-				{ // Here, there is an active command in progress
-					if ((int)(xTaskGetTickCount()-pbq->bqreq[i].tim) > 0)
-					{ // Here, time has expired
-						pbq->bqreq[i].req = 0; // Reset command status
-					}
-					else
-					{ // Here, request is ON, and time not expired
-						if (i == REQ_DUMP  ) pbq->fet_status |= FET_DUMP; else
-						if (i == REQ_DUMP2 ) pbq->fet_status |= FET_DUMP2; else
-						if (i == REQ_HEATER) pbq->fet_status |= FET_HEATER;
-					}
-				}
-			}
-			
+		{ // Here, normal self-discharge mode.
+			// Turn all loads and chargers off
+//			pbq->fet_status &= ~(FET_DUMP|FET_HEATER|FET_DUMP2|FET_CHGR|FET_CHGR_VLC);
+			pbq->fet_status &= ~(FET_CHGR|FET_CHGR_VLC);
 		}
-dbgtrc |= (1<<6);
+
 		// Stop relaxation when one or more cells hits hysteresis low end
 		if ((pbq->hysterbits_lo != 0) || (pbq->hyster_sw_trip == 0))
 		{ // One or more cells hit the low end of hysteresis
@@ -362,7 +400,7 @@ dbgtrc |= (1<<6);
 			pbq->hyster_sw     = 0; // Set hysteresis switch off
 			pbq->celltrip      = 0; // Reset cells that went over max
 			pbq->discharge_test_sw = 0; // Reset discharge test, if it was on.
-dbgtrc |= (1<<7);			
+dbgtrc |= (1<<11);			
 		}
 	}
 	return;

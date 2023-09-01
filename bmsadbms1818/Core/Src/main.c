@@ -1544,7 +1544,7 @@ uint32_t ticks_next = xTaskGetTickCount();
     dbgcancommloop_prev = dbgcancommloop;
   }
 #else
-    /* Cell balance & control. */
+    /* ========> Cell balance & control. <========*/
     uint32_t dcc = extractconfigreg.dcc;
     char cline[LSPC*18+2];
 
@@ -1699,7 +1699,9 @@ extern uint32_t dbgtrc;
       yprintf(&pbuf1,"\n\rFETSTAT: 0x%02X  battery_status: 0x%02X dbgtrc: 0x%04x ",
         bqfunction.fet_status,
         bqfunction.battery_status,
-        dbgtrc);  
+        dbgtrc); 
+
+      yprintf(&pbuf2,"\n\rbqreq[]: %d %d %d",bqfunction.bqreq[0],bqfunction.bqreq[1],bqfunction.bqreq[2]);
 
 #if 0 // spibms readout duration
 extern uint32_t dbgread2;
