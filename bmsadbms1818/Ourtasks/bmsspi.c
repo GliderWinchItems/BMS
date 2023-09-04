@@ -197,8 +197,8 @@ void bmsspi_readbms(void)
 	bmsspi_readstuff(READCELLSGPIO12);
 
 	pf = &pbq->lc.bmscal[0];
-	pbq->cellv_high_f = 65536.0;
-	pbq->cellv_low_f = 0;
+	pbq->cellv_high_f = 0;
+	pbq->cellv_low_f = 65536.0;
 	pbq->cellv_sum_f = 0;
 	for (i = 0; i < NCELLMAX; i++)
 	{
@@ -213,12 +213,12 @@ void bmsspi_readbms(void)
 			 x * x * pf->coef[2];
 
 		/* Find lowest, highest, and do sum-of-cells. */
-		if (pbq->cellv_latest[i] > pbq->cellv_low_f)
+		if (pbq->cellv_latest[i] < pbq->cellv_low_f)
 		{
 			pbq->cellv_low_f = pbq->cellv_latest[i];
 			pbq->cellx_low = i;
 		}
-		else if (pbq->cellv_latest[i] < pbq->cellv_high_f)
+		else if (pbq->cellv_latest[i] > pbq->cellv_high_f)
 		{
 			pbq->cellv_high_f = pbq->cellv_latest[i];
 			pbq->cellx_high = i;

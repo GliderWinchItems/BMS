@@ -42,32 +42,39 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
 
    p->CanComm_hb = 1000; // CanCommTask 'wait' RTOS ticks per heartbeat sending
  
-   /* Charger: timer and comparator settings. */
-   p->dac1_hv_setting  = 3950; // HV volt limit (DAC setting)
-   p->dac2_ix_setting  =   95; // Current sense level setting (DAC setting)
-   p->tim1_ccr1_on     =   38; // PWM ON count: Normal charge rate
-   p->tim1_ccr1_on_vlc =    2; // PWM ON count: Very Low Charge rate required
-   p->tim1_arr_init    =   44; // At 16 MHz: count of 80 = 5 us PWM frame
+  p->dcdc_v    = 15.0; // Isolated DC-DC converter output voltage (e.g. 15.0v)
+   p->dcdc_w    =  5.2; // Charger power max taken from DC-DC converter (e.g. 5.5W)
+   p->dcdc_calv = 70.2; // Module voltage used in following settings (e.g. 57.6v)   
+ 
+// 09/01/23: 71.8 ma with the following settings
+   p->dac1_hv_setting  = 3990; // HV volt limit (DAC setting, not mv!)
+   p->dac2_ix_setting  =   85; // Current sense level setting (DAC setting)
+   p->tim1_ccr1_on     =  999; // PWM ON count: Normal charge rate
+   p->tim1_ccr1_on_vlc =   10; // PWM ON count: Very Low Charge rate required
+   p->tim1_arr_init    =   18; // At 16 MHz: count of 80 = 5 us PWM frame
 
    p->cellv_max   = 3900; // Max limit (mv) for charging any cell
    p->cellv_min   = 2800; // Min limit (mv) for any discharging
    p->cellv_vlc   = 2550; // Below this (mv) Very Low Charge (vlc)required
-   p->cellv_tgtdelta = 1; // Target delta (mv)   
+   p->cellv_tgtdelta = 3; // Target delta (mv)   
    p->cellopen_hi = 4300; // Above this voltage cell wire is assumed open (mv)
    p->cellopen_lo =  333; // Below this voltage cell wire is assumed open (mv)
-   p->modulev_max = (16*3600); // Battery module max limit (mv)
-   p->modulev_min = (16*2600); // Battery module min limit (mv)
 
    p->balnummax    = 18;  // Max number of cells to discharge at one time
-   p->cellv_hyster = 70;  // Voltage below cellv_max to start recharging (mv)
+   p->cellv_hyster = 400;  // Voltage below cellv_max to start recharging (mv)
+
+   /* Limit external charger current. */
+   p->maxchrgcurrent = 6; // Max (0.1a)
 
    p->cellbal_del  = 2; // Legacy
 
   /* Arrays compiled using NCELLMAX [18] */
    p->ncell = 18; // Number of series cells in this module
-
    if (p->ncell > NCELLMAX) morse_trap(702); // Error trap as it needs fixing
    p->npositions  = 18;  // Number of cell =>positions<= in module "box"
+
+   p->modulev_max = (p->ncell*p->cellv_max); // Battery module max limit (mv)
+   p->modulev_min = (p->ncell*p->cellv_min); // Battery module min limit (mv)
 
    /* Relate cell numbers to cell positions. (indices are ("number"-1) */
 #define EighteenPositionBox
