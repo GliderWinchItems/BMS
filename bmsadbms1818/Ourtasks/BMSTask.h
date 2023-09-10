@@ -36,6 +36,8 @@ union SPI12
 #define REQ_TEMPERATURE 6  // Read & calibrate GPIO temperature sensors
 #define REQ_RTCREAD     7  // Read & check PEC15 on RTC registers
 #define REQ_RTCUPDATE   8  // Update w PEC15 RTC registers
+#define REQ_READBMSnAUX 9  // Read BMS cells and AUX
+#define REQ_READAUX    10  // Read AUX
 
 /* '1818 ADC rate */
 /* Bits 2 and 1 = MD bits in command
@@ -97,6 +99,7 @@ struct BMSREQ_Q
 	uint8_t noteyes;      // 1 = Notify requesting task when complete
 	uint8_t reqcode;      // Code for specific service requested
 	uint8_t rate;         // Code for ADC rate (0-7)
+	uint8_t fetsw;        // '~&' FET status bits (see BQTask.h)
 	int8_t other;         // BMSTask sends back something to requester.
 };	
 

@@ -216,17 +216,28 @@ void bms_items_therm_temps(void)
 	return;
 }
 /* *************************************************************************
- * void bms_items_current_sense(void);
+ * float bms_items_current_sense_Hall(void);
+ * @brief	: Compute a calibrated current from AUX GPIO1 reading
+ * @return  : Calibrated current
+ * *************************************************************************/
+float bms_items_current_sense_Hall(void)
+{
+	uint16_t* p = &bmsspiall.auxreg[0];
+	float* pc   = &bqfunction.lc.bmsaux[BMSAUX_1_NC].coef[0];
+
+	// current = (reading - offset) * scale;
+	return (*p - *pc) * (*(pc + 1));
+}
+/* *************************************************************************
+ * float bms_items_current_sense(void);
  * @brief	: Compute a calibrated current from AUX GPIO6 reading
  * @return  : Calibrated current
  * *************************************************************************/
-float current_sense;
-void bms_items_current_sense(void)
+float bms_items_current_sense(void)
 {
 	uint16_t* p = &bmsspiall.auxreg[6];
 	float* pc   = &bqfunction.lc.bmsaux[BMSAUX_6_CUR_SENSE].coef[0];
 
 	// current = (reading - offset) * scale;
-	current_sense = (*p - *pc) * (*(pc + 1));
-	return;
+	return (*p - *pc) * (*(pc + 1));
 }

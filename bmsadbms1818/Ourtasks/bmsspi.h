@@ -37,6 +37,9 @@ enum WRITEREGS
  void bmsspi_readbms(void);
 /* @brief	: Read BMS plus GPIO1,2
  * *************************************************************************/
+ void bmsspi_readaux(void);
+/* @brief	: Read AUX
+ * *************************************************************************/ 
  void bmsspi_gpio(void);
 /* @brief	: Read BMS 9 GPIOs & calibrate temperature sensors
  * *************************************************************************/

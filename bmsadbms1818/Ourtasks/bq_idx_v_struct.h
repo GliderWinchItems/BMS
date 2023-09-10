@@ -45,9 +45,6 @@ struct BMSCAL
    struct FILTERIIRF1 iir_f1; // Filter: Time constant, integer scaling
    float coef[3]; // coefficients for: x^0 x^1 x^2
    float  f;
-//   float scale;
- //  float offset;
-   //int32_t  ioffset; // Offset before float conversion
 };
 
 struct BMSCALTEMP // Thermistor->temperature calibration
@@ -127,8 +124,9 @@ struct BQLC
    uint32_t cid_cmd_bms_miscr;    // CAN id for all other responses
 
  // List of CAN ID's for setting up hw filter for incoming msgs
-   uint32_t cid_uni_bms_emc_i;     // CANID_UNI_BMS_EMC_I      B0000000 multi-purpose universal BMS
-   uint32_t cid_uni_bms_pc_i;      // CANID_UNI_BMS_PC_I       B0200000 multi-purpose universal BMS
+   uint32_t cid_uni_bms_emc1_i;  // CANID_UNI_BMS_EMC1_I      B0000000 multi-purpose universal BMS
+   uint32_t cid_uni_bms_emc2_i;  // CANID_UNI_BMS_EMC2_I      B0200000 multi-purpose universal BMS
+   uint32_t cid_uni_bms_pc_i;    // CANID_UNI_BMS_PC_I        AEC00000 multi-purpose universal BMS
 
    uint8_t hbseq; // heartbeat CAN msg sequence number
  };

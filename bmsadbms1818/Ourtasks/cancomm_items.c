@@ -14,6 +14,7 @@
 #include "iir_f1.h"
 #include "BMSTask.h"
 #include "morse.h"
+#include "bms_items.h"
 
 void cancomm_items_sendcell(struct CANRCVBUF* pcan, float *pf);
 
@@ -166,6 +167,7 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
 	struct CANRCVBUF* po = &p->canmsg.can;
 	float ftmp[ADCDIRECTMAX];
 	float fdeg;
+	float fcur;
 	uint8_t i;
 
 	/* Pointer to payload 4 byte value is used often. */
@@ -179,8 +181,10 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
    if (pi->cd.uc[0] == CMD_CMD_CELLPOLL)// (code 42) Request to send cell
    {
    	// Set code in response that identifies who polled
-   	 if (pi->id == p->lc.cid_uni_bms_emc_i)
-   	 	po->cd.uc[0] = CMD_CMD_CELLEMC; // EMC polled cell voltages
+   	 if (pi->id == p->lc.cid_uni_bms_emc1_i)
+   	 	po->cd.uc[0] = CMD_CMD_CELLEMC1; // EMC polled cell voltages
+   	 else if (pi->id == p->lc.cid_uni_bms_emc2_i)
+   	 	po->cd.uc[0] = CMD_CMD_CELLEMC2; // EMC polled cell voltages
    	 else if (pi->id == p->lc.cid_uni_bms_pc_i)
    	 	po->cd.uc[0] = CMD_CMD_CELLPC; // PC polled cell voltages
    	 else if (pi->id == CANID_UNIT_99)
@@ -201,8 +205,10 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
    if (pi->cd.uc[0] == CMD_CMD_TYPE2) // (code 42) Request to send cell
    {    
 		// Set code in response that identifies who polled
-		if (pi->id == p->lc.cid_uni_bms_emc_i)
-			po->cd.uc[0] = CMD_CMD_MISCEMC; // EMC polled cell voltages
+		if (pi->id == p->lc.cid_uni_bms_emc1_i)
+			po->cd.uc[0] = CMD_CMD_MISCEMC1; // EMC polled cell voltages
+		else if (pi->id == p->lc.cid_uni_bms_emc2_i)
+			po->cd.uc[0] = CMD_CMD_MISCEMC2; // EMC polled cell voltages
 		else if (pi->id == p->lc.cid_uni_bms_pc_i)
 		 	po->cd.uc[0] = CMD_CMD_MISCPC; // PC polled cell voltages
 		else if (pi->id == CANID_UNIT_99)
@@ -256,7 +262,8 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
 	 		break;
 
 	 	case MISCQ_HALL_CAL:    // 8 Hall sensor: calibrated
-	 		not_implemented(po);
+			fcur = bms_items_current_sense_Hall(); // Calibrate current sense readings
+			send_bms_one(po, &fcur, 0);
 	 		break;
 
 	 	case MISCQ_HALL_ADC:    // 9 Hall sensor: adc counts
@@ -310,7 +317,8 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
 	 		break;
 
 		case MISCQ_CURRENT_CAL: // 24 Below cell #1 minus, current resistor: calibrated
-			send_bms_one(po, &current_sense, 0);
+			fcur = bms_items_current_sense(); // Calibrate current sense readings
+			send_bms_one(po, &fcur, 0);
 	 		break;
 
 		case MISCQ_CURRENT_ADC: // 25 Below cell #1 minus, current resistor: adc counts		

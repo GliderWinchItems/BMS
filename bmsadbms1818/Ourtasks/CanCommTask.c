@@ -62,8 +62,9 @@ a queued request it notifies CanCommTask and the notification bit is
 used to lookup the CAN msg that initiated the BMSTask request. 
 */
 /* xTaskNotifyWait Notification bits */
-#define CANCOMMBIT00 (1 <<  0) // EMC CAN msg
-#define CANCOMMBIT01 (1 <<  1) // PC CAN msg
+#define CANCOMMBIT00 (1 <<  0) // EMC1 CAN msg
+#define CANCOMMBIT01 (1 <<  1) // PC   CAN msg
+#define CANCOMMBIT02 (1 <<  2) // EMC2 CAN msg
 
 // The following reserves notification bits 7-12 (out of 0-31)
 #define CANQEDSIZE 8   // Max number of BMSTask requests that can be queued
@@ -205,9 +206,13 @@ void CanComm_init(struct BQFUNCTION* p )
 	uint8_t i;
 
 	/* Add CAN Mailboxes                               CAN     CAN ID             TaskHandle,Notify bit,Skip, Paytype */
-    p->pmbx_cid_uni_bms_emc_i      = MailboxTask_add(pctl0,p->lc.cid_uni_bms_emc_i, NULL, CANCOMMBIT00,0,U8); // universal #1
-    if (p->pmbx_cid_uni_bms_emc_i == NULL) morse_trap(622);
-    p->pmbx_cid_uni_bms_pc_i      = MailboxTask_add(pctl0,p->lc.cid_uni_bms_pc_i,   NULL, CANCOMMBIT01,0,U8); // universal #2
+    p->pmbx_cid_uni_bms_emc1_i      = MailboxTask_add(pctl0,p->lc.cid_uni_bms_emc1_i, NULL, CANCOMMBIT00,0,U8); // 
+    if (p->pmbx_cid_uni_bms_emc1_i == NULL) morse_trap(622);
+
+    p->pmbx_cid_uni_bms_emc2_i      = MailboxTask_add(pctl0,p->lc.cid_uni_bms_emc2_i, NULL, CANCOMMBIT02,0,U8); // 
+    if (p->pmbx_cid_uni_bms_emc2_i == NULL) morse_trap(622);
+
+    p->pmbx_cid_uni_bms_pc_i      = MailboxTask_add(pctl0,p->lc.cid_uni_bms_pc_i,   NULL, CANCOMMBIT01,0,U8); // 
     if (p->pmbx_cid_uni_bms_pc_i == NULL) morse_trap(622);
 
     /* Add CAN msgs to incoming CAN hw filter. (Skip to allow all incoming msgs. */
@@ -300,19 +305,31 @@ notification and it would be lost. */
 //		xTaskNotifyWait(0,noteval, &noteval, timeoutwait);//timeoutwait);
 		
 /* ******* CAN msg to all nodes. EMC poll msg. */
-		if ((noteval & CANCOMMBIT00) != 0) // CAN id: cid_uni_bms_emc_i [B0000000]
+		if ((noteval & CANCOMMBIT00) != 0) // CAN id: cid_uni_bms_emc1_i [B0000000]
 		{ // 
 //morse_trap(777);
-			pcan = &p->pmbx_cid_uni_bms_emc_i->ncan.can;
+			pcan = &p->pmbx_cid_uni_bms_emc1_i->ncan.can;
 			if (for_us(pcan,p) == 0)
 			{ // This CAN msg includes us.
 				do_req_codes(pcan);
 			}
 		}
 
+		if ((noteval & CANCOMMBIT02) != 0) // CAN id: cid_uni_bms_emc2_i [B0200000]
+		{ // 
+//morse_trap(777);
+			pcan = &p->pmbx_cid_uni_bms_emc2_i->ncan.can;
+			if (for_us(pcan,p) == 0)
+			{ // This CAN msg includes us.
+				do_req_codes(pcan);
+			}
+		}
+
+
 /* ******* CAN msg to all nodes. PC poll msg. */
-		if ((noteval & CANCOMMBIT01) != 0) // CAN id: cid_uni_bms_pc_i [B0200000]
+		if ((noteval & CANCOMMBIT01) != 0) // CAN id: cid_uni_bms_pc_i [AEC00000]
 		{ //   
+//morse_trap(55);
 			pcan = &p->pmbx_cid_uni_bms_pc_i->ncan.can;
 			if (for_us(pcan,p) == 0)
 			{ // This CAN msg includes us.
@@ -470,7 +487,7 @@ struct TOOSOON toosoon[TOOSOONSIZE];
 
 static uint8_t toosoonchk(struct CANRCVBUF* pcan)
 {
-	if ((pcan->id == bqfunction.lc.cid_uni_bms_emc_i) &&
+	if ((pcan->id == bqfunction.lc.cid_uni_bms_emc1_i) &&
 		(((int)(xTaskGetTickCount() - toosoon[TS_EMC].cant)) > 0))
 	{ // EMC incoming CAN msg
 		toosoon[TS_EMC ].cant = xTaskGetTickCount()+TOOSOONNEXT;

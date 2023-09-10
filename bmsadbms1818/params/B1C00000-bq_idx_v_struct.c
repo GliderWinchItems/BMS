@@ -336,9 +336,10 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->temp_fan_max = 48.0f; // Above max fan is 100%
 
 // List of CAN ID's for setting up hw filter for incoming msgs
-   p->cid_uni_bms_emc_i     = CANID_UNI_BMS_EMC_I;     // B0000000 UNIversal From EMC,  Incoming msg to BMS: X4=target CANID');   
-   p->cid_uni_bms_pc_i      = CANID_UNI_BMS_PC_I;      // B0200000 UNIversal From PC,  Incoming msg to BMS: X4=target CANID');   
-
+   p->cid_uni_bms_emc1_i = CANID_UNI_BMS_EMC1_I;   // B0000000 UNIversal From EMC,  Incoming msg to BMS: X4=target CANID');   
+   p->cid_uni_bms_emc2_i = CANID_UNI_BMS_EMC2_I;   // B0200000 UNIversal From EMC,  Incoming msg to BMS: X4=target CANID');   
+   p->cid_uni_bms_pc_i   = CANID_UNI_BMS_PC_I;     // AEC00000 UNIversal From PC,   Incoming msg to BMS: X4=target CANID');   
+   
 // CAN ids BMS sends, others receive
    p->cid_msg_bms_cellvsmr = I_AM_CANID; // B0A00000
 	return;

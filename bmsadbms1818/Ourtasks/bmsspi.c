@@ -228,6 +228,9 @@ void bmsspi_readbms(void)
 		pf +=1;
 	}
 
+	// Calibrate gpio1 (Hall-sensor)
+	pbq->lc.bmsaux[0].f = bms_items_current_sense_Hall();
+
 	// Restore status of FETs
 //	bmsspi_setfets();
 
@@ -236,6 +239,45 @@ void bmsspi_readbms(void)
 
 	// Update the time of the last reading
 	time_read_cells = DTWTIME + MINREADOUT;
+	return;
+}
+/* *************************************************************************
+ * void bmsspi_readaux(void);
+ * @brief	: Read AUX
+ * *************************************************************************/
+void bmsspi_readaux(void)
+{
+	uint8_t fettmp;
+
+	/* Skip readout if previous request was too soon. */
+	if ((int)(DTWTIME - time_read_aux) < 0)
+		return;
+
+	/* Request contains FETs to be turned off. The charger
+	   current affects the zero offset for the current
+	   sense (gpio5) reading. However, it can be used to 
+	   measure the charger current, by reading with and
+	   without the charger fet on. The other fets will add
+	   to the string current load if they are on.
+	   
+	   A zero bit in 'fetsw' turns the corresponding bit in
+	   'fet_status' off during the measurement. 'fet_status'
+	   is restored upon completion of the readout.
+	  */
+	fettmp = pssb->fetsw & bqfunction.fet_status;
+	fetonoff_status_set(fettmp);
+
+	// Read AUX
+	bmsspi_readstuff(READAUX);
+
+	bms_items_current_sense_Hall();
+	bms_items_current_sense();
+
+	// Restore heater, dump, dump2, trickle chgr
+	fetonoff_status_set(bqfunction.fet_status);
+
+	// Update the time of the last reading
+	time_read_aux = DTWTIME + MINREADOUT;
 	return;
 }
 /* *************************************************************************

@@ -1514,8 +1514,9 @@ uint32_t ticks_next = xTaskGetTickCount();
           bqfunction.lc.thermcal[2].temp, 
           bqfunction.fanspeed, fanrpm);
 
-      bms_items_current_sense(); // Calibrate current sense readings
-      yprintf(&pbuf1,"\n\rCURRENT: %5.1f",current_sense);
+      float cstmp = bms_items_current_sense(); // Calibrate current sense readings
+      float cstmphall = bms_items_current_sense_Hall(); // Calibrate current sense readings
+      yprintf(&pbuf1,"\n\rCURRENT LINK: %5.1f CURRENT_HALL: %5.1f", cstmp,cstmphall);
         break;
 
       default:

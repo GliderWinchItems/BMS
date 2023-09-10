@@ -99,6 +99,7 @@ morse_trap(808);
 			case REQ_BOGUS: // JIC debug
 				morse_trap(812);
 				break;
+
 			case REQ_READBMS:   // Read ADBMS1818
 				bmsspi_readbms();
 				break;
@@ -114,15 +115,28 @@ morse_trap(808);
 			case REQ_SETFETS: // Set discharge FETs
 				bmsspi_setfets();
 				break;
+
 			case REQ_TEMPERATURE:
 				bms_gettemp();
-				break;		
+				break;	
+
 			case REQ_RTCREAD:   // Read & check PEC15 on RTC registers
 				pssb->other = rtcregs_read();
-				break;		
+				break;	
+
 			case REQ_RTCUPDATE: // Update w PEC15 RTC registers
 				rtcregs_update();
 				break;		
+
+			case REQ_READBMSnAUX:  //   9 Read BMS cells and AUX
+				bmsspi_readbms();
+				bmsspi_readaux();
+				break;
+
+			case REQ_READAUX:      //  10 Read AUX
+				bmsspi_readaux();
+				break;
+
 			default:
 				morse_trap(806); // Debugging trap
 				break;
