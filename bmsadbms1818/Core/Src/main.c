@@ -1363,8 +1363,6 @@ void StartDefaultTask(void *argument)
     yprintf(&pbuf1,"\n\rmorse_err: %d\n\n\r",*prtc);
     osDelay(50); // Allow enough time to printout before next morse_trap
   }
-  
-
 
   /* The 'for' loop polls. The following times the loop. */
   #define MAINFORLOOPDELAY 50 // Delay of 'for' loop in ms
@@ -1400,7 +1398,7 @@ uint32_t ticks_next = xTaskGetTickCount();
   celltrip_prev = 0;
 
 // Test battery switch fet PC13)
-//HAL_GPIO_WritePin(GPIOc,GPIO_PIN_13,GPIO_PIN_SET); 
+//HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13,GPIO_PIN_SET); 
 
   for(;;) /* Loop polls various operations. */
   {  

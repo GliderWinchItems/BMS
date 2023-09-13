@@ -346,7 +346,7 @@ dbgtrc |= (1<<6);
 			if (pbq->hyster_sw_trip == 1)
 			{
 				pbq->hyster_sw_trip = 9; // Set bogus value 	
-				pbq->fet_status |= FET_DUMP;  // Discharge test 
+//?				pbq->fet_status |= FET_DUMP;  // Discharge test 
 			}			
 dbgtrc |= (1<<7);
 		}
@@ -372,7 +372,7 @@ dbgtrc |= (1<<9);
 			else
 			{
 				pbq->cansetfet = 0; // Avoid time rollover turning fets on.
-				pbq->cellbal = 0; // Discharge fet bits
+				pbq->cellbal   = 0; // Discharge fet bits
 			}
 		}
 

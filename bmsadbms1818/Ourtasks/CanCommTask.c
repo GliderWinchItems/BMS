@@ -150,14 +150,15 @@ static uint8_t for_us(struct CANRCVBUF* pcan, struct BQFUNCTION* p)
 	return 1; // Skip. This request is not for us.
 }
 /* *************************************************************************
- *  void CanComm_qreq(uint8_t reqcode, uint32_t setfets, struct CANRCVBUF* pcan);
+ *  void CanComm_qreq(uint8_t reqcode, uint32_t setfets, uint8_t fetsw, struct CANRCVBUF* pcan);
  *	@brief	: Queue request to BMSTask.c
  *  @param  : reqcode = see BMSTask.h 
  *  @param  : setfets = bits to set discharge fets (if so commanded)
+ *  @param  : fetsw = bits to turn fets on|off during reading
  *  @param  : idx = this queue request slot
  *  @param  : notebit = notification bit when BMSTask completes request
  * *************************************************************************/
-void CanComm_qreq(uint8_t reqcode, uint32_t setfets, struct CANRCVBUF* pcan)
+void CanComm_qreq(uint8_t reqcode, uint32_t setfets, uint8_t fetsw, struct CANRCVBUF* pcan)
 {
 	struct CANQED* pcanqed;
 
@@ -177,6 +178,7 @@ morse_trap(654);
 	pcanqed->can = *pcan; // Save requesting CAN msg
 	pcanqed->bmsreq_c.reqcode  = reqcode; // BMSTask request code
 	pcanqed->bmsreq_c.setfets  = setfets; // Discharge fet bits to set
+	pcanqed->bmsreq_c.fetsw    = fetsw;   // FET on|off bits (DUMP, etc.)
     pcanqed->bmsreq_c.noteyes  = 1; // Yes, we will wait for notification
 
     /* Code that sets rate for ADC conversion. */
@@ -529,7 +531,7 @@ static void do_req_codes(struct CANRCVBUF* pcan)
 		// the readings are not stale BMSTask will do an immediate notification.
 //		if (toosoonchk(pcan) == 0)
 			// Delay a heartbeat
-			CanComm_qreq(REQ_READBMS, 0, pcan);
+			CanComm_qreq(REQ_READBMS, 0, 0, pcan);
 		break;
 
 	case CMD_CMD_TYPE2: // (43) Misc: Some may not need queueing BMSTask
@@ -552,7 +554,8 @@ morse_trap(551);
 /* *************************************************************************
  * static uint8_t q_do(struct CANRCVBUF* pcan);
  *	@brief	: Queue a BMS task if necessary
- *  @param  : pcan = point to CAN msg struct
+ *  @param  : pcan = point to CAN msg struct\
+ *  @return : 0 = No need for queuing; 1 = queue
  * *************************************************************************/
 static uint8_t q_do(struct CANRCVBUF* pcan)
 {
@@ -579,35 +582,32 @@ static uint8_t q_do(struct CANRCVBUF* pcan)
  			ftmp[i] = adc1.abs[i].sumsave;
 		send_bms_array(po, &ftmp[0], ADCDIRECTMAX); 	 */
 	case MISCQ_R_BITS:      // 21 Dump, dump2, heater, discharge bits
-	case MISCQ_CURRENT_CAL: // 24 Below cell #1 minus, current resistor: calibrated
-	case MISCQ_CURRENT_ADC: // 25 Below cell #1 minus, current resistor: adc counts	
 		qsw = 0; // No need to queue a reading
 		break;
 /* #### RATE7KHZ needs updating for CAN msg request. */
 	/* BMSTask: REQ_SETFETS */
  	/* ???? Does this require a read AUX registers? */
 	case MISCQ_FETBALBITS: //  27 // Set FET on/off discharge bits
- 		CanComm_qreq(REQ_SETFETS, pcan->cd.ui[1], pcan);
+ 		CanComm_qreq(REQ_SETFETS, pcan->cd.ui[1], 0, pcan);
  		break;
 
-	/* BMSTask: REQ_TEMPERATURE */
+	/* Uses AUX registers */
  	case MISCQ_TEMP_CAL:    // 4 temperature sensor: calibrated send_bms_array(po, &bqfunction.cal_filt[16], 3);
  	case MISCQ_TEMP_ADC:    // 5 temperature sensor: adc counts send_bms_array(po, &p->raw_filt[16], 3);
- 		CanComm_qreq(REQ_TEMPERATURE, 0, pcan);
- 		qsw = 1;
- 		break;
-
- 	/* Not implemented. uses AUX registers. */
+	case MISCQ_CURRENT_CAL: // 24 Below cell #1 minus, current resistor: calibrated
+	case MISCQ_CURRENT_ADC: // 25 Below cell #1 minus, current resistor: adc counts	
  	case MISCQ_HALL_CAL:    // 8 Hall sensor: calibrated
  	case MISCQ_HALL_ADC:    // 9 Hall sensor: adc counts
+ 		CanComm_qreq(REQ_READAUX, 0, 0, pcan); // queue BMS read AUX
+ 		qsw = 1; // Show BMS reading is queued
  		break;
 
 	/* BMSTask: REQ_READBMS */
  	case MISCQ_CELLV_CAL:   // 2 cell voltage: calibrated
  	case MISCQ_CELLV_HI:   // 10 Highest cell voltage 		loaduint32(puc, p->cellv_high);
  	case MISCQ_CELLV_LO:   // 11 Lowest cell voltage 		loaduint32(puc, p->cellv_low);
- 		CanComm_qreq(REQ_READBMS, 0, pcan);
- 		qsw = 1;
+ 		CanComm_qreq(REQ_READBMS, 0, 0, pcan); // queue BMS read CELLS + GPIO 1,2
+ 		qsw = 1; // Show BMS reading is queued
  		break;
 	}
 	return qsw;

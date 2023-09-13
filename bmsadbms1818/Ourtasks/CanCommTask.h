@@ -23,10 +23,11 @@
  * @param	: taskpriority = Task priority (just as it says!)
  * @return	: CanCommHandle
  * *************************************************************************/
-void CanComm_qreq(uint8_t reqcode, uint32_t setfets, struct CANRCVBUF* pcan);
+ void CanComm_qreq(uint8_t reqcode, uint32_t setfets, uint8_t fetsw, struct CANRCVBUF* pcan);
 /*	@brief	: Queue request to BMSTask.c
  *  @param  : reqcode = see BMSTask.h 
  *  @param  : setfets = bits to set discharge fets (if so commanded)
+ *  @param  : fetsw = bits to turn fets on|off during reading
  *  @param  : idx = this queue request slot
  *  @param  : notebit = notification bit when BMSTask completes request
  * *************************************************************************/
