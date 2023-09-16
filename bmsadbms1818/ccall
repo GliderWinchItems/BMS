@@ -1,0 +1,35 @@
+#!/bin/bash
+#ccall
+# Program update a BMS string
+# 09/15/23
+
+# Get a list of all parameter files
+
+# Compile these two programs jic
+cd ~/GliderWinchItems/BMS/PC/mklist1
+gcc mklist1.c -o mklist1
+
+cd ~/GliderWinchItems/BMS/PC/mklist2
+gcc mklist2.c -o mklist2
+
+# Make a list of CAN IDs that have parameter files
+cd ~/GliderWinchItems/BMS/bmsadbms1818/params
+ls *bq*.c > x;cat x | ../../PC/mklist1/mklist1
+
+# Feed CAN msgs from hub-server->netcat to find
+# CAN nodes that match the above list
+# and generate a ./cc <CAN ID> file
+# "../../bmsadbms1818/params/call_file"
+
+ nc localhost 32123 | ../../PC/mklist2/mklist2
+
+# Make executable
+chmod +x ../../bmsadbms1818/params/call_file
+
+# Run the .cc file
+cd ~/GliderWinchItems/BMS/bmsadbms1818
+./params/call_file
+
+
+
+

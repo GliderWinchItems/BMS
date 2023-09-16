@@ -103,6 +103,10 @@ struct BQLC
    int16_t cellv_hyster; // Relax-to-voltage = (cellv_max - cellv_hyster)
    uint32_t trip_max;   // Cells that have tripped max voltage when hyster_sw = 0;
 
+  /* Future Not implemented (09/13/23) */
+   uint32_t cellv_launch_ng;   //  Low cell voltage for launch no-go 
+   uint32_t cellv_min_loaded;  //  Low cell voltage too low under load   
+
    int16_t cellbal_del; // Balance within this amount of lowest
  
 

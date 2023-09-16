@@ -353,8 +353,10 @@ dbgtrc |= (1<<7);
 	}
 	else
 	{ // ======> Relaxation/hysteresis is in effect <=======
-		// When all cells are above max, bring them down
-		if (pbq->cellv_max_bits == pbq->cellspresent)
+		  // When all cells are above max, bring them down
+		  //if (pbq->cellv_max_bits == pbq->cellspresent)
+		// When any cell is above max bring it down
+		if (pbq->cellv_max_bits != 0)
 		{ // Here, all installed cells above max
 /* This for bringing the pack down to a (new lower) target voltage. */			
 			pbq->cellbal = pbq->cellv_max_bits; // Discharge FETs on all
@@ -373,6 +375,7 @@ dbgtrc |= (1<<9);
 			{
 				pbq->cansetfet = 0; // Avoid time rollover turning fets on.
 				pbq->cellbal   = 0; // Discharge fet bits
+dbgtrc |= (1<<14);					
 			}
 		}
 

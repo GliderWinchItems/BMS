@@ -6,6 +6,7 @@
 *******************************************************************************/
 /*
 16 pin CAN ISO1042
+9/14/23 ship gsm
 */
 #include "bq_idx_v_struct.h"
 #include "SerialTaskReceive.h"
@@ -44,25 +45,29 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->dcdc_w    =  5.2; // Charger power max taken from DC-DC converter (e.g. 5.5W)
    p->dcdc_calv = 70.0; // Module voltage used in following settings (e.g. 57.6v)   
  
-// 09/01/23: 73.0 ma with the following settings
-   p->dac1_hv_setting  = 3990; // HV volt limit (DAC setting, not mv!)
-   p->dac2_ix_setting  =  105; // Current sense level setting (DAC setting)
-   p->tim1_ccr1_on     =  999; // PWM ON count: Normal charge rate
-   p->tim1_ccr1_on_vlc =   10; // PWM ON count: Very Low Charge rate required
-   p->tim1_arr_init    =   16; // At 16 MHz: count of 80 = 5 us PWM frame
+// 09/13/23: 73.6 ma with the following settings
+   p->dac1_hv_setting  = 3800; // HV volt limit (DAC setting)
+   p->dac2_ix_setting  =   95; // Current sense level setting (DAC setting)
+   p->tim1_ccr1_on     =   55; // PWM ON count: Normal charge rate
+   p->tim1_ccr1_on_vlc =    2; // PWM ON count: Very Low Charge rate required
+   p->tim1_arr_init    =   45; // At 16 MHz: count of 80 = 5 us PWM frame
 
-   p->cellv_max   = 3900; // Max limit (mv) for charging any cell
-   p->cellv_min   = 2800; // Min limit (mv) for any discharging
-   p->cellv_vlc   = 2550; // Below this (mv) Very Low Charge (vlc)required
-   p->cellv_tgtdelta = 3; // Target delta (mv)   
-   p->cellopen_hi = 4300; // Above this voltage cell wire is assumed open (mv)
+   p->cellv_max   = 3482; // Max limit (mv) for charging any cell
+   p->cellv_min   = 2200; // Min limit (mv) for any discharging
+   p->cellv_vlc   = 2100; // Below this (mv) Very Low Charge (vlc)required
+   p->cellv_tgtdelta = 3; // Target delta (mv)
+   p->cellopen_hi = 4000; // Above this voltage cell wire is assumed open (mv)
    p->cellopen_lo =  333; // Below this voltage cell wire is assumed open (mv)
 
    p->balnummax    = 18;  // Max number of cells to discharge at one time
-   p->cellv_hyster = 400;  // Voltage below cellv_max to start recharging (mv)
+   p->cellv_hyster = 100;  // Voltage below cellv_max to start recharging (mv)
+
+   /* Future Not implemented (09/13/23) */
+   p->cellv_launch_ng  = 31445;   //  Low cell voltage for launch no-go (0.1 mv)
+   p->cellv_min_loaded = 18000;  //  Low cell voltage too low under load (0.1 mv)
 
    /* Limit external charger current. */
-   p->maxchrgcurrent = 6; // Max (0.1a)
+   p->maxchrgcurrent = 6; // 0.6 a --(0.1a steps)
 
    p->cellbal_del  = 2; // Legacy
 

@@ -1697,7 +1697,7 @@ yprintf(&pbuf2," %08X",bqfunction.lc.cid_msg_bms_cellvsmr);
       yprintf(&pbuf2," %0.3f (hrs)",ftmp/3600.0);
 
 extern uint32_t dbgtrc;
-      yprintf(&pbuf1,"\n\rFETSTAT: 0x%02X  battery_status: 0x%02X dbgtrc: 0x%04x ",
+      yprintf(&pbuf1,"\n\rFETSTAT: 0x%02X  battery_status: 0x%02X dbgtrc: 0x%05x ",
         bqfunction.fet_status,
         bqfunction.battery_status,
         dbgtrc); 
@@ -1749,8 +1749,8 @@ for (i = 0; i < 4; i++)
 
 //      yprintf(&pbuf2,"\t %08X",bqfunction.lc.cid_msg_bms_cellvsmr); // CAN ID 
 
- //     extern uint32_t dbgcellbal;
- //     yprintf(&pbuf1,"\n\rdbgcellbal:%05X",dbgcellbal);
+      extern uint32_t dbgcellbal;
+      yprintf(&pbuf1,"\n\rdbgcellbal:%05X",dbgcellbal);
 
       yprintf(&pbuf1,"\n\r config:   %04X %04X %04X %04X %04X %04X",
         bmsspiall.configreg[0],bmsspiall.configreg[1],bmsspiall.configreg[2],
