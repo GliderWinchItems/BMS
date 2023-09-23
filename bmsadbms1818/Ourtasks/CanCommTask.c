@@ -327,7 +327,6 @@ notification and it would be lost. */
 			}
 		}
 
-
 /* ******* CAN msg to all nodes. PC poll msg. */
 		if ((noteval & CANCOMMBIT01) != 0) // CAN id: cid_uni_bms_pc_i [AEC00000]
 		{ //   

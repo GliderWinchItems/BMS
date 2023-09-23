@@ -48,6 +48,10 @@
 #define FET_CHGR     (1 << 3) // 1 = Charger FET enabled: Normal charge rate
 #define FET_CHGR_VLC (1 << 4) // 1 = Charger FET enabled: Very Low Charge rate
 
+/* Mode status bits 'mode_status' */
+#define MODE_SELFDCHG  (1 << 0) // 1 = Self discharge; 0 = charging
+#define MODE_CELLTRIP  (1 << 1) // 1 = One or more cells tripped max
+
 /* Indices for CAN msg commands. */
 #define REQ_HEATER 0
 #define REQ_DUMP   1
@@ -171,6 +175,7 @@ struct BQFUNCTION
 	uint8_t active_ct;      // Count of bits set in cellbal
 	uint8_t battery_status; // Cell status code bits 
 	uint8_t fet_status;     // This controls on/off of FETs
+	uint8_t mode_status;       // Mode bits
 
 	/* CAN msgs command to turn on HEATER, DUMP, DUMP2. 
 	   request has timeout associated with it. */

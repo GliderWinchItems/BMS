@@ -47,13 +47,13 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
 
   /* Charger: timer and comparator settings. */
 // 09/14/23: 88.0 ma with the following settings
-   p->dac1_hv_setting  = 3800; // HV volt limit (DAC setting)
+   p->dac1_hv_setting  = 3980; // HV volt limit (DAC setting)
    p->dac2_ix_setting  =   95; // Current sense level setting (DAC setting)
    p->tim1_ccr1_on     =   55; // PWM ON count: Normal charge rate
    p->tim1_ccr1_on_vlc =    2; // PWM ON count: Very Low Charge rate required
    p->tim1_arr_init    =   45; // At 16 MHz: count of 80 = 5 us PWM frame
 
-   p->cellv_max   = 3840; // Max limit (mv) for charging any cell
+   p->cellv_max   = 3750; // Max limit (mv) for charging any cell
    p->cellv_min   = 2200; // Min limit (mv) for any discharging
    p->cellv_vlc   = 2100; // Below this (mv) Very Low Charge (vlc)required
    p->cellv_tgtdelta = 3; // Target delta (mv)
@@ -61,7 +61,7 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->cellopen_lo =  333; // Below this voltage cell wire is assumed open (mv)
 
    p->balnummax    = 18;  // Max number of cells to discharge at one time
-   p->cellv_hyster = 100;  // Voltage below cellv_max to start recharging (mv)
+   p->cellv_hyster = 350;  // Voltage below cellv_max to start recharging (mv)
 
    /* Future Not implemented (09/13/23) */
    p->cellv_launch_ng  = 31445;   //  Low cell voltage for launch no-go (0.1 mv)
@@ -69,7 +69,6 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
 
    /* Limit external charger current. */
    p->maxchrgcurrent = 6; // 0.6 a --(0.1a steps)
-
 
    p->cellbal_del  = 2; // Legacy
 
@@ -80,6 +79,11 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
 
    p->modulev_max = (p->ncell*p->cellv_max); // Battery module max limit (mv)
    p->modulev_min = (p->ncell*p->cellv_min); // Battery module min limit (mv)
+
+   /* These are sent to the EMC for module level charging control. */
+   p->maxchrgcurrent  = 6; // Maximum charge current (0.1a) (over 25.5a = 255)
+   p->chrgcurrent_bal = 1; // Charge current for module balancing (0.1a)
+   p->maxmodule_v     = (p->modulev_max/100);  // module voltage limit (0.1v)
 
    /* Relate cell numbers to cell positions. (indices are ("number"-1) */
 #define EighteenPositionBox

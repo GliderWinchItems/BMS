@@ -6,9 +6,18 @@
 *******************************************************************************/
 /*
 ./ccall
-This will pipe ls *bq*.c into this routine.
+After mklist1 executes mklist2 is called from ccall.
 
-gcc mklist1.c -o mklist1
+mklist2 
+- loads the list of CAN IDs that have parameter files
+- monitors incoming CAN msgs and makes a list of
+  CAN IDs present that are in the parameter files list
+- After a timeout, genrates a file of the form
+  ./cc <CANID>
+  ccall executes this file which compiles & loads all
+  the CAN nodes discovered.  
+
+gcc mklist2.c -o mklist2
 */
 
 #include <stdio.h>

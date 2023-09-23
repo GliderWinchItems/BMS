@@ -47,18 +47,18 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->dcdc_calv = 68.5; // Module voltage used in following settings (e.g. 57.6v)
 
    /* Charger: timer and comparator settings. */
-   p->dac1_hv_setting  = 3990; // HV volt limit (DAC setting, not mv!)
+   p->dac1_hv_setting  = 3980; // HV volt limit (DAC setting, not mv!)
    p->dac2_ix_setting  =  105; // Current sense level setting (DAC setting)
    p->tim1_ccr1_on     =  999; // PWM ON count: Normal charge rate
    p->tim1_ccr1_on_vlc =   10; // PWM ON count: Very Low Charge rate required
    p->tim1_arr_init    =   16; // At 16 MHz: count of 80 = 5 us PWM frame
 
-   p->cellv_max   = 3900; // Max limit (mv) for charging any cell
+   p->cellv_max   = 3750; // Max limit (mv) for charging any cell
    p->cellv_min   = 2800; // Min limit (mv) for any discharging
    p->cellv_vlc   = 2550; // Below this (mv) Very Low Charge (vlc)required
    p->cellv_tgtdelta = 3; // Target delta (mv)   
    p->cellopen_hi = 4300; // Above this voltage cell wire is assumed open (mv)
-   p->cellopen_lo =  333; // Below this voltage cell wire is assumed open (mv)
+   p->cellopen_lo =  350; // Below this voltage cell wire is assumed open (mv)
 
    p->balnummax    = 18;  // Max number of cells to discharge at one time
    p->cellv_hyster =500;  // Voltage below cellv_max to start recharging (mv)
@@ -75,6 +75,11 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
 
    p->modulev_max = (p->ncell*p->cellv_max); // Battery module max limit (mv)
    p->modulev_min = (p->ncell*p->cellv_min); // Battery module min limit (mv)
+
+   /* These are sent to the EMC for module level charging control. */
+   p->maxchrgcurrent  = 6; // Maximum charge current (0.1a) (over 25.5a = 255)
+   p->chrgcurrent_bal = 1; // Charge current for module balancing (0.1a)
+   p->maxmodule_v     = (p->modulev_max/100);  // module voltage limit (0.1v)   
 
    /* Relate cell numbers to cell positions. (indices are ("number"-1) */
 #define EighteenPositionBox

@@ -406,6 +406,23 @@ dbgtrc |= (1<<10);
 dbgtrc |= (1<<11);			
 		}
 	}
+	/* Update status byte for 'mode' */
+	if (pbq->hyster_sw == 0)
+	{
+		pbq->mode_status &= ~MODE_SELFDCHG;
+	}
+	else
+	{
+		pbq->mode_status |= MODE_SELFDCHG;		
+	}
+	if (pbq->celltrip == 0)	
+	{
+		pbq->mode_status &= ~MODE_CELLTRIP;
+	}
+	else
+	{
+		pbq->mode_status |= MODE_CELLTRIP;		
+	}
 	return;
 }
 /* ************************************************************************* 

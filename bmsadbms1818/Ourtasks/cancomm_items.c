@@ -393,6 +393,13 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
 			fdeg = adcparams_caltemp();
 			send_bms_one(po, &fdeg,0);
 			break;
+
+		case MISCQ_CHG_LIMITS: // 37 Show params: Module V max, Ext chg current max, Ext. chg bal
+			po->cd.us[1] = 0; // uc[2]-[3] cleared
+			po->cd.uc[4] = p->lc.maxchrgcurrent;  // Maximum charge current (0.1a) (255 is >= 25.5a)
+			po->cd.uc[5] = p->lc.chrgcurrent_bal; // Charge current for module balancing (0.1a)
+			po->cd.us[3] = p->lc.maxmodule_v;     // Module voltage max (0.1v)
+			break;	
 		}
 	}
 	if (skip == 0)
@@ -507,12 +514,17 @@ Battery--
 #define BSTATUS_CELLBAL   (1 << 4)  // Cell balancing in progress
 #define BSTATUS_CHARGING  (1 << 5)  // Charging in progress
 #define BSTATUS_DUMPTOV   (1 << 6)  // Dump to a voltage in progress
+
 FETS--
 #define FET_DUMP     (1 << 0) // 1 = DUMP FET ON
 #define FET_HEATER   (1 << 1) // 1 = HEATER FET ON
 #define FET_DUMP2    (1 << 2) // 1 = DUMP2 FET ON (external charger)
 #define FET_CHGR     (1 << 3) // 1 = Charger FET enabled: Normal charge rate
 #define FET_CHGR_VLC (1 << 4) // 1 = Charger FET enabled: Very Low Charge rate
+
+Mode status bits 'mode_status' --
+#define MODE_SELFDCHG  (1 << 0) // 1 = Self discharge; 0 = charging
+#define MODE_CELLTRIP  (1 << 1) // 1 = One or more cells tripped max
 */
 	struct BQFUNCTION* p = &bqfunction;
 	po->cd.uc[1] = MISCQ_STATUS; // 
@@ -521,6 +533,7 @@ FETS--
 	po->cd.ui[1] = 0; // Clear
 	po->cd.uc[4] = p->battery_status;
 	po->cd.uc[5] = p->fet_status;
+	po->cd.uc[6] = p->mode_status;
 	skip = 0;
 	return;
 }

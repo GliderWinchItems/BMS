@@ -6,7 +6,12 @@
 *******************************************************************************/
 /*
 ./ccall
-This will pipe ls *bq*.c into this routine.
+This will pipe ls *bq*.c into this routine, which is a list of
+<can id>-bq_idx_v_struct.c
+files.
+
+This extracts the CAN ID and makes a file which is used by
+mklist2._
 
 gcc mklist1.c -o mklist1
 */

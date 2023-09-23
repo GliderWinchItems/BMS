@@ -97,7 +97,10 @@ struct BQLC
    int16_t cellv_min;    // Min limit for any discharging (mv)
    int16_t cellv_vlc;    // Below this Very Low Charge (_vlc)required
 
-   uint16_t maxchrgcurrent; // Maximum charge current (0.1a)
+   /* These are sent to the EMC for module level charging control. */
+   uint8_t maxchrgcurrent;  // Maximum charge current (0.1a) (255 is >= 25.5a)
+   uint8_t chrgcurrent_bal; // Charge current for module balancing (0.1a)
+   uint16_t maxmodule_v;     // modulev_max/1000 - This module's limit on the string 
 
 
    int16_t cellv_hyster; // Relax-to-voltage = (cellv_max - cellv_hyster)
