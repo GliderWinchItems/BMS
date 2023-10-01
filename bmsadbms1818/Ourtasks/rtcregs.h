@@ -15,7 +15,7 @@ structs.
 
 Max (32b) registers: 32
 */
-#define RTCREGUSED 13	// Number of RTC registers used 
+#define RTCREGUSED 14	// Number of RTC registers used 
 struct RTCREG 
 {
 	uint32_t cellbal;       //   1.00 Bits with FETs that were on
@@ -26,8 +26,9 @@ struct RTCREG
 	uint8_t fet_status;     //   0.01 This controls on/off of FETs
 	uint8_t err;            //   0.01 Err bits
 	uint32_t morse_err;     //   1.00 morse_trap err code
+	uint32_t celltrip;
 /* The foregoing MUST be an even number of 32b */	
-	uint16_t pec15; // CRC15 (in lower 1/2 of register)
+	uint16_t pec15; // CRC15 (in lower 1/2 of 32b register)
 };
 
 /* *************************************************************************/

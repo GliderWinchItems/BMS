@@ -33,11 +33,17 @@ would a heartbeat or the variety of CAN msg requests).
 #include "cancomm_items.h"
 #include "../../../../GliderWinchCommons/embed/svn_common/trunk/db/gen_db.h"
 
+extern uint32_t rtcregs_status; // 'main' saves rtc registers upon startup
+extern uint32_t rtcregs_morse_code;
+extern uint8_t rtcregs_OK; // 1 = rtc regs were OK; 0 = not useable.
+
 extern struct CAN_CTLBLOCK* pctl0; // Pointer to CAN1 control block
 extern CAN_HandleTypeDef hcan1;
 
 static void do_req_codes(struct CANRCVBUF* pcan);
 static uint8_t q_do(struct CANRCVBUF* pcan);
+
+
 
 //static void canfilt(uint16_t mm, struct MAILBOXCAN* p);
 
@@ -279,6 +285,12 @@ osDelay(20); // Wait for ADCTask to get going.
 
 	rdyflag_cancomm = 1; // Initialization complete and ready
 
+	/* Send the rtc register status. */
+/* Use dummy CAN msg, then it looks the same as a request CAN msg. */
+	can_hb.cd.uc[0] = CMD_CMD_TYPE2; 
+	can_hb.cd.uc[2] = MISCQ_MORSE_TRAP; // status code
+	cancomm_items_sendcmdr(&can_hb);  // Handles as if incoming CAN msg.	
+
 /* In the following 'for (;;)' loop xTaskNotifyWait will time out if there are no 
    incoming CAN msg notifications. The timeout is set to poll the timeouts for the
    two hearbeat msgs. The heartbeat status msg will be sent even when CAN msgs are
@@ -346,7 +358,7 @@ notification and it would be lost. */
 			/* Use dummy CAN msg, then it looks the same as a request CAN msg. */
 				can_hb.cd.ull   = 0xffffffff; // Clear entire payload
 				can_hb.cd.uc[0] = CMD_CMD_TYPE2; // 
-				can_hb.cd.uc[1] = MISCQ_STATUS;   // status code
+				can_hb.cd.uc[2] = MISCQ_STATUS;   // status code
 				cancomm_items_sendcmdr(&can_hb);  // Handles as if incoming CAN msg.
 			}	
 		}			

@@ -239,7 +239,7 @@ dbgcellbal = pbq->cellbal;
 	{
 		if (pbq->bqreq[i].req == 1)
 		{ // Here, active command in progress
-dbgtrc |= (1<<12); // Debug Trace			
+dbgtrc |= (1<<12); // Debug Trace	
 			if ((int)(xTaskGetTickCount()-pbq->bqreq[i].tim) > 0)
 			{ // Here, time has expired
 				pbq->bqreq[i].req = 0; // Reset command status
@@ -252,8 +252,8 @@ dbgtrc |= (1<<0); // Debug Trace
 			{ // Here, request is active, and time has not expired
 				if (pbq->bqreq[i].on == 1)
 				{ // Here command was ON
-dbgtrc |= (1<<13); // Debug Trace				
-					if (i == REQ_DUMP  ) pbq->fet_status |= FET_DUMP; else
+dbgtrc |= (1<<13); // Debug Trace	
+ 					if (i == REQ_DUMP  ) pbq->fet_status |= FET_DUMP; else
 					if (i == REQ_DUMP2 ) pbq->fet_status |= FET_DUMP2;else
 					if (i == REQ_HEATER) pbq->fet_status |= FET_HEATER;
 				}

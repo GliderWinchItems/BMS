@@ -48,6 +48,8 @@
  #define MISCQ_READ_ADDR    35 // BMS responds with 'n' bytes sent in [3]
  #define MISCQ_PROC_TEMP    36 // Processor calibrated internal temperature (deg C)
  #define MISCQ_CHG_LIMITS   37 // Show params: Module V max, Ext chg current max, Ext. chg bal
+ #define MISCQ_MORSE_TRAP   38 // Retrieve stored morse_trap code.
+
 
 
 /* Keep alive for incoming CAN msgs that cause battery loads. */

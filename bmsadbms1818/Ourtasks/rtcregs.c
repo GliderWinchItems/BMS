@@ -72,6 +72,7 @@ void rtcregs_update(void)
 				(bqfunction.err << 24)
 				); 
 	*prtc++ = morse_err;
+	*prtc++ = bqfunction.celltrip;
 	uint8_t* pr = (uint8_t*)&RTC->BKP0R;
 	int len = (uint8_t*)prtc - (uint8_t*)&RTC->BKP0R;
 	*prtc = pec15_reg (pr, len);
@@ -134,6 +135,7 @@ static void rtcregs_load(void)
 	prtc += 1;
 
 	bqfunction.morse_err = *prtc++;
+	bqfunction.celltrip =  *prtc++;
 
 	return;
 }

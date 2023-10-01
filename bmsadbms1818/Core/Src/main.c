@@ -1300,7 +1300,9 @@ static uint32_t celltrip_time_offset;
 static uint32_t celltrip_time_offset_discharge;
 static uint32_t celltrip_time_lo;
 static uint8_t hyster_sw_prev;
-
+uint32_t rtcregs_status;
+uint32_t rtcregs_morse_code;
+uint8_t rtcregs_OK;
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void *argument)
 {
@@ -1324,8 +1326,16 @@ void StartDefaultTask(void *argument)
   char* ok = {"OK"};
   char* ng = {"NG"};
   char** ptwo;
-  if (rtcregs_ret == 0) ptwo = &ok;
-  else ptwo = &ng;
+  if (rtcregs_ret == 0)
+  { 
+    ptwo = &ok;
+    rtcregs_OK = 1;
+  }
+  else 
+  {
+    ptwo = &ng;
+    rtcregs_OK =0;
+  }
   yprintf(&pbuf1,"\n\n\rPROGRAM STARTS: rtcregs_ret: %s",*ptwo);
 
   /* List the RTC */
@@ -1355,12 +1365,18 @@ void StartDefaultTask(void *argument)
       yprintf(&pbuf2," %6d",(*prtc >> 16));
       prtc += 1;
     }
+    rtcregs_status = *prtc; // Save for CAN msgs
+
     yprintf(&pbuf1,"\n\rhyster_sw     : %02X",((*prtc >>  0) & 0xF));
     yprintf(&pbuf2,"\n\rbattery_status: %02X",((*prtc >>  8) & 0xF));
     yprintf(&pbuf1,"\n\rfet_status    : %02X",((*prtc >> 16) & 0xF));
     yprintf(&pbuf2,"\n\rerr           : %02X",((*prtc >> 24) & 0xF));
     prtc += 1;
-    yprintf(&pbuf1,"\n\rmorse_err: %d\n\n\r",*prtc);
+    rtcregs_morse_code = *prtc; // Save for CAN msgs
+    yprintf(&pbuf1,"\n\rmorse_err: %d",*prtc);
+     prtc += 1;
+    yprintf(&pbuf1,"\n\rcelltrip: 0x%05x\n\n\r",*prtc);
+
     osDelay(50); // Allow enough time to printout before next morse_trap
   }
 
@@ -1719,7 +1735,7 @@ extern uint32_t dbgexttim2;
       yprintf(&pbuf1,"\n\rcellv_latest[i]: ");
       for (i = 0; i < 18; ++i) yprintf(&pbuf2," %5d",bqfunction.cellv_latest[i]);
 #endif
-      yprintf(&pbuf2,"\n\rcellspresent: 0x%05X",bqfunction.cellspresent); 
+      yprintf(&pbuf2,"\n\rcellspresent: 0x%05X celltrip: 0x%05X",bqfunction.cellspresent,bqfunction.celltrip); 
       yprintf(&pbuf1,"\n\rcellv_hi: #%2d %5dmv",bqfunction.cellx_high+1,bqfunction.cellv_high);
       yprintf(&pbuf2,    " cellv_high_f: %7.1f",bqfunction.cellv_high_f*0.1);
       yprintf(&pbuf1,"\n\rcellv_lo: #%2d %5dmv",bqfunction.cellx_low+1, bqfunction.cellv_low);

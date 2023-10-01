@@ -16,6 +16,11 @@
 #include "morse.h"
 #include "bms_items.h"
 
+extern uint32_t rtcregs_status; // 'main' saves rtc registers upon startup
+extern uint32_t rtcregs_morse_code;
+extern uint8_t rtcregs_OK; // 1 = rtc regs were OK; 0 = not useable.
+
+
 void cancomm_items_sendcell(struct CANRCVBUF* pcan, float *pf);
 
 static void loadfloat(uint8_t* puc, float* f);
@@ -400,6 +405,13 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
 			po->cd.uc[5] = p->lc.chrgcurrent_bal; // Charge current for module balancing (0.1a)
 			po->cd.us[3] = p->lc.maxmodule_v;     // Module voltage max (0.1v)
 			break;	
+
+		case MISCQ_MORSE_TRAP: // 37 Show params: Module V max, Ext chg current max, Ext. chg bal
+			po->cd.us[1] = 0; // uc[2]-[3] cleared
+			po->cd.uc[1] = MISCQ_MORSE_TRAP; // status code
+			po->cd.uc[3] = rtcregs_OK;
+			po->cd.ui[1] = rtcregs_morse_code;
+			break;
 		}
 	}
 	if (skip == 0)
