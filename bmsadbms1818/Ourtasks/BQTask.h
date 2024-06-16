@@ -51,6 +51,7 @@
 /* Mode status bits 'mode_status' */
 #define MODE_SELFDCHG  (1 << 0) // 1 = Self discharge; 0 = charging
 #define MODE_CELLTRIP  (1 << 1) // 1 = One or more cells tripped max
+#define MODE_TRIPBTD   (1 << 2) // 1 = One or more cells tripped & below target-delta
 
 /* Indices for CAN msg commands. */
 #define REQ_HEATER 0
@@ -136,7 +137,6 @@ struct BQFUNCTION
 	uint32_t cellv_max_bits; // Cells above cellv_max
 	uint32_t cellv_min_bits; // Cells below cellv_min
 	uint32_t cellv_vlc_bits; // Cells below cellv_vlc
-	uint32_t cellv_tmc_bits; // Cells above Target Minus Delta 
 
 	float cellv[NCELLMAX]; // Cell voltage (calibrated volts)
 	float cellv_sort[NCELLMAX]; // cellv sorted
@@ -166,9 +166,9 @@ struct BQFUNCTION
 	float raw_filt[ADCBMSMAX]; // Filtered output
 	float cal_filt[ADCBMSMAX]; // Filtered and calibrated
 
-//	uint32_t dchgfetbits; // 1 = discharge FET is on !!!!!!!!!!!
 	uint32_t cellbal;       // Bits to activate cell balance fets!!!!!!!!!!!
 	uint32_t celltrip;      // Bits for cell going over cellv_max
+	uint32_t cell_tdt_bits; // Cells below Target-Delta & tripped
 	uint32_t cellspresent;  // Bits for cell positions that are installed
 	uint32_t cansetfet;     // Bits from CAN msg command sets FETs on|off
 	uint32_t cansetfet_tim; // RTOS ticks for timeout of cansetfet

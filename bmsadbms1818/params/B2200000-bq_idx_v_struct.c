@@ -60,8 +60,14 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->cellopen_hi = 4300; // Above this voltage cell wire is assumed open (mv)
    p->cellopen_lo =  350; // Below this voltage cell wire is assumed open (mv)
 
-   p->balnummax    = 18;  // Max number of cells to discharge at one time
-   p->cellv_hyster =500;  // Voltage below cellv_max to start recharging (mv)
+   p->balnummax    =  18;  // Max number of cells to discharge at one time
+   p->cellv_hyster = 350;  // Voltage below cellv_max to start recharging (mv)
+
+   p->dumpresistor = 450; // DUMP fet load resistor (Ohms)
+
+   /* Future Not implemented (09/13/23) */
+   p->cellv_launch_ng  = 31445;   //  Low cell voltage for launch no-go (0.1 mv)
+   p->cellv_min_loaded = 18000;  //  Low cell voltage too low under load (0.1 mv)
 
    /* Limit external charger current. */
    p->maxchrgcurrent = 12; // Max (0.1a)

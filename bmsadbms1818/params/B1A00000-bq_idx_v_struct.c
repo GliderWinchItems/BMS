@@ -68,6 +68,8 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->cellv_launch_ng  = 31445;   //  Low cell voltage for launch no-go (0.1 mv)
    p->cellv_min_loaded = 18000;  //  Low cell voltage too low under load (0.1 mv)
 
+   p->dumpresistor = 120; // DUMP fet load resistor (Ohms)
+
    /* Limit external charger current. */
    p->maxchrgcurrent = 6; // 0.6 a --(0.1a steps)
 

@@ -66,6 +66,8 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->balnummax    = 18;  // Max number of cells to discharge at one time
    p->cellv_hyster = 100;  // Voltage below cellv_max to start recharging (mv)
 
+   p->dumpresistor = 120; // DUMP fet load resistor (Ohms)
+
    /* Future Not implemented (09/13/23) */
    p->cellv_launch_ng  = 31445;   //  Low cell voltage for launch no-go (0.1 mv)
    p->cellv_min_loaded = 18000;  //  Low cell voltage too low under load (0.1 mv)

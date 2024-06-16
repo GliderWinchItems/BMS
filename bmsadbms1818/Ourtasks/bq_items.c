@@ -197,15 +197,20 @@ dbgtrc = 0; // bits for checking logic
 					pbq->celltrip       |= (1 << i); // Cell "tripped" max (cumulative)
 					pbq->battery_status |= BSTATUS_CELLTOOHI; // One or more cells above max limit
 				}
-				if (pbq->hyster_sw == 0)
-				{// Here, in charge mode (not relaxation mode)
-					if (idata > pbq->cellv_tmdelta) // (cellv_max - cellv_tgtdelta)
-					{ // Here, voltrage is between max and (max - delta)
-						if ((pbq->celltrip & (1<<i)) != 0)
-						{ // Here, this cell has tripped max
+				if (idata > pbq->cellv_tmdelta) // (cellv_max - cellv_tgtdelta)
+				{ // Here, voltage is between max and (max - delta)
+					if ((pbq->celltrip & (1<<i)) != 0)
+					{ // Here, this cell has tripped max
+						pbq->cell_tdt_bits |= (1 << i);
+						if (pbq->hyster_sw == 0)
+						{ // Here, in charge mode (not relaxation mode)
 							pbq->cellbal |= (1 << i); // Set bit for discharge FET
 						}
 					}
+				}
+				else
+				{
+					pbq->cell_tdt_bits &= ~(1 << i);
 				}
 				if (idata < pbq->hysterv_lo)
 				{ // Cell below (target-hysteresis) voltage
@@ -402,6 +407,7 @@ dbgtrc |= (1<<10);
 			pbq->hysterbits_lo_save = pbq->hysterbits_lo;
 			pbq->hyster_sw     = 0; // Set hysteresis switch off
 			pbq->celltrip      = 0; // Reset cells that went over max
+			pbq->cell_tdt_bits = 0; // Reset cell below max - delta AND tripped
 			pbq->discharge_test_sw = 0; // Reset discharge test, if it was on.
 dbgtrc |= (1<<11);			
 		}

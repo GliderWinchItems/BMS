@@ -48,6 +48,7 @@ void bq_func_init(void)
 	p->fet_status     = 0; // FET bits
     p->hyster_sw      = 0; // 1 = means hysteresis (relaxation) currently in effect
     p->celltrip       = 0; // 1 = cell went over max (cumulative) for not hysteresis mode
+    p->cell_tdt_bits  = 0; // 1 = cell below (target - delta) AND tripped
     p->dcdc_oto       = 0; // OTO DC-DC power adjustment calibration computation
     p->discharge_test_sw = 0; // sw = 1, heater load on when hyster_sw on.
     p->cansetfet         = 0; // CAN msg command to set discharge fets

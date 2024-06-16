@@ -41,32 +41,45 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
 
    p->CanComm_hb = 1000; // CanCommTask 'wait' RTOS ticks per heartbeat sending
  
-   /* Charger: timer and comparator settings. */
-   p->dac1_hv_setting  = 3600; // HV volt limit (DAC setting)
-   p->dac2_ix_setting  = 110;  // Current sense level setting (DAC setting)
-   p->tim1_ccr1_on     =  55;  // PWM ON count: Normal charge rate
-   p->tim1_ccr1_on_vlc =   2;  // PWM ON count: Very Low Charge rate required
-   p->tim1_arr_init    =  79;  // At 16 MHz: count of 80 = 5 us PWM frame
+   p->dac1_hv_setting  = 3980; // HV volt limit (DAC setting)
+   p->dac2_ix_setting  =   95; // Current sense level setting (DAC setting)
+   p->tim1_ccr1_on     =   55; // PWM ON count: Normal charge rate
+   p->tim1_ccr1_on_vlc =    2; // PWM ON count: Very Low Charge rate required
+   p->tim1_arr_init    =   45; // At 16 MHz: count of 80 = 5 us PWM frame
 
-   p->cellv_max   = 3900; // Max limit (mv) for charging any cell
-   p->cellv_min   = 2800; // Min limit (mv) for any discharging
-   p->cellv_vlc   = 2550; // Below this (mv) Very Low Charge (vlc)required
-   p->cellv_tgtdelta = 0; // Target delta (mv)
-   p->cellopen_hi = 4300; // Above this voltage cell wire is assumed open (mv)
+   p->cellv_max   = 3750; // Max limit (mv) for charging any cell
+   p->cellv_min   = 2200; // Min limit (mv) for any discharging
+   p->cellv_vlc   = 2100; // Below this (mv) Very Low Charge (vlc)required
+   p->cellv_tgtdelta = 3; // Target delta (mv)
+   p->cellopen_hi = 4000; // Above this voltage cell wire is assumed open (mv)
    p->cellopen_lo =  333; // Below this voltage cell wire is assumed open (mv)
-   p->modulev_max = (16*3600); // Battery module max limit (mv)
-   p->modulev_min = (16*2600); // Battery module min limit (mv)
 
-   p->balnummax    = 18;  // Max number of cells to discharge at one time
-   p->cellv_hyster = 700;  // Voltage below cellv_max to start recharging (mv)
+   p->balnummax    =  18;  // Max number of cells to discharge at one time
+   p->cellv_hyster = 350;  // Voltage below cellv_max to start recharging (mv)
+
+   p->dumpresistor = 450; // DUMP fet load resistor (Ohms)
+
+   /* Future Not implemented (09/13/23) */
+   p->cellv_launch_ng  = 31445;   //  Low cell voltage for launch no-go (0.1 mv)
+   p->cellv_min_loaded = 18000;  //  Low cell voltage too low under load (0.1 mv)
+
+   /* Limit external charger current. */
+   p->maxchrgcurrent = 6; // 0.6 a --(0.1a steps)
 
    p->cellbal_del  = 2; // Legacy
 
   /* Arrays compiled using NCELLMAX [18] */
    p->ncell = 18; // Number of series cells in this module
-
    if (p->ncell > NCELLMAX) morse_trap(702); // Error trap as it needs fixing
    p->npositions  = 18;  // Number of cell =>positions<= in module "box"
+
+   p->modulev_max = (p->ncell*p->cellv_max); // Battery module max limit (mv)
+   p->modulev_min = (p->ncell*p->cellv_min); // Battery module min limit (mv)
+
+   /* These are sent to the EMC for module level charging control. */
+   p->maxchrgcurrent  = 6; // Maximum charge current (0.1a) (over 25.5a = 255)
+   p->chrgcurrent_bal = 1; // Charge current for module balancing (0.1a)
+   p->maxmodule_v     = (p->modulev_max/100);  // module voltage limit (0.1v)
 
    /* Relate cell numbers to cell positions. (indices are ("number"-1) */
 #define EighteenPositionBox
