@@ -20,6 +20,8 @@ extern uint32_t rtcregs_status; // 'main' saves rtc registers upon startup
 extern uint32_t rtcregs_morse_code;
 extern uint8_t rtcregs_OK; // 1 = rtc regs were OK; 0 = not useable.
 
+extern uint8_t fanspeed;
+extern float fanrpm;
 
 void cancomm_items_sendcell(struct CANRCVBUF* pcan, float *pf);
 
@@ -194,7 +196,7 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
    	 	po->cd.uc[0] = CMD_CMD_CELLPC; // PC polled cell voltages
    	 else if (pi->id == CANID_UNIT_99)
    	 	{ // Here Dummy CAN ID means heartbeat timeout trigger this
-			po->cd.uc[0] = CMD_CMD_CELLHB; // Heartbeat timeout cell voltages
+			po->cd.uc[0] = CMD_CMD_CELLHB; // 45 Heartbeat timeout cell voltages
 //			bqfunction.hbseq += 1; // Group sequence number
    	 	}  
    	 	else
@@ -207,7 +209,7 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
 
  	 return;
     }
-   if (pi->cd.uc[0] == CMD_CMD_TYPE2) // (code 42) Request to send cell
+   if (pi->cd.uc[0] == CMD_CMD_TYPE2) // (code 43) Request to send cell
    {    
 		// Set code in response that identifies who polled
 		if (pi->id == p->lc.cid_uni_bms_emc1_i)
@@ -218,7 +220,7 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
 		 	po->cd.uc[0] = CMD_CMD_MISCPC; // PC polled cell voltages
 		else if (pi->id == CANID_UNIT_99)
 		{ // Here Dummy CAN ID means heartbeat timeout trigger this
-		 	po->cd.uc[0] = CMD_CMD_MISCHB; // Heartbeat timeout cell voltages
+		 	po->cd.uc[0] = CMD_CMD_MISCHB; // 45 Heartbeat timeout cell voltages
 		//			bqfunction.hbseq += 1; // Group sequence number
 		}  
 		else
@@ -406,11 +408,14 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
 			po->cd.us[3] = p->lc.maxmodule_v;     // Module voltage max (0.1v)
 			break;	
 
-		case MISCQ_MORSE_TRAP: // 37 Show params: Module V max, Ext chg current max, Ext. chg bal
+		case MISCQ_MORSE_TRAP: // 38 Show params: Module V max, Ext chg current max, Ext. chg bal
 			po->cd.us[1] = 0; // uc[2]-[3] cleared
-			po->cd.uc[1] = MISCQ_MORSE_TRAP; // status code
 			po->cd.uc[3] = rtcregs_OK;
 			po->cd.ui[1] = rtcregs_morse_code;
+
+		case MISCQ_FAN_STATUS: // 39  Retrieve fan: pct and rpm 
+			po->cd.us[1] = 0; // uc[2]-[3] cleared
+			send_bms_one(po, &fanrpm, bqfunction.fanspeed);
 			break;
 		}
 	}

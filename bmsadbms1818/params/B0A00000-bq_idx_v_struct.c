@@ -51,11 +51,11 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->tim1_ccr1_on_vlc =   10; // PWM ON count: Very Low Charge rate required
    p->tim1_arr_init    =   25; // At 16 MHz: count of 80 = 5 us PWM frame
 
-   p->cellv_max   = 3900; // Max limit (mv) for charging any cell
+   p->cellv_max   = 3750; // Max limit (mv) for charging any cell
    p->cellv_min   = 2800; // Min limit (mv) for any discharging
-   p->cellv_vlc   = 2550; // Below this (mv) Very Low Charge (vlc)required
+   p->cellv_vlc   = 2100; // Below this (mv) Very Low Charge (vlc)required
    p->cellv_tgtdelta = 3; // Target delta (mv)   
-   p->cellopen_hi = 4300; // Above this voltage cell wire is assumed open (mv)
+   p->cellopen_hi = 4000; // Above this voltage cell wire is assumed open (mv)
    p->cellopen_lo =  333; // Below this voltage cell wire is assumed open (mv)
 
    p->balnummax    = 18;  // Max number of cells to discharge at one time
@@ -287,7 +287,7 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->bmsaux[BMSAUX_REF].coef[2] = 0;
 
    /* Auxilarly GPIO 6 Current sense op amp */
-   p->bmsaux[BMSAUX_6_CUR_SENSE].coef[0] = 11533.7f;
+   p->bmsaux[BMSAUX_6_CUR_SENSE].coef[0] = 27569.0f;
    p->bmsaux[BMSAUX_6_CUR_SENSE].coef[1] = 9.03E-02f;
    p->bmsaux[BMSAUX_6_CUR_SENSE].coef[2] = 0;
 

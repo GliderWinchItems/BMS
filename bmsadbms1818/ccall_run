@@ -1,0 +1,16 @@
+#!/bin/bash
+# ccall_run <IP> <port>
+# Program update a BMS string
+# 09/15/2023
+# 07/04/2024 - add ip and port as arguments
+# Run a previously generated call_file
+
+# Example: call_file localhost 32123
+# Example: call_file 192.168.2.100 32124
+
+# Make executable
+chmod +x ../../bmsadbms1818/params/call_file
+
+cd ~/GliderWinchItems/BMS/bmsadbms1818
+echo "call_file executing $1 $2"
+./params/call_file $1 $2

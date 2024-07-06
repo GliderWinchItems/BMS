@@ -1,9 +1,9 @@
-#!/bin/bash
+#!/bin/bash -e
 # Example: Specify CAN ID to select parameter files
 # e.g. CAN ID = BOA00000
 # ./mm BOA00000 
 
-rm build/bms1818.elf
+#rm build/bms1818.elf
 export FLOAT_TYPE=hard
 
 # Parameters for CAN ID specified by $1

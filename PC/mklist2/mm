@@ -1,0 +1,4 @@
+#!/bin/bash
+# mm - compile
+# ./mm
+gcc mklist2.c -o mklist2

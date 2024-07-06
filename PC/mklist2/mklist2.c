@@ -118,7 +118,7 @@ printf("END CAN IDs in parameter file\n");
 		{
 			cty +=1;
 			printf("%2d %08X %2d\n",j,paramlist[j],idpresent[j]);
-			fprintf(fpOut,"./cc %08X\n",paramlist[j]);
+			fprintf(fpOut,"./cc %08X $1 $2\n",paramlist[j]);
 		}
 	}	
 	fclose(fpOut);

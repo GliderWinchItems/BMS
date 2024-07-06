@@ -1,12 +1,12 @@
-#!/bin/bash
+#!/bin/bash -e
 # Compile and load program over CAN
 # ./cc <BMS ID> <hub-server port>
-# E.g. ./cc B0A00000 32123
+# E.g. ./cc B0A00000 localhost 32123
 
 ./mm $1
 
 cd ~/GliderWinchCommons/embed/svn_discoveryf4/PC/sensor/CANldr/trunk
-./CANldr 127.0.0.1 $2 $1 ~/GliderWinchItems/BMS/bmsadbms1818/build/bms1818.xbin
+./CANldr $2 $3 $1 ~/GliderWinchItems/BMS/bmsadbms1818/build/bms1818.xbin
 echo $?
 
 cd -
