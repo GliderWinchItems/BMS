@@ -294,7 +294,7 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->bmsaux[BMSAUX_REF].coef[2] = 0;
 
    /* Auxilarly GPIO 6 Current sense op amp */
-   p->bmsaux[BMSAUX_6_CUR_SENSE].coef[0] = 30803.0f;
+   p->bmsaux[BMSAUX_6_CUR_SENSE].coef[0] = 29743.0f;
    p->bmsaux[BMSAUX_6_CUR_SENSE].coef[1] = 9.90747E-2f;
    p->bmsaux[BMSAUX_6_CUR_SENSE].coef[2] = 0;
 
