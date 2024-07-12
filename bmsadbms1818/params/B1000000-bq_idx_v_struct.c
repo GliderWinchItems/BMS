@@ -343,8 +343,19 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->thermcal[1].installed = 1; // GPIO 3 JP4
    p->thermcal[2].installed = 1; // GPIO 4 JP5
 
-   p->temp_fan_min = 31.0f; // Between max & min fan proporational
-   p->temp_fan_max = 48.0f; // Above max fan is 100%
+   /* Map thermistors. */
+   p->tamb_idx  = 0;  // Ambient (inlet)
+   p->tcell_idx = 2;  // Cell
+   p->texit_idx = 1;  // Exit
+
+   /* Fan temperature control parameters (deg C). */
+   // Between max & min fan is proportional
+   p->temp_fan_min  = 26.0f; // Ambient threshold
+   p->temp_fan_max  = 48.0f; // Max: above this fan is 100%
+   p->temp_fan_cell = 33.0f; // Tcell above this fan runs
+   p->temp_fan_del  = 10.0f; // (Tcell - Tamb) > 0 enables fan
+   p->temp_fan_min_pwm = 15f; // Minimum pwm for this fan to run
+
 
 // List of CAN ID's for setting up hw filter for incoming msgs
    p->cid_uni_bms_emc1_i = CANID_UNI_BMS_EMC1_I;   // B0000000 UNIversal From EMC,  Incoming msg to BMS: X4=target CANID');   

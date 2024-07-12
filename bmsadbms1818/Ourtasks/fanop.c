@@ -15,6 +15,12 @@
 #include "DTW_counter.h"
 #include "bq_items.h"
 
+/* Select which fanspeed algoritm to use. 
+comment out both for original version.
+comment "in" both for latest. */
+//#define NEWFANSPEED
+//#define ALTERNATENEWFANSPEED
+
 extern TIM_HandleTypeDef htim2;
 
 #define TICKUPDATE 5 // 250 ms between updates
@@ -45,6 +51,19 @@ float fdeltaT;
  * *************************************************************************/
 void fanop_init(void)
 {
+#ifdef NEWFANSPEED
+	/* Check that parameters were initialized. */
+	struct BQLC* p = &bqfunction.lc; // Convenience pointer
+	if ( (p->temp_fan_min  == 0) ||
+         (p->temp_fan_max  == 0) ||
+         (p->temp_fan_del  == 0) ||
+         (p->temp_fan_cell == 0) || 
+         (p->temp_fan_min_pwm == 0) )
+         morse_trap(823);
+#endif
+
+   bqfunction.temp_fan_state = 0;
+
 	pT2base  = htim2.Instance;
 	/* TIM2 Fan tach input capture & PWM output. */
    pT2base->ARR   = (640 - 1); // Count to give 25 KHz with 16MHz clock
@@ -127,12 +146,15 @@ void EXTI15_10_IRQHandler(void)
  * static uint8_t compute_fanspeed(void);
  * @brief	: Compute a fanspeed pwm setting based on thermistor temperature readings
  * *************************************************************************/
+#ifndef NEWFANSPEED
+
 static uint8_t compute_fanspeed(void)
 {
 	uint8_t max = 0;
 	uint8_t tmp = 0;
 	float tmpf;
 	int i;
+
 	/* Check each thermistor position. */
 	for (i = 0; i < 3; i++)
 	{ 
@@ -160,3 +182,99 @@ static uint8_t compute_fanspeed(void)
 	}
 	return tmp;
 }
+#else
+ #ifndef ALTERNATENEWFANSPEED
+static uint8_t compute_fanspeed(void)
+{
+	uint8_t tmp = 0;
+	float tmpf;
+	float Tdelta;
+	struct BQLC* p = &bqfunction.lc; // Convenience pointer
+
+	/* Compute temperature of cell above ambient. */
+	Tdelta = (p->thermcal[p->tcell_idx].temp - p->thermcal[p->tamb_idx].temp);
+	if (Tdelta > p->temp_fan_del)
+	{ // Here, Tcell sufficiently above Tamb to enable fan running
+		// Min speed pwm is 14, and max is 100 (hence 86.0 below)
+		tmpf = ((p->thermcal[p->tcell_idx].temp - p->temp_fan_min) /
+	           (p->temp_fan_max - p->temp_fan_min) );
+		tmp = (tmpf * 86.0f) + 14;
+		if (tmp > 100) tmp = 100;
+	}
+	return tmp;
+}
+ #else
+
+static uint32_t tickctr_running;
+static uint32_t tickctr_next;
+
+static uint8_t compute_fanspeed(void)
+{
+	struct BQLC* p = &bqfunction.lc; // Convenience pointer
+
+	/* Convenience vars. */
+	float tcell = p->thermcal[p->tcell_idx].temp;
+	float tamb  = p->thermcal[p->tamb_idx].temp;
+
+	/* Running tick counter (4/sec) */
+	tickctr_running += 1;
+/*
+   float  temp_fan_min_pwm;  // Fan pwm must be greater than this to run
+   float  temp_fan_limit_hi; // Above this is no-launch range
+   float  temp_fan_thres_hi; // Above this is caution zone
+   float  temp_fan_thres_lo; // Below this is caution zone
+   float  temp_fan_limit_lo; // Below this is no-launch range
+   float  temp_fan_delay1;   // Time delay (secs) to assure reliable ambient reading
+   float  temp_fan_delta;    // Null zone beween Tamb and Tcell*/	
+
+	if (tcell > p->temp_fan_limit_hi)
+	{ // Too hot
+		return 100; // Fan at 100%
+	}
+
+	if (tcell > p->temp_fan_thres_lo)
+	{ // Cooling 
+
+		switch(bqfunction.temp_fan_state)
+		{
+		case 0: // Reset/initial
+			if (tcell < p->temp_fan_thres_hi)
+				return 0;
+			tickctr_next = tickctr_running + (p->temp_fan_delay1 * 4);
+			bqfunction.temp_fan_state = 1;
+			return 100;
+
+		case 1: // Time delay in progress
+			if ((int)(tickctr_next - tickctr_running) > 0)
+				return 100;
+			bqfunction.temp_fan_state = 2;
+				return 100;
+
+		case 2:
+			if (tcell < p->temp_fan_thres_lo)
+				bqfunction.temp_fan_state = 0;
+				return 0; // STOP!. Almost too cool
+
+			if ((tcell - tamb) > p->temp_fan_delta)
+				return 100; 
+
+			// Here, (tcell-tamb) difference inconsequential
+			if (tcell > p->temp_fan_thres_hi)
+				return 50; // Maybe ambient is bogus. Don't quit
+
+			// Here, tcell-tamb difference inconsequential 
+			// AND less than thres_hi
+			// AND greater than thres_lo
+			bqfunction.temp_fan_state = 0;
+				return 0;
+		}
+	}
+	else
+	{ // Heating
+		bqfunction.temp_fan_state = 0;
+
+	}
+	return 0;
+}
+  #endif
+#endif

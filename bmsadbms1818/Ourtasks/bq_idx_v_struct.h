@@ -122,9 +122,25 @@ struct BQLC
    uint8_t cellpos[NCELLMAX]; // Cell position - 1 given index [cell number - 1]
 
    struct BMSCALTEMP thermcal[3]; // Thermisters: calibration & results
+
+   /* Index in thermcal for mapping thermistor installations. */
+   uint8_t tamb_idx;  // Ambient (battery inlet)
+   uint8_t tcell_idx; // Cell (battery middle)
+   uint8_t texit_idx; // Exit air 
+
    // Below min fan is off
-   float  temp_fan_min; // Between max & min fan proporational
-   float  temp_fan_max; // Above max fan is 100%
+   float  temp_fan_min;  // 
+   float  temp_fan_max;  // Above max fan is 100%
+   float  temp_fan_del;  // (Tcell - Tamb) > 0 enables fan
+   float  temp_fan_cell; // 
+   float  temp_fan_max_lo;
+   float  temp_fan_min_pwm;  // Fan pwm must be greater than this to run
+   float  temp_fan_limit_hi; // Above this is no-launch range
+   float  temp_fan_thres_hi; // Above this is caution zone
+   float  temp_fan_thres_lo; // Below this is caution zone
+   float  temp_fan_limit_lo; // Below this is no-launch range
+   float  temp_fan_delay1;   // Time delay (secs) to assure reliable ambient reading
+   float  temp_fan_delta;    // Null zone beween Tamb and Tcell
 
  // CAN ids ...........................................................................
    //                                  CANID_NAME            CANID       PAYLOAD FORMAT

@@ -99,6 +99,7 @@ void bq_func_init(void)
 
 	/* Fan control. */
 	p->fanspeed = 0; // Fan speed: rpm pct 0 - 100
+	p->fanspeedscale = 100.0f/(p->lc.temp_fan_max - p->lc.temp_fan_min); // Scaling factor: (100.0/(Tcell - Tamb))	
 	
 	return;
 }

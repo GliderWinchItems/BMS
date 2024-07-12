@@ -183,6 +183,8 @@ struct BQFUNCTION
 
 	uint8_t fanspeed; // Fan speed (timer pwm setting): 14 = minimum for rotation; 100+ = full speed
 	float   fanrpm;   // Fan speed (rpm)
+	float   fanspeedscale; // Scaling factor: (100.0/(Tcell - Tamb))
+	uint8_t  temp_fan_state; // Temperature fan state-machine
 
 	uint32_t morse_err; // Error code retrieved from backup SRAM registers
 	uint8_t err;
