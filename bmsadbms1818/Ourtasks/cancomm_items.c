@@ -20,6 +20,9 @@ extern uint32_t rtcregs_status; // 'main' saves rtc registers upon startup
 extern uint32_t rtcregs_morse_code;
 extern uint8_t rtcregs_OK; // 1 = rtc regs were OK; 0 = not useable.
 
+extern uint8_t  cmd_pwm_set;  // pwm setting being forced
+extern uint32_t cmd_pwm_ctr;  // Running ctr: pwm forced flag
+
 extern uint8_t fanspeed;
 extern float fanrpm;
 
@@ -417,6 +420,12 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
 			po->cd.us[1] = 0; // uc[2]-[3] cleared
 			send_bms_one(po, &fanrpm, bqfunction.fanspeed);
 			break;
+
+		case MISCQ_FAN_SET_SPD: // 40 Set fan: pct (0 - 100)
+			cmd_pwm_ctr += 1; // Flag fanop.c for a new request
+			cmd_pwm_set  = pi->cd.uc[3]; // Update request value
+			skip = 1; // This is a set, so no response
+			break;			
 		}
 	}
 	if (skip == 0)

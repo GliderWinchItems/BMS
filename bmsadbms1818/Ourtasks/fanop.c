@@ -16,14 +16,15 @@
 #include "bq_items.h"
 
 /* Select which fanspeed algoritm to use. 
-comment out both for original version.
-comment "in" both for latest. */
+comment "out" for original version (simple proportional).
+comment "in"  for latest. (state machine) */
 //#define NEWFANSPEED
-//#define ALTERNATENEWFANSPEED
 
 extern TIM_HandleTypeDef htim2;
 
-#define TICKUPDATE 5 // 250 ms between updates
+/* Count 'ticks' for timing, synchronous to 'main'. */
+#define TICKUPDATE 4 // 'main' calls 4 times/sec
+#define FANFORCETIMEOUT (8*4) // 4 sec Delay before forced fan setting times out
 
 /* Sets fan speed. */
 static uint8_t compute_fanspeed(void);
@@ -35,7 +36,15 @@ TIM_TypeDef  *pT2base; // Register base address
  uint32_t T2C3ctr;
 static uint32_t T2C3cum;
 
-static uint32_t tickctr;
+static uint32_t tickctr_running; // Count entries from 'main'
+static uint32_t tickctr_next1;   // Fan speed update
+static uint32_t tickctr_next3;   // Time forced pwm setting
+
+/* Commands set by CAN msgs in cancomm_items.c. */
+uint32_t cmd_pwm_ctr;      // Running ctr: pwm forced flag
+static uint32_t cmd_pwm_ctr_prev; // Previous ct
+uint8_t  cmd_pwm_set;      // pwm setting being forced
+static uint8_t  cmd_pwm_flag;     // 1 = forced pwm being time
 
 uint32_t itmpcum = 0;
 uint32_t itmpcum_prev = 0;
@@ -61,6 +70,8 @@ void fanop_init(void)
          (p->temp_fan_min_pwm == 0) )
          morse_trap(823);
 #endif
+
+	tickctr_next1 = tickctr_running + TICKUPDATE;      
 
    bqfunction.temp_fan_state = 0;
 
@@ -92,10 +103,10 @@ float fanop(void)
 {
 	#define K (60 * 16E6 / 2) // Conversion to RPM of pulse_counts / timer_duration
 
-	tickctr += 1;
-	if (tickctr >= TICKUPDATE)
+	tickctr_running += 1;
+	if ((int)(tickctr_next1 - tickctr_running) > 0)
 	{
-		tickctr = 0;
+		tickctr_next1 += TICKUPDATE;
 
 		/* Get latest tachometer counts and time duration. */
 		do 
@@ -120,9 +131,31 @@ float fanop(void)
 		/* RPM. */
 		fanrpm = K * (float)deltaN / fdeltaT;
 
-		/* Update FAN pwm. */
-		bqfunction.fanspeed = compute_fanspeed();
-// Debug: bqfunction.fanspeed = 14; // 14 = minimum; 100+ = full speed		
+		/* Did a CAN msg set a forced fan setting? (see cancomm_items.c) */
+		if (cmd_pwm_ctr != cmd_pwm_ctr_prev)
+		{ // Here, CAN msg requests a forced fan setting
+			cmd_pwm_ctr_prev = cmd_pwm_ctr; // Update request check
+			tickctr_next3 = tickctr_running + FANFORCETIMEOUT; // Update timeout
+			cmd_pwm_flag = 1; // Show running with forced setting
+		}
+		if (cmd_pwm_flag != 0)
+		{ // Here, forced setting being used.
+			if ((int)(tickctr_next3 - tickctr_running) < 0)
+			{ // Here, timed out, so quit forced mode.
+				cmd_pwm_flag = 0;
+			}
+			// Set fan speed according to request
+			if (cmd_pwm_set > 100) cmd_pwm_set = 100; // jic
+			bqfunction.fanspeed = cmd_pwm_set;
+		}
+		else
+		{ // Here use algorithm to set fan speed
+			bqfunction.fanspeed = compute_fanspeed();
+//bqfunction.fanspeed = 16;		
+		}
+
+// Debug
+//bqfunction.fanspeed = 90; // 14 = minimum; 100+ = full speed		
 
 		/* Set TIM2CH1 PWM to control fan speed. */
 		pT2base->CCR1 = (640 * bqfunction.fanspeed)/100;
@@ -148,65 +181,35 @@ void EXTI15_10_IRQHandler(void)
  * *************************************************************************/
 #ifndef NEWFANSPEED
 
+/* Simple version. */
 static uint8_t compute_fanspeed(void)
 {
-	uint8_t max = 0;
 	uint8_t tmp = 0;
 	float tmpf;
-	int i;
+	struct BQLC* p = &bqfunction.lc; // Convenience pointer
+//	float tcell = p->thermcal[p->tcell_idx].temp;
+	float tcell = p->thermcal[1].temp;
 
-	/* Check each thermistor position. */
-	for (i = 0; i < 3; i++)
-	{ 
-		if (bqfunction.lc.thermcal[0].installed == 1)
-		{ // Here, thermistor position is installed
-			if (bqfunction.lc.thermcal[i].temp > bqfunction.lc.temp_fan_min)
-			{
-				if (bqfunction.lc.thermcal[i].temp > bqfunction.lc.temp_fan_max)
-				{
-					tmp = 100;
-				}
-				else
-				{ // Min speed pwm is 14, and max is 100 (hence 86.0 below)
-					tmpf = ((bqfunction.lc.thermcal[i].temp - bqfunction.lc.temp_fan_min) /
-				           (bqfunction.lc.temp_fan_max - bqfunction.lc.temp_fan_min)     );
-					tmp = (tmpf * 86.0f) + 14;
-				}
-			}
-			else
-			{
-				tmp = 0;
-			}
+	if (tcell > p->temp_fan_min)
+	{
+		if (tcell > p->temp_fan_max)
+		{
+			tmp = 100;
 		}
-		if (tmp > max) max = tmp;
+		else
+		{ // Min speed pwm is 14, and max is 100
+			tmpf = ((tcell - p->temp_fan_min) /
+		           (p->temp_fan_max - p->temp_fan_min)     );
+			tmp = (tmpf * 100.0f);
+			if (tmp <= 14) tmp = 0;
+		}	
 	}
 	return tmp;
 }
 #else
- #ifndef ALTERNATENEWFANSPEED
-static uint8_t compute_fanspeed(void)
-{
-	uint8_t tmp = 0;
-	float tmpf;
-	float Tdelta;
-	struct BQLC* p = &bqfunction.lc; // Convenience pointer
 
-	/* Compute temperature of cell above ambient. */
-	Tdelta = (p->thermcal[p->tcell_idx].temp - p->thermcal[p->tamb_idx].temp);
-	if (Tdelta > p->temp_fan_del)
-	{ // Here, Tcell sufficiently above Tamb to enable fan running
-		// Min speed pwm is 14, and max is 100 (hence 86.0 below)
-		tmpf = ((p->thermcal[p->tcell_idx].temp - p->temp_fan_min) /
-	           (p->temp_fan_max - p->temp_fan_min) );
-		tmp = (tmpf * 86.0f) + 14;
-		if (tmp > 100) tmp = 100;
-	}
-	return tmp;
-}
- #else
-
-static uint32_t tickctr_running;
-static uint32_t tickctr_next;
+/* State machine verison. */
+static uint32_t tickctr_next2;   // Time Tamb delay
 
 static uint8_t compute_fanspeed(void)
 {
@@ -240,12 +243,12 @@ static uint8_t compute_fanspeed(void)
 		case 0: // Reset/initial
 			if (tcell < p->temp_fan_thres_hi)
 				return 0;
-			tickctr_next = tickctr_running + (p->temp_fan_delay1 * 4);
+			tickctr_next2 = tickctr_running + p->temp_fan_delay1;
 			bqfunction.temp_fan_state = 1;
 			return 100;
 
 		case 1: // Time delay in progress
-			if ((int)(tickctr_next - tickctr_running) > 0)
+			if ((int)(tickctr_next2 - tickctr_running) > 0)
 				return 100;
 			bqfunction.temp_fan_state = 2;
 				return 100;
@@ -276,5 +279,4 @@ static uint8_t compute_fanspeed(void)
 	}
 	return 0;
 }
-  #endif
 #endif

@@ -349,12 +349,12 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->temp_fan_del  = 10.0f; // (Tcell - Tamb) > 0 enables fan
    p->temp_fan_min_pwm = 15; // Minimum pwm for this fan to run
 
-   p->temp_fan_limit_hi = 48.0f; // Above this is no-launch range
-   p->temp_fan_thres_hi = 35.0f; // Above this is caution zone
-   p->temp_fan_thres_lo = 20.0f; // Below this is caution zone
-   p->temp_fan_limit_lo = 10.0f; // Below this is no-launch range
+   p->temp_fan_limit_hi = 44.0f; // Above this is no-launch range
+   p->temp_fan_thres_hi = 38.0f; // Above this is caution zone
+   p->temp_fan_thres_lo = 12.0f; // Below this is caution zone
+   p->temp_fan_limit_lo =  8.0f; // Below this is no-launch range
    p->temp_fan_delta    =  4.0f; // Null zone beween Tamb and Tcell
-   p->temp_fan_delay1   =    30; // Time delay (secs) to assure reliable ambient reading 
+   p->temp_fan_delay1   = 30;    // Time delay (secs) to improve ambient reading 
 
 // List of CAN ID's for setting up hw filter for incoming msgs
    p->cid_uni_bms_emc1_i = CANID_UNI_BMS_EMC1_I;   // B0000000 UNIversal From EMC,  Incoming msg to BMS: X4=target CANID');   
