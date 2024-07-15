@@ -259,9 +259,10 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    }
 
 
-   /* Auxilarly GPIO 1 No Connection */
-   p->bmsaux[BMSAUX_1_NC].coef[0] = 0;
-   p->bmsaux[BMSAUX_1_NC].coef[1] = 1;
+   /* Auxilarly GPIO 1 Hall-effect  */
+   // NOTE: No Pull-up resistor on pcb
+   p->bmsaux[BMSAUX_1_NC].coef[0] = 25004;
+   p->bmsaux[BMSAUX_1_NC].coef[1] = 5.24E-4f;;
    p->bmsaux[BMSAUX_1_NC].coef[2] = 0;
 
    /* Auxilarly GPIO 2 Thermistor 1 */

@@ -256,9 +256,10 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    }
 
 
-   /* Auxilarly GPIO 1 No Connection */
-   p->bmsaux[BMSAUX_1_NC].coef[0] = 0;
-   p->bmsaux[BMSAUX_1_NC].coef[1] = 1;
+   /* Auxilarly GPIO 1 Hall-effect  */
+   // NOTE: 10K pull-up installed at board header underside
+   p->bmsaux[BMSAUX_1_NC].coef[0] = 25004;
+   p->bmsaux[BMSAUX_1_NC].coef[1] = 5.24E-4f;;
    p->bmsaux[BMSAUX_1_NC].coef[2] = 0;
 
    /* Auxilarly GPIO 2 Thermistor 1 */
@@ -338,8 +339,8 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
 
    /* Map thermistors. */
    p->tamb_idx  = 0;  // Ambient (inlet)
-   p->tcell_idx = 2;  // Cell
-   p->texit_idx = 1;  // Exit
+   p->tcell_idx = 1;  // Cell
+   p->texit_idx = 2;  // Exit
 
    /* Fan temperature control parameters (deg C). */
    // Between max & min fan is proportional
@@ -354,7 +355,7 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->temp_fan_thres_lo = 12.0f; // Below this is caution zone
    p->temp_fan_limit_lo =  8.0f; // Below this is no-launch range
    p->temp_fan_delta    =  4.0f; // Null zone beween Tamb and Tcell
-   p->temp_fan_delay1   = 30;    // Time delay (secs) to improve ambient reading 
+   p->temp_fan_delay1   = 60;    // Time delay (secs) to improve ambient reading 
 
 // List of CAN ID's for setting up hw filter for incoming msgs
    p->cid_uni_bms_emc1_i = CANID_UNI_BMS_EMC1_I;   // B0000000 UNIversal From EMC,  Incoming msg to BMS: X4=target CANID');   

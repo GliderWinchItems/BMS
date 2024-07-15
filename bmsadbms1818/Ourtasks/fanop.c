@@ -187,8 +187,7 @@ static uint8_t compute_fanspeed(void)
 	uint8_t tmp = 0;
 	float tmpf;
 	struct BQLC* p = &bqfunction.lc; // Convenience pointer
-//	float tcell = p->thermcal[p->tcell_idx].temp;
-	float tcell = p->thermcal[1].temp;
+	float tcell = p->thermcal[p->tcell_idx].temp;
 
 	if (tcell > p->temp_fan_min)
 	{
@@ -199,7 +198,7 @@ static uint8_t compute_fanspeed(void)
 		else
 		{ // Min speed pwm is 14, and max is 100
 			tmpf = ((tcell - p->temp_fan_min) /
-		           (p->temp_fan_max - p->temp_fan_min)     );
+		           (p->temp_fan_max - p->temp_fan_min));
 			tmp = (tmpf * 100.0f);
 			if (tmp <= 14) tmp = 0;
 		}	
@@ -207,7 +206,6 @@ static uint8_t compute_fanspeed(void)
 	return tmp;
 }
 #else
-
 /* State machine verison. */
 static uint32_t tickctr_next2;   // Time Tamb delay
 
@@ -243,7 +241,7 @@ static uint8_t compute_fanspeed(void)
 		case 0: // Reset/initial
 			if (tcell < p->temp_fan_thres_hi)
 				return 0;
-			tickctr_next2 = tickctr_running + p->temp_fan_delay1;
+			tickctr_next2 = tickctr_running + (p->temp_fan_delay1 *4);
 			bqfunction.temp_fan_state = 1;
 			return 100;
 
