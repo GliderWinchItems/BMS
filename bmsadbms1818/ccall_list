@@ -36,8 +36,11 @@ chmod +x ../../bmsadbms1818/params/call_file
 
 echo "call_file made executable"
 
+echo "DONE"
+
+# The following is commented out, remains jic is wanted
 # Run the .cc file
-cd ~/GliderWinchItems/BMS/bmsadbms1818
+# cd ~/GliderWinchItems/BMS/bmsadbms1818
 # Example: call_file localhost 32123
-echo "call_file execute $1 $2"
-./params/call_file $1 $2
+# echo "call_file execute $1 $2"
+# ./params/call_file $1 $2
