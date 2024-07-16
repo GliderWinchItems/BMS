@@ -355,7 +355,7 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->temp_fan_max  = 48.0f; // Max: above this fan is 100%
    p->temp_fan_cell = 33.0f; // Tcell above this fan runs
    p->temp_fan_del  = 10.0f; // (Tcell - Tamb) > 0 enables fan
-   p->temp_fan_min_pwm = 15f; // Minimum pwm for this fan to run
+   p->temp_fan_min_pwm = 15; // Minimum pwm for this fan to run
 
 // List of CAN ID's for setting up hw filter for incoming msgs
    p->cid_uni_bms_emc1_i = CANID_UNI_BMS_EMC1_I;   // B0000000 UNIversal From EMC,  Incoming msg to BMS: X4=target CANID');   
