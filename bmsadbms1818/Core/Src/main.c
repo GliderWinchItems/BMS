@@ -322,7 +322,7 @@ int main(void)
   if (retT == NULL) morse_trap(123);
 
   /* CAN communication */
-  retT = xCanCommCreate(osPriorityNormal+1);
+  retT = xCanCommCreate(osPriorityNormal+2);
   if (retT == NULL) morse_trap(121);
 
     /* Select interrupts for CAN1 */

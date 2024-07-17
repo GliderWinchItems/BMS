@@ -41,7 +41,6 @@ uint8_t rate_last; // ADC rate code, last set
 
 /* '1818 Wakeup keep-alive */
 #define WAKETICKS 1000 // 1 sec of FreeRTOS timer ticks
-TickType_t tickref;
 TickType_t tickwait;
 TickType_t tickka;
 
@@ -67,23 +66,14 @@ void StartBMSTask(void *argument)
     req_ka.noteyes  = 0; // We will NOT wait for notification
     req_ka.rate     = RATE7KHZ;//RATE26HZ; // RATE422HZ // RATE7KHZ; // ADC rate code
 
-	tickref= xTaskGetTickCount();
 	tickka = xTaskGetTickCount();
 
    	/* Infinite loop */
   	for(;;)
   	{
-  		/* Once per second with no slippage due to loop delay. */
-  		tickref += pdMS_TO_TICKS(WAKETICKS);
-  		tickwait = tickref - xTaskGetTickCount();
-  		if (tickwait > pdMS_TO_TICKS(WAKETICKS))
-  		{
-  			tickref -= pdMS_TO_TICKS(WAKETICKS);
-  			tickwait = tickref - xTaskGetTickCount();
-  		}
-
+  	
   		/* Check queue of loaded items. */
-		ret = xQueueReceive(BMSTaskReadReqQHandle,&pssb,tickwait);
+		ret = xQueueReceive(BMSTaskReadReqQHandle,&pssb,WAKETICKS);
 		if (ret == pdPASS)
 		{ // Request arrived
 			if (pssb->rate > 7)
