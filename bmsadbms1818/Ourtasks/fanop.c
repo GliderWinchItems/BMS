@@ -74,6 +74,7 @@ void fanop_init(void)
 	tickctr_next1 = tickctr_running + TICKUPDATE;      
 
    bqfunction.temp_fan_state = 0;
+   cmd_pwm_ctr_prev = cmd_pwm_ctr; // Cmd request check off
 
 	pT2base  = htim2.Instance;
 	/* TIM2 Fan tach input capture & PWM output. */
@@ -140,6 +141,7 @@ float fanop(void)
 		}
 		if (cmd_pwm_flag != 0)
 		{ // Here, forced setting being used.
+			tickctr_next3 += 1; // Timeout counter
 			if ((int)(tickctr_next3 - tickctr_running) < 0)
 			{ // Here, timed out, so quit forced mode.
 				cmd_pwm_flag = 0;
@@ -196,7 +198,7 @@ static uint8_t compute_fanspeed(void)
 			tmp = 100;
 		}
 		else
-		{ // Min speed pwm is 14, and max is 100
+		{ // Min speed pwm is 15, and max is 100
 			tmpf = ((tcell - p->temp_fan_min) /
 		           (p->temp_fan_max - p->temp_fan_min));
 			tmp = (tmpf * 100.0f);

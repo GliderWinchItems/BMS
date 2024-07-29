@@ -291,6 +291,7 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
 	 		break;
 
 	 	case MISCQ_FETBALBITS: // 12 FET on/off discharge bits
+	 		po->cd.us[1] = 0; // Clear payload bytes [2],[3]
 	 		loaduint32(puc,bqfunction.cellbal);
 
 		case MISCQ_SET_DUMP: // 13 Set DUMP fet ON|OFF
