@@ -51,6 +51,9 @@
  #define MISCQ_MORSE_TRAP   38 // Retrieve stored morse_trap code.
  #define MISCQ_FAN_STATUS   39 // Retrieve fan: pct and rpm 
  #define MISCQ_FAN_SET_SPD  40 // Set fan: pct (0 - 100)
+ #define MISCQ_PROG_CRC     41 // Retrieve installed program's: CRC
+ #define MISCQ_PROG_CHKSUM  42 // Retrieve installed program's: Checksum
+ #define MISCQ_PROG_CRCCHK  43 // Retrieve for both 41 and 42 (two msgs)
 
 /* Keep alive for incoming CAN msgs that cause battery loads. */
 #define CANSETFET_TIM 5000 // Timeout (ms) for MISCQ_SET_DCHGFETS

@@ -34,6 +34,7 @@ static void send_bms_array(struct CANRCVBUF* po, float* pout, uint8_t n);
 static void send_allfets(struct CANRCVBUF* po);
 static void not_implemented(struct CANRCVBUF* po);
 static void send_bms_one(struct CANRCVBUF* po, float* pout, uint8_t k);
+static void send_bms_crcorchk(struct CANRCVBUF* po, uint8_t k);
 
 
 static uint8_t skip;
@@ -427,7 +428,19 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
 			cmd_pwm_set  = pi->cd.uc[3]; // Update request value
 			skip = 1; // This is a set, so no response
 			break;			
-		}
+		case MISCQ_PROG_CRC: // 41 Retrieve installed program's: CRC
+			send_bms_crcorchk(po, 0);
+			break;
+		case MISCQ_PROG_CHKSUM: // 42 Retrieve installed program's: Checksum	
+			send_bms_crcorchk(po, 1);
+			break;
+		case MISCQ_PROG_CRCCHK: // 43 Retrieve for both 41 and 42 (two msgs)
+			po->cd.uc[1] = MISCQ_PROG_CRC;
+			send_bms_crcorchk(po, 0);
+			po->cd.uc[1] = MISCQ_PROG_CHKSUM;
+			send_bms_crcorchk(po, 1);
+			break;			
+		}		
 	}
 	if (skip == 0)
 	{ // Here, single CAN msg has not been queued for sending
@@ -449,6 +462,34 @@ static void send_bms_one(struct CANRCVBUF* po, float* pout, uint8_t k)
 	loadfloat(&po->cd.uc[4], pout);// Reading into 4 byte payload
 	xQueueSendToBack(CanTxQHandle,po,4);// Queue (copy) CAN msg
 	skip = 1;
+	return;
+}
+/* *************************************************************************
+ * static void send_bms_crcorchk(struct CANRCVBUF* po, uint8_t k);
+ *	@brief	: Prepare and send CAN msg with CRC or CHKSUM
+ *  @param  : po = pointer response CAN msg
+ *  @param  : pout = pointer float
+ *  @param  : k = word offset at end of program: 0 for CRC; 1 for CHKSUM
+ * *************************************************************************/
+//uint32_t* k0;
+//uint32_t* k1;
+
+extern void* __appjump; // Defined in ldr.ld file
+static void send_bms_crcorchk(struct CANRCVBUF* po, uint8_t k)
+{
+	uint32_t* pend_add;
+	uint32_t* pend_endx;
+	uint32_t* pentry =__appjump; // App jump address
+	pend_add = (uint32_t*)((uint32_t)pentry & ~1UL); // Clear jump flag        
+	pend_add -= 1; // Back up to word ahead of jump entry
+	pend_endx = (uint32_t*)(*pend_add); // Get pointer to end of program
+	po->cd.ui[1] = *(pend_endx + k); // Select word following end-of-program
+
+
+
+	po->cd.us[1] = 0; // uc[2]-[3] cleared not used payload bytes
+	xQueueSendToBack(CanTxQHandle,po,4);// Queue (copy) CAN msg
+	skip = 1; // No need for default send
 	return;
 }
 /* *************************************************************************

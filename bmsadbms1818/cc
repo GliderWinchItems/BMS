@@ -1,6 +1,6 @@
 #!/bin/bash -e
 # Compile and load program over CAN
-# ./cc <BMS ID> <hub-server port>
+# ./cc <BMS ID> <hub-server> <port>
 # E.g. ./cc B0A00000 localhost 32123
 
 ./mm $1

@@ -16,7 +16,7 @@ $ARM_PREFIX/bin/arm-none-eabi-objcopy -O srec $1.elf $1.srec
 
 echo
 echo "################# ADD CRC & CHECKSUM #################"
-~/G*ems/CANloader1/PC/crc-srec/crc-srec $1
+~/G*ems/CANloader1/PC/crc-srec/crc-srec $1 $2
 
 echo "################# SAVE & MOVE FILE   #################"
 cp $1.srec $1.srec.save

@@ -58,6 +58,11 @@ _estack = 0x2000C000;    /* end of RAM */
 _Min_Heap_Size = 0x200;      /* required amount of heap  */
 _Min_Stack_Size = 0x400; /* required amount of stack */
 
+/* Address of application jump address */
+__appjump    = 0x08008004;
+__appbegin   = 0x08008000;
+__flashfast  = 0x10000000;
+
 /* Specify the memory areas */
 MEMORY
 {
