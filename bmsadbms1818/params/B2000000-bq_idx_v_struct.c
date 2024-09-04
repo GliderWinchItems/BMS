@@ -8,7 +8,8 @@
 16 pin ISO-1042
 03/16/23 Giving morse_trap 58!
  'L431 spi had two pins shorted by very fine thread'
-9/14/23 ship gsm 
+09/14/23 ship gsm 
+09/04/2024 gsm reports possible damage to current-sense op-amp. Readings abnormal high.
 */
 #include "bq_idx_v_struct.h"
 #include "SerialTaskReceive.h"

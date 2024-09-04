@@ -7,7 +7,8 @@
 /*
 16 pin CAN ISO1042
 59 uh inductor
-9/14/23 ship gsm
+09/14/2023 ship gsm
+09/04/2024 gsm reports possible damage to current-sense op-amp. Readings abnormal high.
 */
 #include "bq_idx_v_struct.h"
 #include "SerialTaskReceive.h"
