@@ -73,7 +73,7 @@ used to lookup the CAN msg that initiated the BMSTask request.
 #define CANCOMMBIT02 (1 <<  2) // EMC2 CAN msg
 
 // The following reserves notification bits 7-12 (out of 0-31)
-#define CANQEDSIZE 8   // Max number of BMSTask requests that can be queued
+#define CANQEDSIZE 5   // Max number of BMSTask requests that can be queued
 #define CANCOMMQUEUE 7 // Notification bit shift offset
 // Mask notification word for bits assigned to queued linked list items
 #define CANCOMMQUEUE_MASK (((1<<CANQEDSIZE)-1)<<CANCOMMQUEUE)

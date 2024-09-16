@@ -1318,8 +1318,8 @@ void StartDefaultTask(void *argument)
   if (pbuf1 == NULL) morse_trap(115);
   struct SERIALSENDTASKBCB* pbuf2 = getserialbuf(&HUARTMON,128);
   if (pbuf2 == NULL) morse_trap(125);
-//struct SERIALSENDTASKBCB* pbuf3 = getserialbuf(&HUARTMON,128);
-//if (pbuf3 == NULL) morse_trap(125);
+struct SERIALSENDTASKBCB* pbuf3 = getserialbuf(&HUARTMON,128);
+if (pbuf3 == NULL) morse_trap(125);
 //struct SERIALSENDTASKBCB* pbuf4 = getserialbuf(&HUARTMON,128);
 //if (pbuf4 == NULL) morse_trap(125);
 
@@ -1509,14 +1509,14 @@ uint32_t ticks_next = xTaskGetTickCount();
       case 5: // Temperature (AUX reg)
        yprintf(&pbuf2,"\n\rAUX %6d %6d %6d",bmsspiall.auxreg[0],bmsspiall.auxreg[ 1],bmsspiall.auxreg[ 2]);
        yprintf(&pbuf1," %6d %6d %6d",   bmsspiall.auxreg[3],bmsspiall.auxreg[ 4],bmsspiall.auxreg[ 5]);
-       yprintf(&pbuf2," %6d %6d %6d",   bmsspiall.auxreg[6],bmsspiall.auxreg[ 7],bmsspiall.auxreg[ 8]);
-       yprintf(&pbuf1," %6d %6d %6d %d",bmsspiall.auxreg[9],bmsspiall.auxreg[10],bmsspiall.auxreg[11], dbstat2/16);
+       yprintf(&pbuf3," %6d %6d %6d",   bmsspiall.auxreg[6],bmsspiall.auxreg[ 7],bmsspiall.auxreg[ 8]);
+       yprintf(&pbuf2," %6d %6d %6d %d",bmsspiall.auxreg[9],bmsspiall.auxreg[10],bmsspiall.auxreg[11], dbstat2/16);
 
        extern uint32_t dbgaux;
-       yprintf(&pbuf2," %d",dbgaux);
+       yprintf(&pbuf1," %d",dbgaux);
 
       bms_items_extract_statreg();
-      yprintf(&pbuf1,"\n\r%5d SC-sumcells:%6.2fv ITMP-internal-temp:%5.1fC VA-analog:%6.3fv VD-digital:%6.3fv",dbgka,
+      yprintf(&pbuf3,"\n\r%5d SC-sumcells:%6.2fv ITMP-internal-temp:%5.1fC VA-analog:%6.3fv VD-digital:%6.3fv",dbgka,
           extractstatreg.sc, extractstatreg.itmp,
           extractstatreg.va, extractstatreg.vd  );
 
@@ -1737,16 +1737,16 @@ extern uint32_t dbgexttim2;
 #endif
       yprintf(&pbuf2,"\n\rcellspresent: 0x%05X celltrip: 0x%05X",bqfunction.cellspresent,bqfunction.celltrip); 
       yprintf(&pbuf1,"\n\rcellv_hi: #%2d %5dmv",bqfunction.cellx_high+1,bqfunction.cellv_high);
-      yprintf(&pbuf2,    " cellv_high_f: %7.1f",bqfunction.cellv_high_f*0.1);
-      yprintf(&pbuf1,"\n\rcellv_lo: #%2d %5dmv",bqfunction.cellx_low+1, bqfunction.cellv_low);
-      yprintf(&pbuf2,    "  cellv_low_f: %7.1f",bqfunction.cellv_low_f*0.1);
-      yprintf(&pbuf1,"   diff: %7.1f",(bqfunction.cellv_high_f - bqfunction.cellv_low_f)*0.1);
+      yprintf(&pbuf3,    " cellv_high_f: %7.1f",bqfunction.cellv_high_f*0.1);
+      yprintf(&pbuf2,"\n\rcellv_lo: #%2d %5dmv",bqfunction.cellx_low+1, bqfunction.cellv_low);
+      yprintf(&pbuf1,    "  cellv_low_f: %7.1f",bqfunction.cellv_low_f*0.1);
+      yprintf(&pbuf3,"   diff: %7.1f",(bqfunction.cellv_high_f - bqfunction.cellv_low_f)*0.1);
       yprintf(&pbuf2,"\n\rcellv_tmdelta:%5dmv",bqfunction.cellv_tmdelta);
       yprintf(&pbuf1,"    bqfunction.cellv_sum_f: %7.2fv",bqfunction.cellv_sum_f*0.0001);
-      yprintf(&pbuf2,"\n\rhysterv_lo:    %6.1fmv",bqfunction.hysterv_lo);
-      yprintf(&pbuf1,"\n\rcellv_max: %5d cellv_max_bits: 0x%05X",bqfunction.lc.cellv_max,bqfunction.cellv_max_bits);
-      yprintf(&pbuf2," cellv_min: %5d cellv_min_bits: 0x%05X",bqfunction.lc.cellv_min,bqfunction.cellv_min_bits);
-      yprintf(&pbuf1," cellv_vls: %5d cellv_vlc_bits: 0x%05X",bqfunction.lc.cellv_vlc, bqfunction.cellv_vlc_bits);
+      yprintf(&pbuf3,"\n\rhysterv_lo:    %6.1fmv",bqfunction.hysterv_lo);
+      yprintf(&pbuf2,"\n\rcellv_max: %5d cellv_max_bits: 0x%05X",bqfunction.lc.cellv_max,bqfunction.cellv_max_bits);
+      yprintf(&pbuf1," cellv_min: %5d cellv_min_bits: 0x%05X",bqfunction.lc.cellv_min,bqfunction.cellv_min_bits);
+      yprintf(&pbuf3," cellv_vls: %5d cellv_vlc_bits: 0x%05X",bqfunction.lc.cellv_vlc, bqfunction.cellv_vlc_bits);
       yprintf(&pbuf2,"\n\rcellbal: 0x%05X cansetfet: 0x%05X  fet_status: 0x%04X FET_CHRG: 0x%01X",bqfunction.cellbal,
           bqfunction.cansetfet,
           bqfunction.fet_status,(bqfunction.fet_status & FET_CHGR));
@@ -1768,7 +1768,7 @@ for (i = 0; i < 4; i++)
       extern uint32_t dbgcellbal;
       yprintf(&pbuf1,"\n\rdbgcellbal:%05X",dbgcellbal);
 
-      yprintf(&pbuf1,"\n\r config:   %04X %04X %04X %04X %04X %04X",
+      yprintf(&pbuf2,"\n\r config:   %04X %04X %04X %04X %04X %04X",
         bmsspiall.configreg[0],bmsspiall.configreg[1],bmsspiall.configreg[2],
         bmsspiall.configreg[3],bmsspiall.configreg[4],bmsspiall.configreg[5]);
 
@@ -1778,7 +1778,7 @@ for (i = 0; i < 4; i++)
       bmsspiall.err1ct = 0;
     }      
 extern uint32_t dbgCanTask1;
-yprintf(&pbuf2,"\n\rdbCanTask1: %d", dbgCanTask1);
+yprintf(&pbuf3,"\n\rdbCanTask1: %d", dbgCanTask1);
 
   #if 0 /* RTC register check. */
   switch (state_defaultTask)
