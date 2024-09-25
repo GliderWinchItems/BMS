@@ -49,10 +49,11 @@ struct BMSCAL
 
 struct BMSCALTEMP // Thermistor->temperature calibration
 {
-   float tt[3]; // coefficients for: x^0 x^1 x^2
-   float temp;  // Temperature (deg C)
+   float tt[3];       // coefficients for: x^0 x^1 x^2
+   float temp;        // Temperature (deg C)
+   float max;         // Max temperature (deg C)
    uint8_t installed; // Installed: 0 = no, 1 = yes
-   uint8_t zread; // 1 = current reading was zero
+   uint8_t zread;     // 1 = current reading was zero
 };
 
 
@@ -71,7 +72,6 @@ struct BQLC
    uint8_t  winchnum;  // Winch number (1-4)
    uint8_t  stringnum; // Battery string number (1 - 4)
    uint8_t  modulenum; // Module number on string (1-16)
-
 
 	/* Timings in milliseconds. Converted later to 'swtim1' ticks. */
 	uint32_t hbct_t;     // Heartbeat ct: ms between sending 
@@ -121,7 +121,7 @@ struct BQLC
    uint8_t npositions;  // Number of cell positions in module "box"
    uint8_t cellpos[NCELLMAX]; // Cell position - 1 given index [cell number - 1]
 
-   struct BMSCALTEMP thermcal[3]; // Thermisters: calibration & results
+   struct BMSCALTEMP thermcal[3]; // Thermistors: calibration & results
 
    /* Index in thermcal for mapping thermistor installations. */
    uint8_t tamb_idx;  // Ambient (battery inlet)

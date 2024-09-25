@@ -8,6 +8,12 @@
 
 #include "can_iface.h"
 
+// Debug warning bits
+#define DBG1 (1<<0) // Unexpectd CAN ID
+#define DBG2 (1<<1) //  Unexpectd CAN ID2
+#define DBG4 (1<<2) //  Unexpectd CAN ID2
+
+
 #define MAXNUMCELLMSGS 6 // Number of CAN msgs to send all cell readings
 
 #define CANCOMMITEMSNOTE00 (1<<0) // CanCommTask TaskWait notification bit

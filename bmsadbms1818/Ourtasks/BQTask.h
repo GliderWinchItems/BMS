@@ -53,6 +53,9 @@
 #define MODE_CELLTRIP  (1 << 1) // 1 = One or more cells tripped max
 #define MODE_TRIPBTD   (1 << 2) // 1 = One or more cells tripped & below target-delta
 
+/* Temperature status 'temp_status' */
+#define TEMPTUR_OVMAX  (1 << 0) // 1 = One or more temperature sensors above max threshold
+
 /* Indices for CAN msg commands. */
 #define REQ_HEATER 0
 #define REQ_DUMP   1
@@ -175,7 +178,8 @@ struct BQFUNCTION
 	uint8_t active_ct;      // Count of bits set in cellbal
 	uint8_t battery_status; // Cell status code bits 
 	uint8_t fet_status;     // This controls on/off of FETs
-	uint8_t mode_status;       // Mode bits
+	uint8_t mode_status;    // Mode bits
+	uint8_t temp_status;    // Temperature status bits
 
 	/* CAN msgs command to turn on HEATER, DUMP, DUMP2. 
 	   request has timeout associated with it. */
@@ -186,13 +190,15 @@ struct BQFUNCTION
 	float   fanspeedscale; // Scaling factor: (100.0/(Tcell - Tamb))
 	uint8_t  temp_fan_state; // Temperature fan state-machine
 
-	uint32_t morse_err; // Error code retrieved from backup SRAM registers
+// (see rtcregs.c)	
+//  uint32_t morse_err; // Error code retrieved from backup SRAM registers
+//	uint16_t morse_err_ct; // Count of morse_trap code, if err is same
+//	uint16_t warning;   // Error code that is a warning
 	uint8_t err;
-	uint16_t warning;   // Error code that is a warning
 
 	uint8_t hbseq; // heartbeat CAN msg sequence number
-	uint32_t HBstatus_ctr; // Count RTOS ticks for hearbeat timing: status msg
-	uint32_t HBcellv_ctr; // Count RTOS ticks for hearbeat timing: cellv msg
+	int32_t HBstatus_ctr; // Count RTOS ticks for hearbeat timing: status msg
+	int32_t HBcellv_ctr; // Count RTOS ticks for hearbeat timing: cellv msg
 
 	/* balnumwrk might be adjusted based on chip temperature. */
 	uint8_t balnumwrk; // Max number of active cell bits (Working)

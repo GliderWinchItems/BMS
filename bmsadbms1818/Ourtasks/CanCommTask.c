@@ -32,6 +32,7 @@ would a heartbeat or the variety of CAN msg requests).
 #include "bq_items.h"
 #include "cancomm_items.h"
 #include "../../../../GliderWinchCommons/embed/svn_common/trunk/db/gen_db.h"
+#include "rtcregs.h"
 
 extern uint32_t rtcregs_status; // 'main' saves rtc registers upon startup
 extern uint32_t rtcregs_morse_code;
@@ -73,7 +74,7 @@ used to lookup the CAN msg that initiated the BMSTask request.
 #define CANCOMMBIT02 (1 <<  2) // EMC2 CAN msg
 
 // The following reserves notification bits 7-12 (out of 0-31)
-#define CANQEDSIZE 5   // Max number of BMSTask requests that can be queued
+#define CANQEDSIZE 8   // Max number of BMSTask requests that can be queued
 #define CANCOMMQUEUE 7 // Notification bit shift offset
 // Mask notification word for bits assigned to queued linked list items
 #define CANCOMMQUEUE_MASK (((1<<CANQEDSIZE)-1)<<CANCOMMQUEUE)
@@ -117,7 +118,7 @@ static struct CANQED* canqedadd(void)
 	// None available check
 	if (i >= CANQEDSIZE)
 	{
-		bqfunction.warning = 655;
+		warning = 655;
 morse_trap(655);
 	 	return NULL;
 	}
@@ -353,19 +354,17 @@ notification and it would be lost. */
 /* ******* Heartbeat timing: status */
 		if 	((int)(xTaskGetTickCount() - p->HBstatus_ctr) > 0)
 		{
-			p->HBstatus_ctr += p->hbct_k;
-			{
+			p->HBstatus_ctr = xTaskGetTickCount() + p->hbct_k; // Next HB time
 			/* Use dummy CAN msg, then it looks the same as a request CAN msg. */
-				can_hb.cd.ull   = 0xffffffff; // Clear entire payload
-				can_hb.cd.uc[0] = CMD_CMD_TYPE2; // 
-				can_hb.cd.uc[2] = MISCQ_STATUS;   // status code
-				cancomm_items_sendcmdr(&can_hb);  // Handles as if incoming CAN msg.
-			}	
+			can_hb.cd.ull   = 0xffffffff; // Clear entire payload
+			can_hb.cd.uc[0] = CMD_CMD_TYPE2; // 
+			can_hb.cd.uc[2] = MISCQ_STATUS;   // status code
+			cancomm_items_sendcmdr(&can_hb);  // Handles as if incoming CAN msg.
 		}			
 /* ******* Heartbeat timing: cell readings */
 		if 	((int)(xTaskGetTickCount() - p->HBcellv_ctr) > 0)
 		{
-			p->HBcellv_ctr = xTaskGetTickCount() + p->hbct_k; // Next HB
+			p->HBcellv_ctr = xTaskGetTickCount() + p->hbct_k; // Next HB time
 			// HBcellv_ctr set to (current + increment) each time cell readings sent.
 		/* Use dummy CAN msg, then it looks the same as a request CAN msg. */
 			/* Get new cell readings. Queue a BMS cell readings request. */
@@ -412,7 +411,7 @@ notification and it would be lost. */
 		// Check one entry each pass through
 		if (((int)(DTWTIME - canqed[idxhb].time) > 8000000) && (canqed[idxhb].busy != 0))
 		{ // Here, queued item is over 1/2 second old
-			bqfunction.warning = (656);
+			warning = (656);
 			canqed[idxhb].busy = 0;
 //	morse_trap(656);			
 		}
@@ -555,7 +554,7 @@ static void do_req_codes(struct CANRCVBUF* pcan)
 	default:
 		if (pcan->cd.uc[0] > LDR_CHKSUM)
 		{
-			bqfunction.warning = 551;
+			warning = 551;
 morse_trap(551);
 		}
 		break;

@@ -16,6 +16,8 @@
 #include "morse.h"
 #include "bms_items.h"
 
+extern uint32_t dbgwarning; // Bits for various warnings
+
 extern uint32_t rtcregs_status; // 'main' saves rtc registers upon startup
 extern uint32_t rtcregs_morse_code;
 extern uint8_t rtcregs_OK; // 1 = rtc regs were OK; 0 = not useable.
@@ -167,10 +169,9 @@ dbgsendcellctr += 1;
 		pf += 3;
 		xQueueSendToBack(CanTxQHandle,&p->canmsg,4);
 	}
-//   	p->HBcellv_ctr = xTaskGetTickCount() + p->hbct_k; // Next HB for cellv gets delayed	
+	p->HBcellv_ctr = xTaskGetTickCount() + p->hbct_k; // Next HB time
 	return;
 }
-	uint8_t on;
 
 void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
 {
@@ -206,6 +207,7 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
    	 	else
    	 	{
    	 		// Warning: Unexpectd CAN ID
+   	 		dbgwarning |= DBG1;
    	 	}
    	 // Send cell voltages: 6 CAN msgs
    	 bqfunction.HBcellv_ctr = xTaskGetTickCount() + bqfunction.hbct_k;
@@ -229,7 +231,8 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
 		}  
 		else
 		{
-		 	// Warning?: Unexpectd CAN ID
+		 	// Warning?: Unexpectd CAN ID2
+		 	dbgwarning |= DBG2;
 		}
 
 		/* Command code. 
@@ -593,6 +596,13 @@ FETS--
 Mode status bits 'mode_status' --
 #define MODE_SELFDCHG  (1 << 0) // 1 = Self discharge; 0 = charging
 #define MODE_CELLTRIP  (1 << 1) // 1 = One or more cells tripped max
+
+
+Temperature sensors--
+#define TEMPTUR_OVMAX  (1 << 0) // 1 = Temperature sensor 1 above max threshold
+#define TEMPTUR_OVMAX  (1 << 1) // 1 = Temperature sensor 2 above max threshold
+#define TEMPTUR_OVMAX  (1 << 2) // 1 = Temperature sensor 3 above max threshold
+
 */
 	struct BQFUNCTION* p = &bqfunction;
 	po->cd.uc[1] = MISCQ_STATUS; // 
@@ -602,7 +612,10 @@ Mode status bits 'mode_status' --
 	po->cd.uc[4] = p->battery_status;
 	po->cd.uc[5] = p->fet_status;
 	po->cd.uc[6] = p->mode_status;
+	po->cd.uc[7] = p->temp_status;
 	skip = 0;
+
+	p->HBstatus_ctr = xTaskGetTickCount() + p->hbct_k; // Next HB time	
 	return;
 }
 /* *************************************************************************

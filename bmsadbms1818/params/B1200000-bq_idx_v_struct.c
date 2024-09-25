@@ -333,6 +333,11 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->thermcal[2].tt[1] = -3.85E-3f;
    p->thermcal[2].tt[2] = 2.99E-8f;
 
+   /* Overall max temperature threshold. (deg C) */
+   p->thermcal[0].max = 50.0f; // 
+   p->thermcal[1].max = 50.0f; // 
+   p->thermcal[2].max = 50.0f; //    
+
    /* Positions installed set to 1. Otherwise 0. */
    p->thermcal[0].installed = 1; // GPIO 2 JP2
    p->thermcal[1].installed = 1; // GPIO 3 JP4

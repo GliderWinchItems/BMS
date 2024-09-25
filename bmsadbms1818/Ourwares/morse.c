@@ -196,7 +196,16 @@ __asm__ volatile ("CPSID I");
 	TIM1->CCR1 = 0; // 
 
 	/* Save trap code for storage in RTC registers. */
-	morse_err = x;
+	if (morse_err == x)
+	{
+		morse_err_ct += 1;
+	}
+	else
+	{
+		morse_err = x;
+		morse_err_ct = 0;
+	}
+
 	rtcregs_update(); // Refresh the back RTC sram registers
 
 	/* Flash a few times then do a reset. */

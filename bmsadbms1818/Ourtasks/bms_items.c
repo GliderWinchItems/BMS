@@ -209,7 +209,15 @@ void bms_items_therm_temps(void)
 			tmpf = *paux; // Convert reading to float.
 			pf = &bqfunction.lc.thermcal[i].tt[0];// Ptr: coefficients
 			bqfunction.lc.thermcal[i].temp = 
-			(*(pf+0) + (*(pf+1) + *(pf+2) * tmpf) * tmpf);
+			      (*(pf+0) + (*(pf+1) + *(pf+2) * tmpf) * tmpf);
+			if (bqfunction.lc.thermcal[i].temp > bqfunction.lc.thermcal[i].max )
+			{ // Set status bit to show temperature is too high
+				bqfunction.temp_status |= (1<<i);
+			}
+			else
+			{ // Reset status bit
+				bqfunction.temp_status &= ~(1<<i);				
+			}
 		}
 		paux += 1;
 	}

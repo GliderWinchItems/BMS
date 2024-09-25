@@ -74,6 +74,8 @@ uint32_t debugTX1c_prev;
 uint32_t debug03;
 uint32_t debug03_prev;
 
+uint32_t dbgwarning;
+
 //extern osThreadId SerialTaskHandle;
 //extern osThreadId CanTxTaskHandle;
 //extern osThreadId CanRxTaskHandle;
@@ -1323,31 +1325,31 @@ if (pbuf3 == NULL) morse_trap(125);
 //struct SERIALSENDTASKBCB* pbuf4 = getserialbuf(&HUARTMON,128);
 //if (pbuf4 == NULL) morse_trap(125);
 
-  char* ok = {"OK"};
-  char* ng = {"NG"};
-  char** ptwo;
+  yprintf(&pbuf1,"\n\n\rPROGRAM STARTS: rtcregs_ret: ");
   if (rtcregs_ret == 0)
-  { 
-    ptwo = &ok;
-    rtcregs_OK = 1;
-  }
-  else 
   {
-    ptwo = &ng;
-    rtcregs_OK =0;
-  }
-  yprintf(&pbuf1,"\n\n\rPROGRAM STARTS: rtcregs_ret: %s",*ptwo);
+    yprintf(&pbuf3,"OK");
+  } 
+  else
+  {
+    yprintf(&pbuf3,"NG");
+
+  } 
+
 
   /* List the RTC */
   /*
-    uint32_t cellbal;       //   1.00 Bits with FETs that were on
+  uint32_t cellbal;       //   1.00 Bits with FETs that were on
   uint32_t hysterbits_lo; //   1.00 Bits for cells that fell below hysterv_lo
-  uint16_t cellreg[18];   //1001.00 Last readings before power down
-  uint8_t hyster_sw;      //   0.01 Hysteresis switch: 1 = peak was reached
-  uint8_t battery_status; //   0.01 Cell status code bits 
-  uint8_t fet_status;     //   0.01 This controls on/off of FETs
-  uint8_t err;            //   0.01 Err bits
+  uint16_t cellreg[18];   //   9.00 Last readings before power down
+  uint8_t hyster_sw;      //   .125 Hysteresis switch: 1 = peak was reached
+  uint8_t battery_status; //   .125 Cell status code bits 
+  uint8_t fet_status;     //   .125 This controls on/off of FETs
+  uint8_t err;            //   .125 Err bits
   uint32_t morse_err;     //   1.00 morse_trap err code
+  uint32_t celltrip;      //   1.00 Cell trip bits
+  uint16_t morse_err_ct;  //    .50 Count of same morse_trap code
+  uint16_t warning;       //    .50 Warning, but not morse_trap'd
  The foregoing MUST be an even number of 32b 
   uint16_t pec15; // CRC15 (in lower 1/2 of register)
 */
@@ -1367,15 +1369,18 @@ if (pbuf3 == NULL) morse_trap(125);
     }
     rtcregs_status = *prtc; // Save for CAN msgs
 
-    yprintf(&pbuf1,"\n\rhyster_sw     : %02X",((*prtc >>  0) & 0xF));
-    yprintf(&pbuf2,"\n\rbattery_status: %02X",((*prtc >>  8) & 0xF));
-    yprintf(&pbuf1,"\n\rfet_status    : %02X",((*prtc >> 16) & 0xF));
-    yprintf(&pbuf2,"\n\rerr           : %02X",((*prtc >> 24) & 0xF));
+    yprintf(&pbuf1,"\n\rhyster_sw     : %02X",((*prtc >>  0) & 0xff));
+    yprintf(&pbuf2,"\n\rbattery_status: %02X",((*prtc >>  8) & 0xff));
+    yprintf(&pbuf1,"\n\rfet_status    : %02X",((*prtc >> 16) & 0xff));
+    yprintf(&pbuf2,"\n\rerr           : %02X",((*prtc >> 24) & 0xff));
     prtc += 1;
     rtcregs_morse_code = *prtc; // Save for CAN msgs
     yprintf(&pbuf1,"\n\rmorse_err: %d",*prtc);
      prtc += 1;
     yprintf(&pbuf1,"\n\rcelltrip: 0x%05x\n\n\r",*prtc);
+     prtc += 1;
+    yprintf(&pbuf2,"\n\rmorse_err_ct  : %d"  ,((*prtc >>  0) & 0xffff));
+    yprintf(&pbuf3,"\n\rwarning       : %04X",((*prtc >> 16) & 0xffff));
 
     osDelay(50); // Allow enough time to printout before next morse_trap
   }

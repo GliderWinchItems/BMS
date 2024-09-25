@@ -14,7 +14,10 @@
 
 static void rtcregs_load(void);
 
+/* If RTC registers have a bad crc, then the following are zero after bootup. */
 uint32_t morse_err;
+uint16_t morse_err_ct;
+uint16_t warning;
 
 /* *************************************************************************
  * int8_t rtcregs_init(void);
@@ -68,11 +71,17 @@ void rtcregs_update(void)
 	*prtc++ = 	(
 				(bqfunction.hyster_sw <<  0) |  /* Hysteresis switch: 1 = peak was reached */
 				(bqfunction.battery_status << 8) | /* Cell status code bits */
-				(bqfunction.fet_status << 16) |
-				(bqfunction.err << 24)
+				(bqfunction.fet_status << 16) | /* FET status code bits */
+				(bqfunction.err << 24) /* Error bits. */
 				); 
-	*prtc++ = morse_err;
-	*prtc++ = bqfunction.celltrip;
+	*prtc++ = morse_err; // Last morse_trap error code.
+	*prtc++ = bqfunction.celltrip; // Cells tripped bits
+
+	*prtc++ = ((morse_err_ct <<  0) |  
+               (warning      << 16)); 
+
+
+	/* Compute CRC-15. */
 	uint8_t* pr = (uint8_t*)&RTC->BKP0R;
 	int len = (uint8_t*)prtc - (uint8_t*)&RTC->BKP0R;
 	*prtc = pec15_reg (pr, len);
@@ -118,6 +127,11 @@ static void rtcregs_load(void)
 
 	bqfunction.cellbal        = *prtc++; // Bits to activate cell balance fets
 	bqfunction.hysterbits_lo  = *prtc++;; // Bits for cells that fell below hysterv_lo
+
+	/* Load cellreg[x] with saved values. 
+	NOTE: each RTC register holds two uint16_t cell readings. 
+	Hence, 9 registers holds all 18 cell readings. 
+	Therefore the alignment to 32b words is important! */
 	*p32++ = *prtc++;
 	*p32++ = *prtc++;
 	*p32++ = *prtc++;
@@ -128,14 +142,19 @@ static void rtcregs_load(void)
 	*p32++ = *prtc++;
 	*p32++ = *prtc++;
 
-	bqfunction.hyster_sw       = (*prtc >>  0) & 0xf; /* Hysteresis switch: 1 = peak was reached */
-	bqfunction.battery_status  = (*prtc >>  8) & 0xf; /* Cell status code bits */
-	bqfunction.fet_status      = (*prtc >> 16) & 0xf;
-	bqfunction.err             = (*prtc >> 24) & 0xf;
+	bqfunction.hyster_sw       = (*prtc >>  0) & 0xff; /* Hysteresis switch: 1 = peak was reached */
+	bqfunction.battery_status  = (*prtc >>  8) & 0xff; /* Cell status code bits */
+	bqfunction.fet_status      = (*prtc >> 16) & 0xff;
+	bqfunction.err             = (*prtc >> 24) & 0xff;
 	prtc += 1;
 
-	bqfunction.morse_err = *prtc++;
+	morse_err = *prtc++;
 	bqfunction.celltrip =  *prtc++;
+
+	morse_err_ct = (*prtc >>  0) & 0xffff;
+	warning      = (*prtc >> 16) & 0xffff;
+	prtc += 1; // JIC another is added
+
 
 	return;
 }

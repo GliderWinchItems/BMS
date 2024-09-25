@@ -37,7 +37,7 @@ extern CAN_HandleTypeDef hcan2;
 
 
 /* Abort feature--which may hang TX! */
-#define YESABORTCODE
+//#define YESABORTCODE
 
 /* Uncomment to cause TX msgs bit set to appear as received after sent. */
 //#define CANMSGLOOPBACKALL
