@@ -75,7 +75,7 @@ dbgCanTask1 += 1;
  *				: -1 = Buffer overrun (no free slots for the new msg)
  *				: -2 = Bogus CAN id rejected
  *				: -3 = control block pointer NULL */
-//?			if (ret == -1) morse_trap(91);
+			if (ret == -1) morse_trap(91);
 			if (ret == -2) morse_trap(92);
 			if (ret == -3) morse_trap(93);
 		}
