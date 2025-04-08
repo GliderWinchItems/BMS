@@ -279,9 +279,6 @@ void StartCanComm(void* argument)
 	CanComm_init(p);
 	cancomm_items_init();
 
-	extern CAN_HandleTypeDef hcan1;
-	HAL_CAN_Start(&hcan1); // Start CAN1
-
 osDelay(20); // Wait for ADCTask to get going.
 
 	rdyflag_cancomm = 1; // Initialization complete and ready

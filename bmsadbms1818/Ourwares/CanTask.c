@@ -58,7 +58,12 @@ void StartCanTxTask(void* argument)
 	struct CANTXQMSG txq;
 	int ret;
 
-	HAL_CAN_Start(&hcan1); // CAN1
+	extern CAN_HandleTypeDef hcan1;
+	ret = HAL_CAN_Start(&hcan1); // Start CAN1
+	if (ret != HAL_OK)
+	{
+		morse_trap(738);
+	}
 
 	CANTaskreadyflag = 1;
 
