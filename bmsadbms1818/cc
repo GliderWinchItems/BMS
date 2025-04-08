@@ -5,9 +5,43 @@
 
 ./mm $1
 
+# Hack to do downloading out of @HOME
+echo
+if [ -d $HOME/GliderWinchItems/tmp-xbin ]; then
+	echo "directory exists: $HOME/GliderWinchItems/tmp-xbin"
+
+else
+	mkdir $HOME/GliderWinchItems/tmp-xbin
+    echo "directory created: $HOME/GliderWinchItems/tmp-xbin"
+
+fi
+
+cp build/bms1818.xbin ~/G*ems/tmp-xbin
+
+cd ~/GliderWinchCommons/embed/svn_discoveryf4/PC/sensor/CANldr/trunk
+./CANldr $2 $3 $1 ~/GliderWinchItems/tmp-xbin/bms1818.xbin
+echo $?
+cd -
+
+exit
+
+# This does not work. Why?
+cd ../../../GliderWinchCommons/embed/svn_discoveryf4/PC/sensor/CANldr1/trunk
+echo "Start CANldr"
+pwd
+./CANldr $2 $3 $1 ../../../../../../../GliderWinchItems/BMS/bmsadbms1818/build/bms1818.xbin
+echo $?
+cd -
+
+exit
+
+# Original and it works
 cd ~/GliderWinchCommons/embed/svn_discoveryf4/PC/sensor/CANldr/trunk
 ./CANldr $2 $3 $1 ~/GliderWinchItems/BMS/bmsadbms1818/build/bms1818.xbin
 echo $?
-
 cd -
+
+exit
+
+
 
