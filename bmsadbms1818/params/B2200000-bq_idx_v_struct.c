@@ -83,7 +83,7 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->modulev_min = (p->ncell*p->cellv_min); // Battery module min limit (mv)
 
    /* These are sent to the EMC for module level charging control. */
-   p->maxchrgcurrent  = 5; // Maximum charge current (0.1a) (over 25.5a = 255)
+   p->maxchrgcurrent  = 15; // Maximum charge current (0.1a) (over 25.5a = 255)
    p->chrgcurrent_bal = 1; // Charge current for module balancing (0.1a)
    p->maxmodule_v     = (p->modulev_max/100);  // module voltage limit (0.1v)   
 

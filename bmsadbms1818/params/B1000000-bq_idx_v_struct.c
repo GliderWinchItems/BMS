@@ -72,7 +72,7 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    /* Limit external charger current. */
    p->maxchrgcurrent = 6; // 0.6 a --(0.1a steps)
 
-   p->cellbal_del  = 2; // Legacy
+   p->cellbal_del  = 3; // Legacy
 
   /* Arrays compiled using NCELLMAX [18] */
    p->ncell = 18; // Number of series cells in this module
@@ -83,8 +83,8 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->modulev_min = (p->ncell*p->cellv_min); // Battery module min limit (mv)
 
    /* These are sent to the EMC for module level charging control. */
-   p->maxchrgcurrent  = 6; // Maximum charge current (0.1a) (over 25.5a = 255)
-   p->chrgcurrent_bal = 1; // Charge current for module balancing (0.1a)
+   p->maxchrgcurrent  = 14; // Maximum charge current (0.1a) (over 25.5a = 255)
+   p->chrgcurrent_bal = 2; // Charge current for module balancing (0.1a)
    p->maxmodule_v     = (p->modulev_max/100);  // module voltage limit (0.1v)
 
    /* Relate cell numbers to cell positions. (indices are ("number"-1) */

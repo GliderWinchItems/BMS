@@ -82,6 +82,12 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->modulev_max = (p->ncell*p->cellv_max); // Battery module max limit (mv)
    p->modulev_min = (p->ncell*p->cellv_min); // Battery module min limit (mv)
 
+   /* These are sent to the EMC for module level charging control. */
+   p->maxchrgcurrent  =160; // Maximum charge current (0.1a) (over 25.5a = 255)
+   p->chrgcurrent_bal =  5; // Charge current for module balancing (0.1a)
+   p->maxmodule_v     = (p->modulev_max/1000);  // module voltage limit (0.1v)   
+
+
    /* Relate cell numbers to cell positions. (indices are ("number"-1) */
 #define EighteenPositionBox
   #define EighteenCellsInEighteenBox
