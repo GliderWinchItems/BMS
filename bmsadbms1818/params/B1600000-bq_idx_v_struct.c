@@ -69,9 +69,6 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
 
    p->dumpresistor = 120; // DUMP fet load resistor (Ohms)
 
-   /* Limit external charger current. */
-   p->maxchrgcurrent = 6; // 0.6 a --(0.1a steps)
-
    p->cellbal_del  = 2; // Legacy
 
   /* Arrays compiled using NCELLMAX [18] */

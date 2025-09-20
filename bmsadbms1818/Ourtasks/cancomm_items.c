@@ -201,7 +201,7 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
    	 	po->cd.uc[0] = CMD_CMD_CELLPC; // PC polled cell voltages
    	 else if (pi->id == CANID_UNIT_99)
    	 	{ // Here Dummy CAN ID means heartbeat timeout trigger this
-			po->cd.uc[0] = CMD_CMD_CELLHB; // 45 Heartbeat timeout cell voltages
+			po->cd.uc[0] = CMD_CMD_CELLHB; // 44 Heartbeat timeout cell voltages
 //			bqfunction.hbseq += 1; // Group sequence number
    	 	}  
    	 	else
