@@ -2,10 +2,20 @@
 * File Name          : B1E000000-bq_idx_v_struct.c
 * Date First Issued  : 03/16/2023
 * Board              : bmsadbms1818
-* Description        : Load BQ parameter struct: B2000000 ADBMS1818 board #12
+* Description        : Load BQ parameter struct: B1E00000 ADBMS1818 board #12
 *******************************************************************************/
 /*  
 16 pin CAN ISO1042
+
+10/24/25 - Replaced blasted ADBMS1818 and STM32L431
+ D2 shorted; replace N & P fets for wake switch
+ Not charging. Replaced L431 (again). Still not charging.
+ Replaced fet driver, still not charging.
+ Found i/o PA8 pin open. Charging OK. Replaced driver is probably OK.
+ 
+11/02/25 Checked DUMP, DUMP2, thermistors, charge/balance OK. Individual
+ discharge fets not verfied but balancing worked.
+
 */
 
 #include "bq_idx_v_struct.h"
@@ -51,15 +61,15 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->tim1_ccr1_on_vlc =   25; // PWM ON count: Very Low Charge rate required
    p->tim1_arr_init    =   25; // At 16 MHz: count of 80 = 5 us PWM frame
 
-   p->cellv_max   = 4050; // Max limit (mv) for charging any cell
+   p->cellv_max   = 3750; // Max limit (mv) for charging any cell
    p->cellv_min   = 2800; // Min limit (mv) for any discharging
    p->cellv_vlc   = 2550; // Below this (mv) Very Low Charge (vlc)required
    p->cellv_tgtdelta = 3; // Target delta (mv)   
-   p->cellopen_hi = 4300; // Above this voltage cell wire is assumed open (mv)
+   p->cellopen_hi = 4000; // Above this voltage cell wire is assumed open (mv)
    p->cellopen_lo =  333; // Below this voltage cell wire is assumed open (mv)
 
    p->balnummax    = 18;  // Max number of cells to discharge at one time
-   p->cellv_hyster = 100;  // Voltage below cellv_max to start recharging (mv)
+   p->cellv_hyster =500;  // Voltage below cellv_max to start recharging (mv)
 
    p->dumpresistor = 450; // DUMP fet load resistor (Ohms)
 
@@ -78,8 +88,8 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->modulev_min = (p->ncell*p->cellv_min); // Battery module min limit (mv)
 
    /* These are sent to the EMC for module level charging control. */
-   p->maxchrgcurrent  =160; // Maximum charge current (0.1a) (over 25.5a = 255)
-   p->chrgcurrent_bal =  5; // Charge current for module balancing (0.1a)
+   p->maxchrgcurrent  = 13; // Maximum charge current (0.1a) (over 25.5a = 255)
+   p->chrgcurrent_bal =  2; // Charge current for module balancing (0.1a)
    p->maxmodule_v     = (p->modulev_max/1000);  // module voltage limit (0.1v)   
 
    /* Relate cell numbers to cell positions. (indices are ("number"-1) */
@@ -357,12 +367,19 @@ void bq_idx_v_struct_hardcode_params(struct BQLC* p)
    p->temp_fan_del  = 10.0f; // (Tcell - Tamb) > 0 enables fan
    p->temp_fan_min_pwm = 15; // Minimum pwm for this fan to run
 
+   p->temp_fan_limit_hi = 44.0f; // Above this is no-launch range
+   p->temp_fan_thres_hi = 38.0f; // Above this is caution zone
+   p->temp_fan_thres_lo = 12.0f; // Below this is caution zone
+   p->temp_fan_limit_lo =  8.0f; // Below this is no-launch range
+   p->temp_fan_delta    =  4.0f; // Null zone beween Tamb and Tcell
+   p->temp_fan_delay1   = 60;    // Time delay (secs) to improve ambient reading    
+
 // List of CAN ID's for setting up hw filter for incoming msgs
    p->cid_uni_bms_emc1_i = CANID_UNI_BMS_EMC1_I;   // B0000000 UNIversal From EMC,  Incoming msg to BMS: X4=target CANID');   
    p->cid_uni_bms_emc2_i = CANID_UNI_BMS_EMC2_I;   // B0200000 UNIversal From EMC,  Incoming msg to BMS: X4=target CANID');   
    p->cid_uni_bms_pc_i   = CANID_UNI_BMS_PC_I;     // AEC00000 UNIversal From PC,   Incoming msg to BMS: X4=target CANID');   
 
 // CAN ids BMS sends, others receive
-   p->cid_msg_bms_cellvsmr = I_AM_CANID; // B0A00000
+   p->cid_msg_bms_cellvsmr = I_AM_CANID; // B1E00000
 	return;
 }
