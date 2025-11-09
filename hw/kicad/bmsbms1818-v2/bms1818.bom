@@ -1,0 +1,286 @@
+Partlist exported from /home/deh/GWI/BMS/hw/eagle/bmsbms1818-v2/bms1818.sch at 2/4/23 8:06 PM
+
+Part    Value             Device                  Package      Description                          
+5V1     SOLDPAD028        SOLDPAD028              SOLPAD028                                         
+5V2     SOLDPAD028        SOLDPAD028              SOLPAD028                                         
+32KHZ   X100              XTAL32KX32              32KHZ                                             
+BEAD    1                 R-US_R0603              R0603        RESISTOR, American symbol            
+C1      1u 25v            C-USC0603               C0603        CAPACITOR, American symbol           
+C2      1u                C-USC0603               C0603        CAPACITOR, American symbol           
+C3      0.1u 25v          CPOL-USE5-8.5           E5-8,5       POLARIZED CAPACITOR, American symbol 
+C4      10@25V            ELC-2,5L                ES-2,5L                                           
+C5      1u                C-USC0603               C0603        CAPACITOR, American symbol           
+C6      1u@100v           ELC-2,5L                ES-2,5L                                           
+C7      0.1u              C-USC0603               C0603        CAPACITOR, American symbol           
+C8      0.1u              C-USC0603               C0603        CAPACITOR, American symbol           
+C100    0.1u              C-USC0603               C0603        CAPACITOR, American symbol           
+C101    0.1u              C-USC0603               C0603        CAPACITOR, American symbol           
+C102    1u                C-USC0603               C0603        CAPACITOR, American symbol           
+C103    100n              C-USC0603               C0603        CAPACITOR, American symbol           
+C104    0.1u              C-USC0603               C0603        CAPACITOR, American symbol           
+C105    22p               C-USC0603               C0603        CAPACITOR, American symbol           
+C106    22p               C-USC0603               C0603        CAPACITOR, American symbol           
+C107    4.7u 10v          C-USC0603               C0603        CAPACITOR, American symbol           
+C108    33p               C-USC0603               C0603        CAPACITOR, American symbol           
+C109    33p               C-USC0603               C0603        CAPACITOR, American symbol           
+C110    1u                C-USC0603               C0603        CAPACITOR, American symbol           
+C111    1u                C-USC0603               C0603        CAPACITOR, American symbol           
+C112    4.7u 25v          C-USC0805               C0805        CAPACITOR, American symbol           
+C113    1u@100v           C-USC1206               C1206        CAPACITOR, American symbol           
+C114    1u                C-USC0603               C0603        CAPACITOR, American symbol           
+C115    10n               C-USC0603               C0603        CAPACITOR, American symbol           
+C116    4.7u 25v          C-USC0805               C0805        CAPACITOR, American symbol           
+C117    0.1u 25v          C-USC0603               C0603        CAPACITOR, American symbol           
+C118    0.1u              C-USC0603               C0603        CAPACITOR, American symbol           
+C119    4.7u 25v          C-USC0805               C0805        CAPACITOR, American symbol           
+C120    0.1u 25v          C-USC0603               C0603        CAPACITOR, American symbol           
+C121    1u                C-USC0603               C0603        CAPACITOR, American symbol           
+C122    4.7u 25v          C-USC0805               C0805        CAPACITOR, American symbol           
+C123    4.7u 10v          C-USC0603               C0603        CAPACITOR, American symbol           
+C124    4.7u              C-USC0603               C0603        CAPACITOR, American symbol           
+C125    4.7u 25v          C-USC0805               C0805        CAPACITOR, American symbol           
+C126    1u                C-USC0603               C0603        CAPACITOR, American symbol           
+CANH    SOLDPAD028        SOLDPAD028              SOLPAD028                                         
+CANL    SOLDPAD028        SOLDPAD028              SOLPAD028                                         
+CC101   0.1u              C-USC0603               C0603        CAPACITOR, American symbol           
+CC102   0.1u              C-USC0603               C0603        CAPACITOR, American symbol           
+CC103   0.1u              C-USC0603               C0603        CAPACITOR, American symbol           
+CC104   0.1u              C-USC0603               C0603        CAPACITOR, American symbol           
+CC105   0.1u              C-USC0603               C0603        CAPACITOR, American symbol           
+CC106   0.1u              C-USC0603               C0603        CAPACITOR, American symbol           
+CC107   0.1u              C-USC0603               C0603        CAPACITOR, American symbol           
+CC108   0.1u              C-USC0603               C0603        CAPACITOR, American symbol           
+CC109   0.1u              C-USC0603               C0603        CAPACITOR, American symbol           
+CC110   0.1u              C-USC0603               C0603        CAPACITOR, American symbol           
+CC111   0.1u              C-USC0603               C0603        CAPACITOR, American symbol           
+CC112   0.1u              C-USC0603               C0603        CAPACITOR, American symbol           
+CC113   0.1u              C-USC0603               C0603        CAPACITOR, American symbol           
+CC114   0.1u              C-USC0603               C0603        CAPACITOR, American symbol           
+CC115   0.1u              C-USC0603               C0603        CAPACITOR, American symbol           
+CC116   0.1u              C-USC0603               C0603        CAPACITOR, American symbol           
+CC117   0.1u              C-USC0603               C0603        CAPACITOR, American symbol           
+CC118   0.1u              C-USC0603               C0603        CAPACITOR, American symbol           
+CP100   4.7u 6.3v         C-USC0603               C0603        CAPACITOR, American symbol           
+CP101   4.7u 6.3          C-USC0603               C0603        CAPACITOR, American symbol           
+D1      1N4148            1N4004_VERT             DO41-10_VERT                                      
+D2      1N4148            1N4004_VERT             DO41-10_VERT                                      
+D3      MMSZ52            ZENER-DIODESOD80C       SOD80C       Z-Diode                              
+D4                        DIODE-SOD323-R          SOD323-R     DIODE                                
+D5      1N5357            ZENER-5W-VERT           ZENER-VERT                                        
+D6      1N4148            DIODE-SOD123            SOD123       DIODE                                
+D7      MBRS1100          B100LB                  SMB_1                                             
+D8      MMSZ52            ZENER-DIODESOD80C       SOD80C       Z-Diode                              
+D100    PMEG10020         PMEG10020PMEG10020-123W SOD123W                                           
+F1                        FET-P-SOT23             SOT-23                                            
+F2                        FET-P-SOT23             SOT-23                                            
+F3                        FET-P-SOT23             SOT-23                                            
+F4                        FET-P-SOT23             SOT-23                                            
+F5                        FET-P-SOT23             SOT-23                                            
+F6                        FET-P-SOT23             SOT-23                                            
+F7                        FET-P-SOT23             SOT-23                                            
+F8                        FET-P-SOT23             SOT-23                                            
+F9                        FET-P-SOT23             SOT-23                                            
+F10                       FET-P-SOT23             SOT-23                                            
+F11                       FET-P-SOT23             SOT-23                                            
+F12                       FET-P-SOT23             SOT-23                                            
+F13                       FET-P-SOT23             SOT-23                                            
+F14                       FET-P-SOT23             SOT-23                                            
+F15                       FET-P-SOT23             SOT-23                                            
+F16                       FET-P-SOT23             SOT-23                                            
+F17                       FET-P-SOT23             SOT-23                                            
+F18                       FET-P-SOT23             SOT-23                                            
+FET1    PFET -20V         FET-P-SOT23             SOT-23                                            
+FET2    NFET 20V          DMN3404L                SOT-23                                            
+FET3    NFET 20V          DMN3404L                SOT-23                                            
+FET4    NFET 100V         RFP30N06                TO220V                                            
+FET5    PMV280ENEA        DMN3404L                SOT-23                                            
+FET100  NFET              DMN3404L                SOT-23                                            
+FET101  NFET              DMN3404L                SOT-23                                            
+FET102  PMV35EPE          FET-P-SOT23             SOT-23                                            
+FET103  PFET -20V         FET-P-SOT23             SOT-23                                            
+FET104  PFET -20V         FET-P-SOT23             SOT-23                                            
+FET105  NFET 100V si2324A DMN3404L                SOT-23                                            
+FET106  NFET 20V          DMN3404L                SOT-23                                            
+G5      3.3K              R-US_R0603              R0603        RESISTOR, American symbol            
+IC1     7402              7402                    TSSOP14      Quad 2-input NOR gate                
+IC1B    AM6G1215SNZ       AM6G1215SNZ             DCDC7PINB                                         
+IC2A    ISO1042-16PIN     ISO1042-16PIN           SO-16DW                                           
+IC100   74LVC1G14         74LVC1G17               SOT-23                                            
+IC101   MCP1401|1416      MCP1416                 SOT23-5                                           
+JP1     DUMP              PINHD-1X2               1X02         PIN HEADER                           
+JP2     PB                PINHD-1X2               1X02         PIN HEADER                           
+JP3     THERM1            PINHD-1X2               1X02         PIN HEADER                           
+JP4                       PINHD-1X3               1X03         PIN HEADER                           
+JP5     Dump2             PINHD-1X2               1X02         PIN HEADER                           
+JP6     THERM3            PINHD-1X2               1X02         PIN HEADER                           
+JP7                       PINHD-1X2               1X02         PIN HEADER                           
+JP8     THERM2            PINHD-1X2               1X02         PIN HEADER                           
+JP9     PINHD-2X10_KEYED  PINHD-2X10_KEYED        2X10_KEYED                                        
+JP10    PINHD-2X5_KEYED   PINHD-2X5_KEYED         2X05_KEYED                                        
+JP11                      PINHD-2X2               2X02         PIN HEADER                           
+JP12                      PINHD-1X3               1X03         PIN HEADER                           
+JP13    SWD               PINHD-1X3               1X03         PIN HEADER                           
+JP14    PINHD-1X4-MOLEXKK PINHD-1X4-MOLEXKK       1X4-MOLEXKK                                       
+JP15    Dump2             PINHD-1X2               1X02         PIN HEADER                           
+JP16                      PINHD-1X4               1X04         PIN HEADER                           
+JP17    FTDI              PINHD-1X6               1X06         PIN HEADER                           
+JP18                      PINHD-1X1               1X01         PIN HEADER                           
+L1      RFB1010           RFB1010                 INDUCTOR6.0                                       
+LED1                      LEDCHIP-LED0603         CHIP-LED0603 LED                                  
+LED2                      LEDCHIP-LED0603         CHIP-LED0603 LED                                  
+LED3                      LEDCHIP-LED0603         CHIP-LED0603 LED                                  
+LUG-GND MINUS             SPADE-TAB               SPADE_TAB                                         
+LUG-RES RESIS             SPADE-TAB               SPADE_TAB                                         
+OPT1    H11L1S            H!!LX                   SMD-6                                             
+OPT100  H11L1S            H!!LX                   SMD-6                                             
+OPT101  H11L1S            H!!LX                   SMD-6                                             
+Q100    8 MHz             CRYTALHC49S             HC49/S       CRYSTAL                              
+R$13    33                RESUS-S2,5              RS-2,5                                            
+R1      270K              R-US_R0603              R0603        RESISTOR, American symbol            
+R2      1M                R-US_R0603              R0603        RESISTOR, American symbol            
+R3      1M                R-US_R0603              R0603        RESISTOR, American symbol            
+R4      100K              R-US_R0603              R0603        RESISTOR, American symbol            
+R5      1K                R-US_R0603              R0603        RESISTOR, American symbol            
+R6      270K              R-US_R0603              R0603        RESISTOR, American symbol            
+R7      1M                R-US_R0603              R0603        RESISTOR, American symbol            
+R8      270K              R-US_R0603              R0603        RESISTOR, American symbol            
+R9      10K               R-US_R0603              R0603        RESISTOR, American symbol            
+R10     10K               R-US_R0603              R0603        RESISTOR, American symbol            
+R11     10M               R-US_R0603              R0603        RESISTOR, American symbol            
+R12     1M                R-US_R0603              R0603        RESISTOR, American symbol            
+R13     100K              R-US_R0603              R0603        RESISTOR, American symbol            
+R14     10K               R-US_R0603              R0603        RESISTOR, American symbol            
+R15     10K               R-US_R0603              R0603        RESISTOR, American symbol            
+R16     0.1               R-US_M1206              M1206        RESISTOR, American symbol            
+R17     1.2K              R-US_R0603              R0603        RESISTOR, American symbol            
+R18     10K               R-US_R0603              R0603        RESISTOR, American symbol            
+R19     10K               R-US_R0603              R0603        RESISTOR, American symbol            
+R20     TBD               R-US_R0603              R0603        RESISTOR, American symbol            
+R21     10K               R-US_R0603              R0603        RESISTOR, American symbol            
+R22     TBD               R-US_R0603              R0603        RESISTOR, American symbol            
+R23     TBD               R-US_R0603              R0603        RESISTOR, American symbol            
+R24     10K               R-US_R0603              R0603        RESISTOR, American symbol            
+R25     3.9K              R-US_R0603              R0603        RESISTOR, American symbol            
+R26     100               R-US_R0603              R0603        RESISTOR, American symbol            
+R27     6.8K              R-US_R0603              R0603        RESISTOR, American symbol            
+R28     3.3K              R-US_R0603              R0603        RESISTOR, American symbol            
+R29     470K              R-US_R0603              R0603        RESISTOR, American symbol            
+R30     10K               R-US_R0603              R0603        RESISTOR, American symbol            
+R31     3.3K              R-US_R0603              R0603        RESISTOR, American symbol            
+R32     3.3K              R-US_R0603              R0603        RESISTOR, American symbol            
+R100    10K               R-US_R0603              R0603        RESISTOR, American symbol            
+R101    1M                R-US_R0603              R0603        RESISTOR, American symbol            
+R102    10K               R-US_R0603              R0603        RESISTOR, American symbol            
+R103    1.8K              R-US_R0603              R0603        RESISTOR, American symbol            
+R104    1M                R-US_R0603              R0603        RESISTOR, American symbol            
+R105    1.8K              R-US_R0603              R0603        RESISTOR, American symbol            
+R106    470K              R-US_R0603              R0603        RESISTOR, American symbol            
+R107    100K              R-US_R0603              R0603        RESISTOR, American symbol            
+R108    18K               R-US_R0603              R0603        RESISTOR, American symbol            
+R109    100K              R-US_R0603              R0603        RESISTOR, American symbol            
+R110    1M                R-US_R0603              R0603        RESISTOR, American symbol            
+R111    6.8K              R-US_R0603              R0603        RESISTOR, American symbol            
+R112    OPEN?             R-US_R0603              R0603        RESISTOR, American symbol            
+R113    47k               R-US_R0603              R0603        RESISTOR, American symbol            
+R114    TBD               R-US_R0603              R0603        RESISTOR, American symbol            
+R115    33K               R-US_R0603              R0603        RESISTOR, American symbol            
+R116    3.3K              R-US_R0603              R0603        RESISTOR, American symbol            
+R117    6.8               R-US_R0603              R0603        RESISTOR, American symbol            
+R118    68K               R-US_R0603              R0603        RESISTOR, American symbol            
+R119    0.1               R-US_R0805              R0805        RESISTOR, American symbol            
+R120    open              R-US_R0603              R0603        RESISTOR, American symbol            
+R121    1.2K              R-US_R0603              R0603        RESISTOR, American symbol            
+R122    1                 R-US_R0603              R0603        RESISTOR, American symbol            
+R123    3.3K              R-US_R0603              R0603        RESISTOR, American symbol            
+R124    10K               R-US_R0603              R0603        RESISTOR, American symbol            
+R125    1.2K              R-US_R0603              R0603        RESISTOR, American symbol            
+R126    open              R-US_R0603              R0603        RESISTOR, American symbol            
+R127    1                 R-US_R0603              R0603        RESISTOR, American symbol            
+R128    1M                R-US_R0603              R0603        RESISTOR, American symbol            
+R129    100K              R-US_R0603              R0603        RESISTOR, American symbol            
+R130    1M                R-US_R0603              R0603        RESISTOR, American symbol            
+R131    1M                R-US_R0603              R0603        RESISTOR, American symbol            
+RD1     33                RESUS-S2,5              RS-2,5                                            
+RD2     33                RESUS-S2,5-2            RS-2,5-2                                          
+RD3     33                RESUS-S2,5-2            RS-2,5-2                                          
+RD4     33                RESUS-S2,5-2            RS-2,5-2                                          
+RD5     33                RESUS-S2,5-2            RS-2,5-2                                          
+RD6     33                RESUS-S2,5-2            RS-2,5-2                                          
+RD7     33                RESUS-S2,5-2            RS-2,5-2                                          
+RD8     33                RESUS-S2,5-2            RS-2,5-2                                          
+RD9     33                RESUS-S2,5-2            RS-2,5-2                                          
+RD10    33                RESUS-S2,5-2            RS-2,5-2                                          
+RD11    33                RESUS-S2,5-2            RS-2,5-2                                          
+RD12    33                RESUS-S2,5-2            RS-2,5-2                                          
+RD13    33                RESUS-S2,5-2            RS-2,5-2                                          
+RD14    33                RESUS-S2,5-2            RS-2,5-2                                          
+RD15    33                RESUS-S2,5-2            RS-2,5-2                                          
+RD16    33                RESUS-S2,5-2            RS-2,5-2                                          
+RD17    33                RESUS-S2,5-2            RS-2,5-2                                          
+RD18    33                RESUS-S2,5-2            RS-2,5-2                                          
+REG1    AP7380Y           AP7380Y                 SOT89                                             
+REG1A   AP7380Y           AP7380Y                 SOT89                                             
+REG3A   LDK320ADU120R     AP7380Y                 SOT89                                             
+REG3B   LM7812T           78                      TO220V       Positive VOLTAGE REGULATOR           
+REG100  AP7380Y           AP7380Y                 SOT89                                             
+RESET   RESET             E-SWITCH2               E-SWITCH2                                         
+RG1     3.3K              R-US_R0603              R0603        RESISTOR, American symbol            
+RG2     3.3K              R-US_R0603              R0603        RESISTOR, American symbol            
+RG3     3.3K              R-US_R0603              R0603        RESISTOR, American symbol            
+RG4     3.3K              R-US_R0603              R0603        RESISTOR, American symbol            
+RG6     3.3K              R-US_R0603              R0603        RESISTOR, American symbol            
+RG7     3.3K              R-US_R0603              R0603        RESISTOR, American symbol            
+RG8     3.3K              R-US_R0603              R0603        RESISTOR, American symbol            
+RG9     3.3K              R-US_R0603              R0603        RESISTOR, American symbol            
+RG10    3.3K              R-US_R0603              R0603        RESISTOR, American symbol            
+RG11    3.3K              R-US_R0603              R0603        RESISTOR, American symbol            
+RG12    3.3K              R-US_R0603              R0603        RESISTOR, American symbol            
+RG13    3.3K              R-US_R0603              R0603        RESISTOR, American symbol            
+RG14    3.3K              R-US_R0603              R0603        RESISTOR, American symbol            
+RG15    3.3K              R-US_R0603              R0603        RESISTOR, American symbol            
+RG16    3.3K              R-US_R0603              R0603        RESISTOR, American symbol            
+RG17    3.3K              R-US_R0603              R0603        RESISTOR, American symbol            
+RG18    3.3K              R-US_R0603              R0603        RESISTOR, American symbol            
+RR1     10                R-US_R0603              R0603        RESISTOR, American symbol            
+RR2     10                R-US_R0603              R0603        RESISTOR, American symbol            
+RR3     10                R-US_R0603              R0603        RESISTOR, American symbol            
+RR4     10                R-US_R0603              R0603        RESISTOR, American symbol            
+RR5     10                R-US_R0603              R0603        RESISTOR, American symbol            
+RR6     10                R-US_R0603              R0603        RESISTOR, American symbol            
+RR7     10                R-US_R0603              R0603        RESISTOR, American symbol            
+RR8     10                R-US_R0603              R0603        RESISTOR, American symbol            
+RR9     10                R-US_R0603              R0603        RESISTOR, American symbol            
+RR10    10                R-US_R0603              R0603        RESISTOR, American symbol            
+RR11    10                R-US_R0603              R0603        RESISTOR, American symbol            
+RR12    10                R-US_R0603              R0603        RESISTOR, American symbol            
+RR13    10                R-US_R0603              R0603        RESISTOR, American symbol            
+RR14    10                R-US_R0603              R0603        RESISTOR, American symbol            
+RR15    10                R-US_R0603              R0603        RESISTOR, American symbol            
+RR16    10                R-US_R0603              R0603        RESISTOR, American symbol            
+RR17    10                R-US_R0603              R0603        RESISTOR, American symbol            
+RR18    10                R-US_R0603              R0603        RESISTOR, American symbol            
+RXD     SOLDPAD028        SOLDPAD028              SOLPAD028                                         
+SP1     SMD03             SMD03                   SMD03                                             
+SP2     SOLDPAD028        SOLDPAD028              SOLPAD028                                         
+SP3     SOLDPAD028        SOLDPAD028              SOLPAD028                                         
+TP-GND  SOLDPAD028        SOLDPAD028              SOLPAD028                                         
+TP-GNDA SOLDPAD028        SOLDPAD028              SOLPAD028                                         
+TP1     SOLDPAD028        SOLDPAD028              SOLPAD028                                         
+TP2     SOLDPAD028        SOLDPAD028              SOLPAD028                                         
+TP3     SOLDPAD0.6MM      SOLDPAD0.6MM            SOLPAD.6MM                                        
+TP4     SOLDPAD0.6MM      SOLDPAD0.6MM            SOLPAD.6MM                                        
+TP5     SOLDPAD0.6MM      SOLDPAD0.6MM            SOLPAD.6MM                                        
+TP6     SOLDPAD0.6MM      SOLDPAD0.6MM            SOLPAD.6MM                                        
+TP7     SOLDPAD0.6MM      SOLDPAD0.6MM            SOLPAD.6MM                                        
+TXD     SOLDPAD028        SOLDPAD028              SOLPAD028                                         
+U$1     STLQ50            STLQ50                  SOT-323-5                                         
+U$2     SOLDPAD028        SOLDPAD028              SOLPAD028                                         
+U$3     SOLDPAD028        SOLDPAD028              SOLPAD028                                         
+U$4     SOLDPAD028        SOLDPAD028              SOLPAD028                                         
+U$5     LTC6813           LTC6813                 TQFP64_PAD                                        
+U$6     SOLDPAD028        SOLDPAD028              SOLPAD028                                         
+U$7     SOLDPAD028        SOLDPAD028              SOLPAD028                                         
+U$8     ISO1042           ISO1042                 SOIC-8                                            
+U$9     PY6J6-OD          PY6J6-OD                PYJ6-OD                                           
+U$100   MCP6006           MCP6006                 SC-70-5                                           
+U1      STM32F10XRXT6     STM32F10XRXT6           TQFP64       STM32F101/103 64pin LQFP             
