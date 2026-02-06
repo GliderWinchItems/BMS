@@ -1,0 +1,19 @@
+# run_mklist1
+# 02/05/2026
+#
+# Compile these two programs jic
+cd ../PC/mklist1
+gcc mklist1.c -o mklist1
+
+echo "mklist1 compiled completed"
+
+cd ../mklist2
+gcc mklist2.c -o mklist2
+
+echo "mklist2 compiled completed"
+
+# Make a list of CAN IDs that have parameter files
+cd ../../bmsadbms1818/params
+ls *bq*.c > x;cat x | ../../PC/mklist1/mklist1
+
+echo "mklist1 execution completed"
