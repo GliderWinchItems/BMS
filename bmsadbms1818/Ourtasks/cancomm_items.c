@@ -310,18 +310,25 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
 			req_set(REQ_HEATER,pi);
 			break;
 
-		case MISCQ_TOPOFSTACK: // BMS top-of-stack voltage
+			// 16 Not assigned
+
+		case MISCQ_TRICKL_OFF: // 17 Set trickle charger off of limited duration
+			// TODO
+			not_implemented(po);
+			break;
+
+		case MISCQ_TOPOFSTACK: // 18 BMS top-of-stack voltage
 			send_bms_array(po, &bqfunction.cal_filt[19], 1);
 			break;		
 
-	 	case MISCQ_PROC_CAL: // Processor ADC calibrated readings
+	 	case MISCQ_PROC_CAL: // 19 Processor ADC calibrated readings
 	 		for (i = 0; i < ADCDIRECTMAX; i++) // Copy struct items to float array
 	 			ftmp[i] = adc1.abs[i].filt;
 	 		ftmp[1] = adc1.common.degC; // Insert special internal temperature calibration 
 	 		send_bms_array(po, &ftmp[0], ADCDIRECTMAX);
 	 		break;
 
-	 	case MISCQ_PROC_ADC: // Processor ADC raw adc counts for making calibrations
+	 	case MISCQ_PROC_ADC: // 20 Processor ADC raw adc counts for making calibrations
 			for (i = 0; i < ADCDIRECTMAX; i++) // Copy struct items to float array
 	 			ftmp[i] = adc1.abs[i].sumsave;
 			send_bms_array(po, &ftmp[0], ADCDIRECTMAX); 	
@@ -339,6 +346,15 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
 		case MISCQ_CURRENT_ADC: // 25 Below cell #1 minus, current resistor: adc counts		
 			not_implemented(po);
 	 		break;
+
+	 	case MISCQ_UNIMPLIMENT: // 26 Command requested is not implemented
+	 		// Not implemented
+	 		break;
+
+		case MISCQ_SET_FETBITS: //  27 Set FET on/off discharge bits	 		
+			// Redundant--MISCQ_SET_DCHGFETS: // 30
+			not_implemented(po);
+			break;
 
 	 	case MISCQ_SET_DCHGTST: // 28 Set discharge test with heater fet load
 		 	if (pi->cd.uc[3] == 0)
