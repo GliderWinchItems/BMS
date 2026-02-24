@@ -4,7 +4,28 @@
 # 09/15/2023
 # 07/04/2024 - add ip and port as arguments
 # Get a list of all parameter files
+#
+# 02/18/2026 - revised
+# cccall_run was separated out because the child process
+#  from the nc $1 $2 was not ending. That was fixed by
+#  adding -w 1 to the nc command so that it would timeout
+#  1 second after the mklist2 ended. With that change
+#  call_list could be run automatically after call_list
+#
 
+./ccall_list $1 $2 | tee tee_ccall_list
+./ccall_run  $1 $2 | tee tee_ccall_run
+
+# Summary of terminal window output saved output
+echo
+echo "===== SUMMARY--FEEDBACC means success ====="
+cat tee*n | grep -e "EOF sent" -e CANnodeid
+
+# Exit and skip the saved code below
+exit
+
+
+# === saved OLD script ============
 # Compile these two programs jic
 cd ~/GliderWinchItems/BMS/PC/mklist1
 gcc mklist1.c -o mklist1
@@ -37,7 +58,8 @@ chmod +x ../../bmsadbms1818/params/call_file
 echo "call_file made executable"
 
 # Run the .cc file
-cd ~/GliderWinchItems/BMS/bmsadbms1818
+../../bmsadbms1818
 # Example: call_file localhost 32123
 echo "call_file execute $1 $2"
 ./params/call_file $1 $2
+

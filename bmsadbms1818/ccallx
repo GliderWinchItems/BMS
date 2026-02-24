@@ -1,0 +1,30 @@
+
+# ccallx <ip addr> <port>
+# ccallx $1 $2
+# E.g., 
+# ./ccallx 192.168.2.50 32125
+
+# Terminal window output saved in this file
+TEE_FILE=params/tee_ccall.txt
+
+# Remove prior tee file, if exists
+if [ -f "$TEE_FILE" ]; then
+	echo "Removing prior $TEE_FILW"
+	rm $TEE_FILE    
+fi
+
+# Execute a series of scripts
+# First compiles mklist1 and discovers BMS nodes
+# Second compiles mklist2
+# Third runs ccall_list which has input to cc script
+#
+./ccall $1 $2 | tee $TEE_FILE
+#
+exit
+
+# Summarize saved output of ccall by listing selected lines
+echo 
+echo "   => Terminal output was saved in $TEE_FILE <="
+echo "          SUMMARY (FEEDBAC means success)"
+cat $TEE_FILE | grep -e "EOF sent." -e "CANnodeid:"
+# 

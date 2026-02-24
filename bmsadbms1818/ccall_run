@@ -8,9 +8,12 @@
 # Example: call_file localhost 32123
 # Example: call_file 192.168.2.100 32124
 
-# Make executable
-chmod +x ../../bmsadbms1818/params/call_file
+# ccall_list generates a file where each line is a
+#  ./ccall <CAN id> <IP> <PORT>
+# for all the BMS nodes discovered
 
-cd ~/GliderWinchItems/BMS/bmsadbms1818
+# Make executable
+chmod +x params/call_file
+
 echo "call_file executing $1 $2"
 ./params/call_file $1 $2

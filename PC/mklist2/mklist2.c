@@ -55,7 +55,7 @@ int main(int argc, char **argv)
 	char* pchr;
 
 /* Read in list of CAN IDs that have a parameter file. */
-printf("BEGIN mklist2\n");
+printf("\nBEGIN mklist2\n");
 	if ( (fpIn = fopen (paramfile,"r")) == NULL)
 	{
 		printf ("\nInput file did not open: %s\n",paramfile); 
@@ -79,6 +79,8 @@ printf("END CAN IDs in parameter file\n");
   	time_t tim;
   	time_t ttmp;
   	time_t tic = time(&tic) + 1;
+
+	printf("\nShort duration onitoring CAN bus to find BMS nodes that are reporting\n");
 	while ((int)(time(&tim) - starttime) < 0)	
 	{
 		fgets(&buf[0],LINESIZE,stdin); // netcat feeds this with CAN msgs
@@ -104,13 +106,13 @@ printf("END CAN IDs in parameter file\n");
 //		printf("%5d %s",len,buf);
 	}
 	fclose(fpIn);
-
 	/* Generate a file that will reload nodes. */
 	if ( (fpOut = fopen (call_file,"w")) == NULL)
 	{
 		printf ("\nOutput file did not open: %s\n",call_file); 
 		exit (-1);
 	}	
+	printf("\nOutput file opened: %s\n",call_file);
 	int cty = 0;
 	for (j = 0; j < i; j++)
 	{ 
@@ -123,6 +125,18 @@ printf("END CAN IDs in parameter file\n");
 	}	
 	fclose(fpOut);
 	printf("END build .cc list w count: %d\n",cty);
-	return 0;
-}
+/*	
+    char cwd[1024]; // Buffer to store the current working directory path
 
+    // Call getcwd(). If successful, it returns a pointer to the buffer (cwd).
+    if (getcwd(cwd, sizeof(cwd)) != NULL) {
+        printf("Current working directory: %s\n", cwd);
+    } else {
+        // If an error occurs, print the error message
+        perror("getcwd() error");
+        return 1;
+    }
+*/    
+	printf("mklist2 DONE\n");
+	exit(0);
+}

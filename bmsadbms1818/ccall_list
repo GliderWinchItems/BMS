@@ -4,21 +4,29 @@
 # 09/15/2023
 # 07/04/2024 - add ip and port as arguments
 # Get a list of all parameter files
+# 02/18/2026 - revise for relative path
+#  nc (line 35) revised to timeout so that
+#  ctl C was not needed to terminate and
+#  exit. That change makes possible the
+#  ccall script running from to start to
+#  completion without intervention.
 
 # Compile these two programs jic
-cd ~/GliderWinchItems/BMS/PC/mklist1
+cd ../PC/mklist1
 gcc mklist1.c -o mklist1
 
 echo "mklist1 compiled completed"
 
-cd ~/GliderWinchItems/BMS/PC/mklist2
+cd ../mklist2
 gcc mklist2.c -o mklist2
 
 echo "mklist2 compiled completed"
 
 # Make a list of CAN IDs that have parameter files
-cd ~/GliderWinchItems/BMS/bmsadbms1818/params
-ls *bq*.c > x;cat x | ../../PC/mklist1/mklist1
+cd ../../*18/params
+pwd
+ls *bq*.c > x;
+cat x | ../../PC/mklist1/mklist1
 
 echo "mklist1 execution completed"
 
@@ -27,7 +35,7 @@ echo "mklist1 execution completed"
 # and generate a ./cc <CAN ID> file
 # "../../bmsadbms1818/params/call_file"
 
- nc $1 $2 | ../../PC/mklist2/mklist2
+ nc -w 1 $1 $2 | ../../PC/mklist2/mklist2
 
 echo "mklist2 execution complete"
 
@@ -37,6 +45,7 @@ chmod +x ../../bmsadbms1818/params/call_file
 echo "call_file made executable"
 
 echo "DONE"
+
 
 # The following is commented out, remains jic is wanted
 # Run the .cc file

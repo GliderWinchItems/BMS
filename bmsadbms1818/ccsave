@@ -1,0 +1,15 @@
+# The follwing jic the bozo made it executable
+echo
+echo "This is a file of saved script lines for reference"
+exit
+
+
+// Use -v to eliminate lines
+./ccall_run 192.168.2.50 32125 | grep -v arm-none-eabi
+
+// Save to a temporary file
+./ccall_run 192.168.2.50 32125 | tee x
+
+// Eliminate unwanted lines (-v switch)
+// Select multiple useful lines from temporary file (-e switch)
+cat x | grep -v arm-none-eabi | grep -e "EOF sent." -e idx -e TIMEOUT
