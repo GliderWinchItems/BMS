@@ -9,7 +9,7 @@ TEE_FILE=params/tee_ccall.txt
 
 # Remove prior tee file, if exists
 if [ -f "$TEE_FILE" ]; then
-	echo "Removing prior $TEE_FILW"
+	echo "Removing prior $TEE_FILE"
 	rm $TEE_FILE    
 fi
 

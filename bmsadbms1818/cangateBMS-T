@@ -1,0 +1,11 @@
+# Start cangateBMS with tee
+# Terminal window output saved in this file
+TEE_FILE=cangateBMS-T.txt
+
+# Remove prior tee file, if exists
+if [ -f "$TEE_FILE" ]; then
+	echo "Removing prior $TEE_FILE"
+	rm $TEE_FILE    
+fi
+
+stdbuf -oL cangateBMS $1 $2 | tee cangate-T.txt
