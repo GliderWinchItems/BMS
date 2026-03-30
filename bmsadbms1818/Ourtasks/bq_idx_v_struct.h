@@ -90,12 +90,17 @@ struct BQLC
 
    uint32_t modulev_max; // Battery module max limit
    uint32_t modulev_min; // Battery module min limit
-   uint16_t cellopen_lo; // Below this cell volatge wire is assumed open (mv)
-   uint16_t cellopen_hi; // Above this cell volatge wire is assumed open (mv)
-   uint16_t cellv_tgtdelta; // Target delta: cell max - this delta (mv)
-   int16_t cellv_max;    // Max limit for charging any cell (mv)
-   int16_t cellv_min;    // Min limit for any discharging (mv)
-   int16_t cellv_vlc;    // Below this Very Low Charge (_vlc)required
+
+   /* Voltage thresholds: high-to-low order */
+   uint16_t cellopen_hi;     // Above this cell volatge wire is assumed open (mv)
+   uint16_t cellv_max;       // Max limit for charging any cell (mv)
+   uint16_t cellv_tgtdelta;  // Target delta (mv) (cellv_tmdelta = (cellv_max - cellv_tgtdelta)
+   uint16_t cellv_launch_ng; // Low cell voltage for launch no-go (mv)
+   uint16_t cellv_min;       // Min limit for any discharging (mv)
+   uint16_t cellv_vlc;       // Below this Very Low Charge (_vlc)required (mv)
+   uint16_t cellv_min_loaded;// Low cell voltage too low even under load (mv) 
+   uint16_t cellopen_lo;     // Below this cell volatge wire is assumed open (mv)
+
 
    /* These are sent to the EMC for module level charging control. */
    uint8_t maxchrgcurrent;  // Maximum charge current (0.1a) (255 is >= 25.5a)
@@ -108,10 +113,7 @@ struct BQLC
 
    uint16_t dumpresistor; // DUMP fet load resistor (Ohms)
 
-  /* Future Not implemented (09/13/23) */
-   uint32_t cellv_launch_ng;   //  Low cell voltage for launch no-go 
-   uint32_t cellv_min_loaded;  //  Low cell voltage too low under load   
-
+  
    int16_t cellbal_del; // Balance within this amount of lowest
  
 

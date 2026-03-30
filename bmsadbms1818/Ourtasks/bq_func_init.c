@@ -44,6 +44,7 @@ void bq_func_init(void)
 	p->tim1_ccr1    = 0;  // Charger FET ON time initially set for no charging.
 
 	p->cellbal        = 0; // Bits to activate cell balance fets
+	p->battery_ext_status = 0; // Cell extended status Bits 
 	p->battery_status = 0; // Cell status Bits 
 	p->fet_status     = 0; // FET bits
     p->hyster_sw      = 0; // 1 = means hysteresis (relaxation) currently in effect
@@ -59,19 +60,21 @@ void bq_func_init(void)
 
 	p->hyster_sw_trip = 9; // Set bogus value 	
 
-	for (i = 0; i < 3; i++)
+	for (i = 0; i < BQREQ_SIZE; i++)
 	{
 		p->bqreq[i].req = 0;
 		p->bqreq[i].tim = xTaskGetTickCount();
 	}
 
-	// Cell voltage hysteresis (relaxation)
+	
+	// Cell voltage hysteresis (relaxation/self-discharge)
     p->hysterbits_lo = 0; // Cell bit ON: voltage less than hysteresis low
     p->hysterv_lo = (p->lc.cellv_max - p->lc.cellv_hyster); // hyster volt low
 
     // Target voltage minus target delta
     p->cellv_tmdelta = p->lc.cellv_max - p->lc.cellv_tgtdelta;
 
+    // Clear latest reading (jic)
 	for (i = 0; i < NCELLMAX; i ++)
 	{
 		p->cellv_latest[i] = 0;

@@ -14,7 +14,7 @@
 /* *************************************************************************
  * uint8_t fetonoff(uint8_t fetnum, unit8_t fetcommand);
  * @brief	: Set i/o bits to turn fet on or off
- * @param	: fetnum = designate FET
+ * @param	: fetnum = DUMP, DUMP2, HEATER, CHGR (See BQTAsk.h)
  * @param	: fetcommand: 1 = on; not 1 = off
  * @return  : byte with bits set/reset for each FET 
  * *************************************************************************/

@@ -5,6 +5,7 @@
 *******************************************************************************/
 /* 
 06/22/2022 Update for ADBMS1818 
+02/28/2026 Major revisions
 */
 #include "FreeRTOS.h"
 #include "task.h"
@@ -134,7 +135,33 @@ dbgf = 1; // Set & compile for each
 	}
 	return retx;
 }
+/* *************************************************************************
+ * static void bq_items_updatestatus(struct BQFUNCTION* pbq);
+ * @brief	: Update buffered status bytes (used by cancomm_items in CANTask)
+ * @param   : pointer to bqfunction struct
+ * *************************************************************************/
+/* Since the status bits are the result of loop through all cells and the status
+is reported via a different task, the results are buffered.
+*/
+static void bq_items_updatestatus(struct BQFUNCTION* pbq)
+{
+	pbq->buf_battery_ext_status = pbq->battery_ext_status; // [3] Cell status code bits (extended)
+	pbq->buf_battery_status     = pbq->battery_status;     // [4] Cell status code bits 
+	pbq->buf_fet_status         = pbq->fet_status;         // [5] This controls on/off of FETs
+	pbq->buf_mode_status        = pbq->mode_status;        // [6] Mode bits
+	pbq->buf_temp_status        = pbq->temp_status;        // [7] Temperature status bits
 
+	pbq->buf_cellv_max_bits  = pbq->cellv_max_bits;  // Cells above cellv_max
+	pbq->buf_cellv_min_bits  = pbq->cellv_min_bits;  // Cells below cellv_min
+	pbq->buf_cellv_vlc_bits  = pbq->cellv_vlc_bits;  // Cells below cellv_vlc
+	pbq->buf_cellv_tdt_bits  = pbq->cellv_vlc_bits;  // Cells below (max-Delta) & tripped	
+	pbq->buf_cellv_launch_ng = pbq->cellv_launch_ng; // Cells below launch no-go
+	pbq->buf_hysterbits_lo      = pbq->hysterbits_lo; // Bits for cells that fell below hysterv_lo
+	pbq->buf_hysterbits_lo_save = pbq->hysterbits_lo_save;// Prev hysterbits_lo
+	pbq->buf_cellv_min_loaded_bits  = pbq->cellv_min_loaded_bits;	
+
+	return;
+}
 /* *************************************************************************
  * void bq_items_selectfet(void);
  * @brief	: Go thru a sequence of steps to determine balancing
@@ -144,103 +171,155 @@ uint32_t dbgcellbal;
 void bq_items_selectfet(void)
 {
 	struct BQFUNCTION* pbq = &bqfunction; // Convenience pointer
-
 	float* p = &bqfunction.cellv[0]; // Calibrated cell voltage
-	uint32_t idata;
+	uint32_t idata; // Integer cell voltage in 1 mv units
 	int16_t i; // variable name selected in memory of FORTRAN
-dbgtrc = 0; // bits for checking logic
-	pbq->battery_status = 0; // Reset battery status
-	pbq->cellv_total    = 0; // Sum of installed cell voltages
-	pbq->cellv_high     = 0; // Highest cell initial voltage
-	pbq->cellv_max_bits = 0; // Cells over cellv_max
-	pbq->cellv_min_bits = 0; // Cells below cellv_min
-	pbq->cellv_vlc_bits = 0; // Cells below very low
-	pbq->cellbal = 0; // Discharge fet bits
-	pbq->cellv_low      = pbq->lc.cellopen_hi; // Lowest cell initial voltage
 
-/*   p->cellv_max   = 3500; // Max limit (mv) for charging any cell
-   p->cellv_min   = 2600; // Min limit (mv) for any discharging
-   p->cellv_vlc   = 2550; // Below this (mv) Very Low Charge (vlc)required */
-	/* Check each cell reading. */
+dbgtrc = 0; // Debug: bits for checking logic
+
+	pbq->battery_ext_status = 0; // Reset battery extended status	
+	pbq->battery_status  = 0; // Reset battery status
+	pbq->cellv_total     = 0; // Sum of installed cell voltages
+	pbq->cellv_high      = 0; // Highest cell initial voltage
+	pbq->cellv_max_bits  = 0; // Cells over cellv_max
+	pbq->cellv_min_bits  = 0; // Cells below cellv_min
+	pbq->cellv_vlc_bits  = 0; // Cells below very low
+	pbq->cell_tdt_bits   = 0; // Cells below Target-Delta & tripped
+	pbq->cell_amd_bits   = 0; // Cells above (max - delta)
+	pbq->cellvopenbits   = 0; // Cell positions with open wire detected
+	pbq->cellbal         = 0; // Discharge fet bits (will be sent to a bms readout queue)
+	pbq->cellv_launch_ng = 0; // Cell bits for cells below launch no go
+	pbq->cellv_min_loaded_bits = 0; // Cells far too low even under load
+	pbq->cellv_low       = pbq->lc.cellopen_hi; // Lowest cell initial voltage
+
+	/* Check all the cell readings versus various volage thresolds. */
 	for (i = 0; i < NCELLMAX; i++)
 	{
 		idata = (*p * 0.1f); // Convert calibrated float (100uv) to uint32_t (1mv)
+
 		if ((pbq->cellspresent & (1<<i)) != 0) // Skip cells not installed
 		{ // Here, cell position is installed
 			if  ((idata <= pbq->lc.cellopen_lo)||(idata > pbq->lc.cellopen_hi))
 			{ // Here, likely unexpected open wire
-				pbq->battery_status |= BSTATUS_OPENWIRE;
+				pbq->cellvopenbits |= (1 << i);;   // Bits for unexpected open cells (1 = open wire suspected) 
 			}
 			else
-			{ // Here, cell voltage reading looks valid
-				if (idata > pbq->cellv_high)
-				{ // Find max cell reading
-					pbq->cellv_high = idata; // Save voltage
-					pbq->cellx_high = i;  // Save cell index
+			{ // Here, this cell voltage reading looks valid
+
+			// Find max cell reading in this scan
+				if (*p > pbq->cellv_high_f)
+				{ // Here, this cell is higher
+					pbq->cellv_high_f = *p; // Save voltage float (0.1 mv)
+					pbq->cellv_high   = idata; // Save uint (mv)
+					pbq->cellx_high   = i;  // Save cell index
 				} 
+
+			// Find lowest cell reading
 				if (idata < pbq->cellv_low)
-				{ // Find lowest cell reading
-					pbq->cellv_low = idata; // Save voltage
-					pbq->cellx_low = i;  // Save cell index
+				{ // Here, this cell is lower
+					pbq->cellv_low_f = *p; // Save voltage float (0.1 mv)
+					pbq->cellv_low   = idata; // Save uint (mv)
+					pbq->cellx_low   = i;  // Save cell index
 				} 
-				if (idata < pbq->cellv_tmdelta) 
-				{ // Here, cell is lower|equal (target voltage minus delta)
-					if (pbq->hyster_sw == 0)
-					{
-						pbq->cellbal &= ~(1 << i); // Reset bit for discharge FET
-					}
-				}			
+
+			// Cell is above max limit?
 				if (idata > pbq->lc.cellv_max)
-				{ // Cell is above max limit
-					pbq->cellv_max_bits |= (1 << i); // Cells above cellv_max
-					pbq->cellbal        |= (1 << i); // Set bit for discharge FET
-					pbq->celltrip       |= (1 << i); // Cell "tripped" max (cumulative)
-					pbq->battery_status |= BSTATUS_CELLTOOHI; // One or more cells above max limit
+				{ // Cell is above (and could be in danger!)
+					pbq->cellv_max_bits |= (1 << i); // Cells above cellv_max					
 				}
+					
+			// Cell above (cellv_max - cellv_tgtdelta)?
 				if (idata > pbq->cellv_tmdelta) // (cellv_max - cellv_tgtdelta)
-				{ // Here, voltage is between max and (max - delta)
-					if ((pbq->celltrip & (1<<i)) != 0)
-					{ // Here, this cell has tripped max
-						pbq->cell_tdt_bits |= (1 << i);
-						if (pbq->hyster_sw == 0)
-						{ // Here, in charge mode (not relaxation mode)
-							pbq->cellbal |= (1 << i); // Set bit for discharge FET
-						}
-					}
+				{ // Here, voltage is above (max - delta)
+					pbq->cell_amd_bits |= (1 << i); // Cells above (max - delta)
 				}
-				else
-				{
-					pbq->cell_tdt_bits &= ~(1 << i);
+
+			//  Cell lower than launch no-go threshold?
+				if (idata < pbq->lc.cellv_launch_ng)
+				{ // Cell voltage is below launch no go threshold
+						pbq->cellv_launch_ng = (1 << i);
 				}
+
+			// Cell below end of relaxation/self-discharge?
 				if (idata < pbq->hysterv_lo)
 				{ // Cell below (target-hysteresis) voltage
 					pbq->hysterbits_lo |=  (1 << i); // Hysteresis low set
 				}
+
+			// Cell too low for any discharging?
 				if (idata < pbq->lc.cellv_min)
-				{
+				{ // Here too low for any discharging
 					pbq->cellv_min_bits |= (1 << i); // Cells below cellv_min
-					pbq->battery_status |= BSTATUS_CELLTOOLO;  // One or more cells below min limit
 				}
+
+			// Cell so low that reduced charge current required?
 				if (idata < pbq->lc.cellv_vlc)
-				{ // Here, seriously discharged!
-						pbq->cellv_vlc_bits |= (1 << i); // Cells below cellv_vlc	
-						pbq->battery_status |= BSTATUS_CELLVRYLO; // One or more cells very low
+				{ // Here, seriously discharged! 
+						pbq->cellv_vlc_bits |= (1 << i); // Cells below cellv_vlc							
 				}
+
+			// Cell far too low even under load
+				if (idata < pbq->lc.cellv_min_loaded) 
+				{ // Cells too low even under load (mv))
+					pbq->cellv_min_loaded_bits |= (1 << i); // Cells too low even under load (mv)
+				}
+				
 				pbq->cellv_total += idata; // Sum cell readings
 			}
 		}
 		p += 1; // Next cellv array
 	}
 
+	/* Summary of scan of cell readings. */
+	if (pbq->cellvopenbits != 0)
+	{  // Bits for unexpected open cells (1 = open wire suspected) 
+		pbq->battery_status |= BSTATUS_OPENWIRE;		
+	}
+
+	if (pbq->cellv_max_bits != 0)
+	{ // One or more cells are over max (pbq->lc.cellv_max)
+		pbq->battery_status |= BSTATUS_CELLTOOHI; // One or more cells above max limit
+		pbq->celltrip |= pbq->cellv_max_bits;     // Cumulative cells tripped 
+		if (pbq->celltrip == pbq->cellspresent)
+		{ // Here, all cells have been tripped
+			pbq->battery_ext_status |= BSTATUS_X_ALLTRIPPED;
+		}
+	}
+
+	if (pbq->cell_amd_bits != 0)
+	{ // One or more cells above (max - hysteresis)
+		pbq->cell_tdt_bits &= pbq->celltrip;
+		pbq->battery_ext_status |= BSTATUS_X_ABOVENTRIP;
+	}
+	
+	if (pbq->cellv_launch_ng != 0)
+	{ // One of more cells below launch no-go threshold
+		pbq->battery_ext_status |= BSTATUS_X_LAUNCH_NG;
+	}
+
+	if (pbq->cellv_min_bits != 0)
+	{ // One or more cells below min limit (lc.cellv_min, e.g. 2200)
+		pbq->battery_status |= BSTATUS_CELLTOOLO;  
+	}
+
+	if (pbq->cellv_vlc_bits != 0)
+	{ // Cells require very low charge current recovery, lc.cellv_vlc , e.g. 2100
+		pbq->battery_status |= BSTATUS_CELLVRYLO; // One or more cells very low
+	}
+
+	if (pbq->cellv_min_loaded_bits != 0)
+	{ // One or more below lc.cellv_min_loaded, e.g. 1800
+		pbq->battery_ext_status |= BSTATUS_X_MINLOADED;
+	}
+
 dbgcellbal = pbq->cellbal;
 
 	/* Set FET status.  */
 /* NOTE: DUMP2 is assumed to control an external module charger. */
-	/* Set CAN msg commanded FETs ON|OFF: DUMP DUMP2 HEATER */
-	// Initially set all off
-//	pbq->fet_status &= ~(FET_DUMP|FET_DUMP2|FET_HEATER);
+	/* CAN msgs set FETs ON|OFF: DUMP DUMP2 HEATER, set a request for this task.  */
+   //	pbq->fet_status &= ~(FET_DUMP|FET_DUMP2|FET_HEATER); // set all off
 	// Set FETs if command active and not timed out
-	for(i = 0; i < 3; i++)
+	for(i = 0; i < BQREQ_SIZE; i++)
 	{
 		if (pbq->bqreq[i].req == 1)
 		{ // Here, active command in progress
@@ -250,7 +329,8 @@ dbgtrc |= (1<<12); // Debug Trace
 				pbq->bqreq[i].req = 0; // Reset command status
 				if (i == REQ_DUMP  ) pbq->fet_status &= ~FET_DUMP; else
 				if (i == REQ_DUMP2 ) pbq->fet_status &= ~FET_DUMP2;else
-				if (i == REQ_HEATER) pbq->fet_status &= ~FET_HEATER;				
+				if (i == REQ_HEATER) pbq->fet_status &= ~FET_HEATER;else
+				if (i == REQ_TRICKL) pbq->fet_status &= ~FET_CHGR;	
 dbgtrc |= (1<<0); // Debug Trace				
 			}
 			else
@@ -260,20 +340,21 @@ dbgtrc |= (1<<0); // Debug Trace
 dbgtrc |= (1<<13); // Debug Trace	
  					if (i == REQ_DUMP  ) pbq->fet_status |= FET_DUMP; else
 					if (i == REQ_DUMP2 ) pbq->fet_status |= FET_DUMP2;else
-					if (i == REQ_HEATER) pbq->fet_status |= FET_HEATER;
+					if (i == REQ_HEATER) pbq->fet_status |= FET_HEATER;else
+					if (i == REQ_TRICKL) pbq->fet_status |= FET_CHGR;	
 				}
 				else
 				{ // Here, command was OFF.
 					if (i == REQ_DUMP  ) pbq->fet_status &= ~FET_DUMP; else
 					if (i == REQ_DUMP2 ) pbq->fet_status &= ~FET_DUMP2;else
-					if (i == REQ_HEATER) pbq->fet_status &= ~FET_HEATER;									
+					if (i == REQ_HEATER) pbq->fet_status &= ~FET_HEATER;else								
+					if (i == REQ_TRICKL) pbq->fet_status &= ~FET_CHGR;	
 				}
 			}
 		}
 	}
-	// Let following cell voltage limits override the above FET status settings.
+/* ===> Let following cell voltage limits override the above FET status settings. <=== */
 
-#if 1
 	/* Unusual situation check. */
 	if (((pbq->battery_status & BSTATUS_NOREADING) != 0) ||
 	    ((pbq->battery_status & BSTATUS_OPENWIRE)  != 0) )
@@ -281,36 +362,40 @@ dbgtrc |= (1<<13); // Debug Trace
 		pbq->fet_status &= ~(FET_DUMP|FET_HEATER|FET_DUMP2|FET_CHGR|FET_CHGR_VLC);
 		pbq->cellbal = 0; // All cell balancing FETS off
 dbgtrc |= (1<<1); // Debug Trace
+
+		// Update buffered status bytes before returnning
+		bq_items_updatestatus(pbq);
 		return;
 	}
-#endif	
+
 	// Here it looks like we have a normal situation with good readings
 	/* Check for out-of-limit voltages */
 
-	/* Is one or more cells too low? */
+	/* Are one or more cells too low? */
 	if (pbq->cellv_min_bits != 0) // Too low?
-	{ // Here, one or more cells are below min limit
+	{ // Here, one or more cells are below min limit (cellv_min)
 		pbq->fet_status &= ~(FET_DUMP|FET_HEATER); // Disable discharge
 pbq->hyster_sw_trip = 0; // Stop a discharge test (redundant)
 dbgtrc |= (1<<2);		
 		// The following assumes DUMP2 FET controls an external charger
 		// Here, one or more are too low, but are any still too high?
-		if (pbq->cellv_high > pbq->lc.cellv_max)
+		if (pbq->cellv_max_bits != 0)
 		{ // EGADS YES! We cannot charge, but can selectively discharge
 		  // until high cells become low enough to turn on charging.	
 			pbq->fet_status &= ~(FET_CHGR|FET_DUMP2); // Disable charging
-dbgtrc |= (1<<3);			
+			pbq->cellbal |= pbq->cellv_max_bits; // Set bits for discharge FETs
 		}
 		else
-		{
+		{ // Here, no cells over max, but one or more are below cellv_min 
 			pbq->cellbal = 0; // (JIC) All cell balancing FET bits off
+dbgtrc |= (1<<3);						
 		}
 	}
 
-	/* Is any cell too high? */
-	if (pbq->cellv_high > pbq->lc.cellv_max) // Too high?
+	/* Are one or more cells too high? */
+	if (pbq->cellv_max_bits != 0)
 	{ // Here, yes. One or more cells are over max limit
-		// No charging, but discharging is needed
+		// No charging, but discharging is needed. Turn off both chargers
 		pbq->fet_status &= ~(FET_CHGR|FET_DUMP2); // (DUMP2 external charger control)
 dbgtrc |= (1<<4);
 	}
@@ -319,7 +404,7 @@ dbgtrc |= (1<<4);
 		pbq->fet_status |= FET_CHGR; // On-board charger ON
 	}
 
-	/* DUMP charger only charges when no cells have tripped. */
+	/* DUMP2 external charger only charges when no cells have tripped. */
 	if (pbq->celltrip == 0)
 	{ // Here, no cells have charged over max
 		if (!((pbq->bqreq[REQ_DUMP2].req == 1) && (pbq->bqreq[REQ_DUMP2].on == 0)))
@@ -331,20 +416,21 @@ dbgtrc |= (1<<4);
 dbgtrc |= (1<<5);		
 	}
 
-	/* DUMP charger turns OFF when first cell trips max. */
+	/* DUMP2 external charger turns OFF when first cell trips max. */
 	if (pbq->celltrip != 0)
 	{ // Here, one or more cells have charged over max.
 		pbq->fet_status &= ~FET_DUMP2; // (DUMP2 external charger control OFF)
 dbgtrc |= (1<<6);		
 	}
 
-	/* HHH: Healthy Hysteresis Handling. */
+	/* Relaxation/self-discharge versus charging mode. */
 	if (pbq->hyster_sw == 0)
 	{ // ======> Charging/balancing is in effect <=======		
 		if ((pbq->celltrip == pbq->cellspresent) || (pbq->hyster_sw_trip == 1))
-		{ // Here, all installed cells are over the (target voltage - delta)
+		{ // Here, ALL installed cells are over the (target voltage - delta)
+		 //  Or, the switch was set (by a CAN msg...)
 			pbq->hysterbits_lo = 0; // Reset low cell bits
-			pbq->hyster_sw     = 1; // ===> Set "relaxation" mode <===
+			pbq->hyster_sw     = 1; // ===> Set "relaxation/self-discharge" mode <===
 			pbq->cellbal       = 0; // Discharge FETs off.
 			// Everybody off.
 			pbq->fet_status &= ~(FET_DUMP|FET_HEATER|FET_DUMP2|FET_CHGR|FET_CHGR_VLC);
@@ -354,6 +440,20 @@ dbgtrc |= (1<<6);
 //?				pbq->fet_status |= FET_DUMP;  // Discharge test 
 			}			
 dbgtrc |= (1<<7);
+		}
+		else
+		{ // Here, not all cells have tripped (AND hyster switch is 0)
+			if (pbq->cell_tdt_bits != 0)
+			{ // One or more cells above (max - hysteresis/delta) & tripped
+				// Set discharge fet ON. Ideal is discharge matches charge current
+				pbq->cellbal |= pbq->cell_tdt_bits;
+			}
+			else
+			{ // No cells above (max - hysteresis/delta) AND tripped
+				// Set cell discharge fet OFF. Tripped cell fell below|equal (max - delta)
+				pbq->cellbal = 0;
+			}
+			pbq->fet_status |= FET_CHGR; // On-board charger ON
 		}
 	}
 	else
@@ -368,8 +468,8 @@ dbgtrc |= (1<<7);
 dbgtrc |= (1<<8);			
 		}
 		else
-		{ // Here, not all cells above max so relax/hyster
-				/* CAN msgs can set FETs but no override high & low voltage limits.
+		{ // Here, no cells above max so relax/hyster
+				/* CAN msgs can set FETs but not override high & low voltage limits.
 	   The timeout is set when the CAN command is received (cancomm_items.c) */
 			if ((int)(xTaskGetTickCount() - pbq->cansetfet_tim) < 0)
 			{ 
@@ -400,14 +500,14 @@ dbgtrc |= (1<<10);
 			pbq->fet_status &= ~(FET_CHGR|FET_CHGR_VLC);
 		}
 
-		// Stop relaxation when one or more cells hits hysteresis low end
+		// Stop relaxation when one or more cells hits relaxation/self-discharge low end
 		if ((pbq->hysterbits_lo != 0) || (pbq->hyster_sw_trip == 0))
-		{ // One or more cells hit the low end of hysteresis
-			pbq->hyster_sw_trip = 9; // Set bogus value 
-			pbq->hysterbits_lo_save = pbq->hysterbits_lo;
-			pbq->hyster_sw     = 0; // Set hysteresis switch off
-			pbq->celltrip      = 0; // Reset cells that went over max
-			pbq->cell_tdt_bits = 0; // Reset cell below max - delta AND tripped
+		{ // One or more cells hit the low end of hysteresis/relaxation/self-discharge voltage
+			pbq->hysterbits_lo_save = pbq->hysterbits_lo; // Save who it was for review later
+			pbq->hyster_sw_trip    = 9; // Set bogus value 
+			pbq->hyster_sw         = 0; // Set hysteresis switch off
+			pbq->celltrip          = 0; // Reset cells that went over max
+			pbq->cell_tdt_bits     = 0; // Reset cells below (max - delta) AND tripped
 			pbq->discharge_test_sw = 0; // Reset discharge test, if it was on.
 dbgtrc |= (1<<11);			
 		}
@@ -421,6 +521,7 @@ dbgtrc |= (1<<11);
 	{
 		pbq->mode_status |= MODE_SELFDCHG;		
 	}
+
 	if (pbq->celltrip == 0)	
 	{
 		pbq->mode_status &= ~MODE_CELLTRIP;
@@ -429,6 +530,9 @@ dbgtrc |= (1<<11);
 	{
 		pbq->mode_status |= MODE_CELLTRIP;		
 	}
+
+	// Update buffered status bytes before returnning
+	bq_items_updatestatus(pbq);
 	return;
 }
 /* ************************************************************************* 

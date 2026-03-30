@@ -20,30 +20,30 @@
 
 // payload [1] U8: TYPE2 Command code
 // NOTE: Skipped codes are available for new subcommands
- #define MISCQ_HEARTBEAT   0 // reserved for heartbeat
- #define MISCQ_STATUS      1 // status
- #define MISCQ_CELLV_CAL   2 // cell voltage: calibrated
- #define MISCQ_CELLV_ADC   3 // cell voltage: adc counts
- #define MISCQ_TEMP_CAL    4 // temperature sensor: calibrated
- #define MISCQ_TEMP_ADC    5 // temperature sensor: adc counts for making calibration
- #define MISCQ_DCDC_V      6 // isolated dc-dc converter output voltage
- #define MISCQ_CHGR_V      7 // charger hv voltage
- #define MISCQ_HALL_CAL    8 // Hall sensor: calibrated
- #define MISCQ_HALL_ADC    9 // Hall sensor: adc counts for making calibration
- #define MISCQ_CELLV_HI   10 // Highest cell voltage
- #define MISCQ_CELLV_LO   11 // Lowest cell voltage
- #define MISCQ_FETBALBITS 12 // Read FET on|off discharge bits
- #define MISCQ_SET_DUMP	  13 // Set ON|OFF DUMP FET on|off
- #define MISCQ_SET_DUMP2  14 // Set ON|OFF DUMP2 FET FET: on|off
- #define MISCQ_SET_HEATER 15 // Set ON|OFF HEATER FET on|off
- #define MISCQ_TRICKL_OFF 17 // Turn trickle charger off for no more than ‘payload [3]’ secs
- #define MISCQ_TOPOFSTACK 18 // BMS top-of-stack voltage
- #define MISCQ_PROC_CAL   19 // Processor ADC calibrated readings
- #define MISCQ_PROC_ADC   20 // Processor ADC raw adc counts for making calibrations
- #define MISCQ_R_BITS     21 // Dump, dump2, heater, discharge bits
- #define MISCQ_CURRENT_CAL 24 // Below cell #1 minus, current resistor: calibrated
- #define MISCQ_CURRENT_ADC 25 // Below cell #1 minus, current resistor: adc counts
- #define MISCQ_UNIMPLIMENT 26 // Command requested is not implemented
+ #define MISCQ_HEARTBEAT     0 // reserved for heartbeat
+ #define MISCQ_STATUS        1 // status
+ #define MISCQ_CELLV_CAL     2 // cell voltage: calibrated
+ #define MISCQ_CELLV_ADC     3 // cell voltage: adc counts
+ #define MISCQ_TEMP_CAL      4 // temperature sensor: calibrated
+ #define MISCQ_TEMP_ADC      5 // temperature sensor: adc counts for making calibration
+ #define MISCQ_DCDC_V        6 // isolated dc-dc converter output voltage
+ #define MISCQ_CHGR_V        7 // charger hv voltage
+ #define MISCQ_HALL_CAL      8 // Hall sensor: calibrated
+ #define MISCQ_HALL_ADC      9 // Hall sensor: adc counts for making calibration
+ #define MISCQ_CELLV_HI     10 // Highest cell voltage
+ #define MISCQ_CELLV_LO     11 // Lowest cell voltage
+ #define MISCQ_FETBALBITS   12 // Read FET on|off discharge bits
+ #define MISCQ_SET_DUMP	    13 // Set ON|OFF DUMP FET on|off
+ #define MISCQ_SET_DUMP2    14 // Set ON|OFF DUMP2 FET FET: on|off
+ #define MISCQ_SET_HEATER   15 // Set ON|OFF HEATER FET on|off
+ #define MISCQ_TRICKL_OFF   17 // Turn trickle charger off for no more than ‘payload [3]’ secs
+ #define MISCQ_TOPOFSTACK   18 // BMS top-of-stack voltage
+ #define MISCQ_PROC_CAL     19 // Processor ADC calibrated readings
+ #define MISCQ_PROC_ADC     20 // Processor ADC raw adc counts for making calibrations
+ #define MISCQ_R_BITS       21 // Dump, dump2, heater, discharge bits
+ #define MISCQ_CURRENT_CAL  24 // Below cell #1 minus, current resistor: calibrated
+ #define MISCQ_CURRENT_ADC  25 // Below cell #1 minus, current resistor: adc counts
+ #define MISCQ_UNIMPLIMENT  26 // Command requested is not implemented
  #define MISCQ_SET_FETBITS  27 // Set FET on/off discharge bits
  #define MISCQ_SET_DCHGTST  28 // Set discharge test via heater fet load on|off
  #define MISCQ_SET_DCHGFETS 30 // Set discharge FETs: all, on|off, or single
@@ -63,6 +63,10 @@
 
 /* Keep alive for incoming CAN msgs that cause battery loads. */
 #define CANSETFET_TIM 5000 // Timeout (ms) for MISCQ_SET_DCHGFETS
+
+/* Special request timeout limit */
+//#define CANREQ_TIM_MAX (3600*1000) // Max timeout (ms) for (REQ_HEATER, REQ_DUMP, REQ_DUMP2,REQ_TRICKL)
+#define CANREQ_TIM_MIN (   5*1000) // Min timeout (ms) 
 
 /* MISCQ_SET_DCHGFETS Sub code for sending request. 
 Requester payload[3] 

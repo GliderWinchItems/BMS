@@ -99,19 +99,27 @@ static void loadfloat(uint8_t* puc, float* pf)
 /* *************************************************************************
  * static int req_set(uint8_t idx, struct CANRCVBUF* pi);
  *	@brief	: Prepare and queue CAN msgs for sending cell voltage array
- *  @param  : idx: (0,1,2):(REQ_HEATER, REQ_DUMP, REQ_DUMP2)
+ *  @param  : idx: (0,1,2,3):(REQ_HEATER, REQ_DUMP, REQ_DUMP2,REQ_TRICKL)
  *  @param  : pi = pointer to input CAN msg
  *  @return : 0 = OK; -1 = rejected
  * *************************************************************************/
 static int req_set(uint8_t idx, struct CANRCVBUF* pi)
-{	// Check if command is OFF = 0| ON = 1
+{	
 	struct BQFUNCTION* p = &bqfunction;
+	uint32_t tmp;
+
+	if (idx >= BQREQ_SIZE)
+		return -1; // Bogus argument
+
+// Check if command is OFF = 0| ON = 1
 	if (pi->cd.uc[3] > 1)
 		return -1; // Bogus argument
+
 	p->bqreq[idx].on  = pi->cd.uc[3]; // Set request ON|OFF
 	p->bqreq[idx].req = 1; // Show request is active
-	// Set timeout of request
-	p->bqreq[idx].tim = xTaskGetTickCount() + pdMS_TO_TICKS(CANSETFET_TIM);
+
+	// Set timeout in terms of rtos ticks
+	p->bqreq[idx].tim = xTaskGetTickCount() + pdMS_TO_TICKS(CANREQ_TIM_MIN);
 	return 0;
 }			
 
@@ -312,9 +320,8 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
 
 			// 16 Not assigned
 
-		case MISCQ_TRICKL_OFF: // 17 Set trickle charger off of limited duration
-			// TODO
-			not_implemented(po);
+		case MISCQ_TRICKL_OFF: // 17 Set trickle charger OFF
+			req_set(REQ_TRICKL,pi);
 			break;
 
 		case MISCQ_TOPOFSTACK: // 18 BMS top-of-stack voltage
@@ -384,7 +391,7 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
 		 	}
 			break;
 
-		case MISCQ_SET_DCHGFETS: // 30 Set discharge FETs all on, all off, of single
+		case MISCQ_SET_DCHGFETS: // 30 Set discharge FETs all on, all off, or single
 			if (pi->cd.uc[3] == 111)
 			{ // 111 is code for ALL ON
 				p->cansetfet = 0x3ffff;
@@ -593,6 +600,11 @@ static void send_allfets(struct CANRCVBUF* po)
 static void status_group(struct CANRCVBUF* po)
 {
 /* Status bits (see BQTask.h)
+Battery extended status--
+#define BSTATUS_X_BELOTRIP  (1 << 0)  // One or more cells below (max - hysteresis) & tripped
+#define BSTATUS_X_LAUNCH_NG (1 << 1)  // One or more cells are below launch no-go threhold
+#define BSTATUS_X_PWM       (1 << 2)  // PWM is on
+
 Battery--
 #define BSTATUS_NOREADING (1 << 0)	// Exactly zero = no reading
 #define BSTATUS_OPENWIRE  (1 << 1)  // Negative or over 5v indicative of open wire
@@ -623,12 +635,13 @@ Temperature sensors--
 	struct BQFUNCTION* p = &bqfunction;
 	po->cd.uc[1] = MISCQ_STATUS; // 
 	po->cd.us[1] = 0; // uc[2]-[3] cleared
-	// Data payload bytes [4]-[7]
-	po->cd.ui[1] = 0; // Clear
-	po->cd.uc[4] = p->battery_status;
-	po->cd.uc[5] = p->fet_status;
-	po->cd.uc[6] = p->mode_status;
-	po->cd.uc[7] = p->temp_status;
+	po->cd.ui[1] = 0; // uc[4]-[7] cleared
+	// Data payload bytes [3]-[7]
+	po->cd.uc[3] = p->buf_battery_ext_status;	
+	po->cd.uc[4] = p->buf_battery_status;
+	po->cd.uc[5] = p->buf_fet_status;
+	po->cd.uc[6] = p->buf_mode_status;
+	po->cd.uc[7] = p->buf_temp_status;
 	skip = 0;
 
 	p->HBstatus_ctr = xTaskGetTickCount() + p->hbct_k; // Next HB time	

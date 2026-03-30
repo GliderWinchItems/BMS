@@ -30,36 +30,47 @@
 #define CID_CMD_MISC     6 // CAN msg with status and TBD stuff
 #define CID_CMD_UNI      7 // CAN msg with universal command response
 */
+/* See cancomm_items.c void status_group(struct CANRCVBUF* po) */
+/* Battery extended status bits: 'battery_ext_status' payload [3] */
+#define BSTATUS_X_ABOVENTRIP (1 << 0)  // One or more cells above (max - hysteresis) & tripped
+#define BSTATUS_X_LAUNCH_NG  (1 << 1)  // One or more cells are below launch no-go threhold
+#define BSTATUS_X_ALLTOOHI   (1 << 2)  // All cells presently report over max
+#define BSTATUS_X_ALLTRIPPED (1 << 3)  // All cells have been tripped
+#define BSTATUS_X_MINLOADED  (1 << 4)  // One or more far below min even under load
 
-/* Battery status bits: 'battery_status' */
+/* Battery status bits: 'battery_status' payload [4] */
 #define BSTATUS_NOREADING (1 << 0)	// Exactly zero = no reading
 #define BSTATUS_OPENWIRE  (1 << 1)  // Negative or over 4.3v indicative of open wire
 #define BSTATUS_CELLTOOHI (1 << 2)  // One or more cells above max limit
-#define BSTATUS_CELLTOOLO (1 << 3)  // One or more cells below min limit
+#define BSTATUS_CELLTOOLO (1 << 3)  // One or more cells too low for any discharging
 #define BSTATUS_CELLBAL   (1 << 4)  // Cell balancing in progress
 #define BSTATUS_CHARGING  (1 << 5)  // Low power charger ON | DUMP2 ON
 #define BSTATUS_DUMPTOV   (1 << 6)  // Discharge to a voltage in progress
 #define BSTATUS_CELLVRYLO (1 << 7)  // One or more cells very low
 
-/* FET status bits" 'fet_status' */
-#define FET_DUMP     (1 << 0) // 1 = DUMP FET ON
-#define FET_HEATER   (1 << 1) // 1 = HEATER FET ON
-#define FET_DUMP2    (1 << 2) // 1 = DUMP2 FET ON (external charger)
-#define FET_CHGR     (1 << 3) // 1 = Charger FET enabled: Normal charge rate
-#define FET_CHGR_VLC (1 << 4) // 1 = Charger FET enabled: Very Low Charge rate
+/* FET status bits" 'fet_status' payload [5] */
+#define FET_DUMP      (1 << 0) // 1 = DUMP FET ON
+#define FET_HEATER    (1 << 1) // 1 = HEATER FET ON
+#define FET_DUMP2     (1 << 2) // 1 = DUMP2 FET ON (external charger)
+#define FET_CHGR      (1 << 3) // 1 = Charger FET enabled: Normal charge rate
+#define FET_CHGR_VLC  (1 << 4) // 1 = Charger FET enabled: Very Low Charge rate
+#define FET_PWM       (1 << 5) // PWM mode is on
 
-/* Mode status bits 'mode_status' */
+/* Mode status bits 'mode_status' payload [6] */
 #define MODE_SELFDCHG  (1 << 0) // 1 = Self discharge; 0 = charging
 #define MODE_CELLTRIP  (1 << 1) // 1 = One or more cells tripped max
-#define MODE_TRIPBTD   (1 << 2) // 1 = One or more cells tripped & below target-delta
+//#define MODE_TRIPBTD   (1 << 2) // 1 = One or more cells tripped & below target-delta
 
-/* Temperature status 'temp_status' */
+/* Temperature status 'temp_status' payload [7] */
 #define TEMPTUR_OVMAX  (1 << 0) // 1 = One or more temperature sensors above max threshold
+
+#define BQREQ_SIZE 4  // Number of different requests	
 
 /* Indices for CAN msg commands. */
 #define REQ_HEATER 0
 #define REQ_DUMP   1
 #define REQ_DUMP2  2
+#define REQ_TRICKL 3
 
 /* CAN msgs are scaled to 100uv (see ADBMS1818 datasheet)
   BQ76952 can measure negative voltages, so these are coded into the upper values
@@ -129,17 +140,40 @@ struct BQFUNCTION
 	uint16_t tim1_ccr1;  // Present CCR1 (PWM count)
 
 	uint16_t cellv_latest[NCELLMAX]; // Cell voltage readings (0.1 millivolts)
-	uint32_t cellvopenbits;// Bits for unexpected open cells (1 = open wire suspected) 
 	int32_t  cellv_total;  // Sum of cell voltages (0.1 millivolts)
 	int32_t  cellv_high;   // Highest cellv 0.1 millivolts
 	int32_t  cellv_low;    // Lowest  cellv 0.1 millivolts
-	int32_t  cellv_tmdelta;// Target minus target delta
+	int32_t  cellv_tmdelta;// Target minus target delta (hysteresis around lc.cellv_max)
 	uint8_t  cellx_high;   // Highest cellv index (0-17)
 	uint8_t  cellx_low;    // Lowest  cellv index (0-17)
 
-	uint32_t cellv_max_bits; // Cells above cellv_max
-	uint32_t cellv_min_bits; // Cells below cellv_min
-	uint32_t cellv_vlc_bits; // Cells below cellv_vlc
+	// Bits for cells meeting critera
+	uint32_t cellvopenbits;   // Bits for unexpected open cells (1 = open wire suspected) 
+	uint32_t cellv_max_bits;  // Cells above cellv_max
+	uint32_t cellv_min_bits;  // Cells below cellv_min
+	uint32_t cellv_vlc_bits;  // Cells below cellv_vlc
+	uint32_t cellv_launch_ng; // Cells below launch no-go
+	uint32_t cellv_min_loaded_bits; // Cells too low even under load (mv)
+
+	uint32_t cellbal;       // Bits to activate cell balance fets (sent to queue)
+	uint32_t celltrip;      // Bits for cell going over cellv_max
+	uint32_t cell_tdt_bits; // Cells below Target-Delta & tripped
+	uint32_t cell_amd_bits; // Cells above (max - delta)
+	uint32_t cellspresent;  // Bit mask for cell positions that are installed
+	uint32_t cansetfet;     // Bits from CAN msg command sets FETs on|off
+	uint32_t cansetfet_tim; // RTOS ticks for timeout of cansetfet
+	uint8_t active_ct;      // Count of bits set in cellbal	
+
+// Buffered bits for cells (used by cancomm_items in CANTask)
+	uint32_t buf_cellv_max_bits;  // Cells above cellv_max
+	uint32_t buf_cellv_min_bits;  // Cells below cellv_min
+	uint32_t buf_cellv_vlc_bits;  // Cells below cellv_vlc
+	uint32_t buf_cellv_tdt_bits;  // Cells below Target-Delta & tripped	
+	uint32_t buf_cellv_launch_ng; // Cells below launch no-go
+	uint32_t buf_hysterbits_lo;   // Bits for cells that fell below hysterv_lo
+	uint32_t buf_hysterbits_lo_save; // Prev hysterbits_lo
+  uint32_t buf_cellv_min_loaded_bits; // Cells too low even under load (mv)
+
 
 	float cellv[NCELLMAX]; // Cell voltage (calibrated volts)
 	float cellv_sort[NCELLMAX]; // cellv sorted
@@ -150,13 +184,21 @@ struct BQFUNCTION
 	float temperature[3]; // Thermistors: Deg C temperature
 
 	// Cell balancing & relaxation/self-discharge hysteresis
-//	uint32_t targetv;       // Balance voltage target
-	float    hysterv_lo;    // Hysteresis bottom voltage.
-	uint32_t hysterbits_lo; // Bits for cells that fell below hysterv_lo
-	uint32_t hysterbits_lo_save;
-	uint8_t  hyster_sw;     // Hysteresis switch: 1 = peak was reached
+
+/* NOTE: hysteresis term is somewhat confusing. As implemented the
+control is either in charging, or self-discharge mode. When one or more
+cells fall below the hysterv_lo voltage a charge cycle initializes and
+begins. When all the cells trip the max voltage it switches back to
+the self-discharge mode. HOWEVER, CAN msg commands can set|reset this
+mode, as well as turn on|off various fets, thought these commands
+have a timeout and need to keep-alive to maintain the command.
+*/
+	float    hysterv_lo;      // Hysteresis bottom voltage.
+	uint32_t hysterbits_lo;   // Bits for cells that fell below hysterv_lo
+	uint32_t hysterbits_lo_save; // Previous hysterbits_lo
+	uint8_t  hyster_sw;       // Hysteresis switch: 0 = charging, 1 = self-discharge
 	uint8_t  discharge_test_sw; // sw = 1, heater load on when hyster_sw on.
-	uint8_t  hyster_sw_trip; // Set by CAN msg to trip hyster_sw
+	uint8_t  hyster_sw_trip;  // Set by CAN msg to trip hyster_sw
 
 	// Adjustment to hold charger power taken from DC-DC converter constant
 	uint8_t dcdc_oto;   // One-time-only calibration sw
@@ -168,22 +210,26 @@ struct BQFUNCTION
 	struct FILTERIIRF1 filtiirf1_raw[ADCBMSMAX]; // Filter parameters
 	float raw_filt[ADCBMSMAX]; // Filtered output
 	float cal_filt[ADCBMSMAX]; // Filtered and calibrated
+	
+	// bq_items.c builds the following status bytes that load into payload []
+	uint8_t battery_ext_status; // [3] Cell status code bits (extended)
+	uint8_t battery_status;     // [4] Cell status code bits 
+	uint8_t fet_status;         // [5] This controls on/off of FETs
+	uint8_t mode_status;        // [6] Mode bits
+	uint8_t temp_status;        // [7] Temperature status bits
 
-	uint32_t cellbal;       // Bits to activate cell balance fets!!!!!!!!!!!
-	uint32_t celltrip;      // Bits for cell going over cellv_max
-	uint32_t cell_tdt_bits; // Cells below Target-Delta & tripped
-	uint32_t cellspresent;  // Bits for cell positions that are installed
-	uint32_t cansetfet;     // Bits from CAN msg command sets FETs on|off
-	uint32_t cansetfet_tim; // RTOS ticks for timeout of cansetfet
-	uint8_t active_ct;      // Count of bits set in cellbal
-	uint8_t battery_status; // Cell status code bits 
-	uint8_t fet_status;     // This controls on/off of FETs
-	uint8_t mode_status;    // Mode bits
-	uint8_t temp_status;    // Temperature status bits
+// buffer above bq_items bytes: cancommm_items.c sends CAN msg with these bytes containing status bits
+	uint8_t buf_battery_ext_status; // [3] Cell status code bits (extended)
+	uint8_t buf_battery_status;     // [4] Cell status code bits 
+	uint8_t buf_fet_status;         // [5] This controls on/off of FETs
+	uint8_t buf_mode_status;        // [6] Mode bits
+	uint8_t buf_temp_status;        // [7] Temperature status bits
 
-	/* CAN msgs command to turn on HEATER, DUMP, DUMP2. 
-	   request has timeout associated with it. */
-	struct BQREQ bqreq[3];
+
+	/* CAN msgs command to turn on HEATER, DUMP, DUMP2,
+	   and turn off low current (trickle) charger.
+	   Request has timeout associated with it. */
+	struct BQREQ bqreq[BQREQ_SIZE];
 
 	uint8_t fanspeed; // Fan speed (timer pwm setting): 14 = minimum for rotation; 100+ = full speed
 	float   fanrpm;   // Fan speed (rpm)
