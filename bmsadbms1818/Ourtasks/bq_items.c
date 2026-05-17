@@ -190,6 +190,8 @@ dbgtrc = 0; // Debug: bits for checking logic
 	pbq->cellbal         = 0; // Discharge fet bits (will be sent to a bms readout queue)
 	pbq->cellv_launch_ng = 0; // Cell bits for cells below launch no go
 	pbq->cellv_min_loaded_bits = 0; // Cells far too low even under load
+	pbq->cellv_sum       = 0;
+
 	pbq->cellv_low       = pbq->lc.cellopen_hi; // Lowest cell initial voltage
 
 	/* Check all the cell readings versus various volage thresolds. */
@@ -205,6 +207,8 @@ dbgtrc = 0; // Debug: bits for checking logic
 			}
 			else
 			{ // Here, this cell voltage reading looks valid
+			// Sum cell voltages
+				pbq->cellv_sum += idata;
 
 			// Find max cell reading in this scan
 				if (*p > pbq->cellv_high_f)
@@ -269,6 +273,9 @@ dbgtrc = 0; // Debug: bits for checking logic
 		}
 		p += 1; // Next cellv array
 	}
+
+	pbq->cellv_sum_f = (float)pbq->cellv_sum * 0.1; // Convert to mv
+
 
 	/* Summary of scan of cell readings. */
 	if (pbq->cellvopenbits != 0)

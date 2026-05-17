@@ -190,7 +190,7 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
 	float fcur;
 	uint8_t i;
 
-	/* Pointer to payload 4 byte value is used often. */
+	/* Pointer to payload last 4 byte value is used often. */
 	uint8_t* puc = &po->cd.uc[4];
 
 	/* Response carries "our" CAN ID. */
@@ -443,6 +443,7 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
 			po->cd.us[1] = 0; // uc[2]-[3] cleared
 			po->cd.uc[3] = rtcregs_OK;
 			po->cd.ui[1] = rtcregs_morse_code;
+			break;
 
 		case MISCQ_FAN_STATUS: // 39  Retrieve fan: pct and rpm 
 			po->cd.us[1] = 0; // uc[2]-[3] cleared
@@ -453,19 +454,26 @@ void cancomm_items_sendcmdr(struct CANRCVBUF* pi)
 			cmd_pwm_ctr += 1; // Flag fanop.c for a new request
 			cmd_pwm_set  = pi->cd.uc[3]; // Update request value
 			skip = 1; // This is a set, so no response
-			break;			
+			break;	
+
 		case MISCQ_PROG_CRC: // 41 Retrieve installed program's: CRC
 			send_bms_crcorchk(po, 0);
 			break;
+
 		case MISCQ_PROG_CHKSUM: // 42 Retrieve installed program's: Checksum	
 			send_bms_crcorchk(po, 1);
 			break;
+
 		case MISCQ_PROG_CRCCHK: // 43 Retrieve for both 41 and 42 (two msgs)
 			po->cd.uc[1] = MISCQ_PROG_CRC;
 			send_bms_crcorchk(po, 0);
 			po->cd.uc[1] = MISCQ_PROG_CHKSUM;
 			send_bms_crcorchk(po, 1);
 			break;			
+		
+		case MISCQ_SUMCELLVOLTS: // 44 Sum of (valid) cell voltages
+			loaduint32(puc, bqfunction.cellv_sum);
+			break;
 		}		
 	}
 	if (skip == 0)

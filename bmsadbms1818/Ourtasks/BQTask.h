@@ -37,6 +37,7 @@
 #define BSTATUS_X_ALLTOOHI   (1 << 2)  // All cells presently report over max
 #define BSTATUS_X_ALLTRIPPED (1 << 3)  // All cells have been tripped
 #define BSTATUS_X_MINLOADED  (1 << 4)  // One or more far below min even under load
+#define BSTATUS_X_CELLTOOHI2 (1 << 5)  // One of more above CELLTOOHI plus increment
 
 /* Battery status bits: 'battery_status' payload [4] */
 #define BSTATUS_NOREADING (1 << 0)	// Exactly zero = no reading
@@ -179,6 +180,7 @@ struct BQFUNCTION
 	float cellv_sort[NCELLMAX]; // cellv sorted
 	float cellv_high_f;
 	float cellv_low_f;
+	uint32_t cellv_sum;
 	float cellv_sum_f;
 	float current;   // Op-amp sensing: amps current
 	float temperature[3]; // Thermistors: Deg C temperature
