@@ -191,6 +191,7 @@ dbgtrc = 0; // Debug: bits for checking logic
 	pbq->cellv_launch_ng = 0; // Cell bits for cells below launch no go
 	pbq->cellv_min_loaded_bits = 0; // Cells far too low even under load
 	pbq->cellv_sum       = 0;
+	pbq->cellv_max2_bits = 0; // Cells above cellv_max + increment (for external charging)
 
 	pbq->cellv_low       = pbq->lc.cellopen_hi; // Lowest cell initial voltage
 
@@ -226,10 +227,16 @@ dbgtrc = 0; // Debug: bits for checking logic
 					pbq->cellx_low   = i;  // Save cell index
 				} 
 
-			// Cell is above max limit?
+			// Is cell above max limits?
 				if (idata > pbq->lc.cellv_max)
-				{ // Cell is above (and could be in danger!)
-					pbq->cellv_max_bits |= (1 << i); // Cells above cellv_max					
+				{ // Cell is above (status BSTATUS_CELLTOOHI "toohi")
+					pbq->cellv_max_bits |= (1 << i); // Cells above cellv_max
+
+				// Is cell is above max plus added increment (external charging IR drop)					
+					if (idata > pbq->cellv_max2)
+					{ // Here cell (status BSTATUS_X_CELLTOOHI2 "toohi2")
+						pbq->cellv_max2_bits |= (1 << i); // Cells above cellv_max
+					}
 				}
 					
 			// Cell above (cellv_max - cellv_tgtdelta)?
@@ -275,6 +282,13 @@ dbgtrc = 0; // Debug: bits for checking logic
 	}
 
 	pbq->cellv_sum_f = (float)pbq->cellv_sum * 0.1; // Convert to mv
+
+	/* TOOHI2 for external charging control */
+	pbq->battery_ext_status |= BSTATUS_X_CELLTOOHIa; // Show it's implemented
+	if (pbq->cellv_max2_bits != 0)
+	{ // One or more cells over max plus increment
+		pbq->battery_ext_status |= BSTATUS_X_CELLTOOHI2;
+	}
 
 
 	/* Summary of scan of cell readings. */

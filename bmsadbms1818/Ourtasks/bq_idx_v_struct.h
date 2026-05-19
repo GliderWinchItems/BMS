@@ -100,8 +100,8 @@ struct BQLC
    uint16_t cellv_vlc;       // Below this Very Low Charge (_vlc)required (mv)
    uint16_t cellv_min_loaded;// Low cell voltage too low even under load (mv) 
    uint16_t cellopen_lo;     // Below this cell volatge wire is assumed open (mv)
-
-
+   uint16_t cellv_max2_inc;  // Max limit plus increment (for external charging IR drop)
+   
    /* These are sent to the EMC for module level charging control. */
    uint8_t maxchrgcurrent;  // Maximum charge current (0.1a) (255 is >= 25.5a)
    uint8_t chrgcurrent_bal; // Charge current for module balancing (0.1a)

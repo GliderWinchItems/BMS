@@ -38,6 +38,8 @@
 #define BSTATUS_X_ALLTRIPPED (1 << 3)  // All cells have been tripped
 #define BSTATUS_X_MINLOADED  (1 << 4)  // One or more far below min even under load
 #define BSTATUS_X_CELLTOOHI2 (1 << 5)  // One of more above CELLTOOHI plus increment
+#define BSTATUS_X_CELLTOOHIa (1 << 6)  // 1 = CELLTOOHI2 implmented 
+
 
 /* Battery status bits: 'battery_status' payload [4] */
 #define BSTATUS_NOREADING (1 << 0)	// Exactly zero = no reading
@@ -148,6 +150,8 @@ struct BQFUNCTION
 	uint8_t  cellx_high;   // Highest cellv index (0-17)
 	uint8_t  cellx_low;    // Lowest  cellv index (0-17)
 
+	uint32_t cellv_max2;   // Max cell voltage for external charging (status: toohi2)
+
 	// Bits for cells meeting critera
 	uint32_t cellvopenbits;   // Bits for unexpected open cells (1 = open wire suspected) 
 	uint32_t cellv_max_bits;  // Cells above cellv_max
@@ -155,6 +159,8 @@ struct BQFUNCTION
 	uint32_t cellv_vlc_bits;  // Cells below cellv_vlc
 	uint32_t cellv_launch_ng; // Cells below launch no-go
 	uint32_t cellv_min_loaded_bits; // Cells too low even under load (mv)
+	uint32_t cellv_max2_bits;  // Cells above cellv_max + increment (for external charging)
+	
 
 	uint32_t cellbal;       // Bits to activate cell balance fets (sent to queue)
 	uint32_t celltrip;      // Bits for cell going over cellv_max
@@ -174,6 +180,8 @@ struct BQFUNCTION
 	uint32_t buf_hysterbits_lo;   // Bits for cells that fell below hysterv_lo
 	uint32_t buf_hysterbits_lo_save; // Prev hysterbits_lo
   uint32_t buf_cellv_min_loaded_bits; // Cells too low even under load (mv)
+ 	uint32_t uf_cellv_max2_bits;  // Cells above cellv_max + increment (for external charging)
+
 
 
 	float cellv[NCELLMAX]; // Cell voltage (calibrated volts)

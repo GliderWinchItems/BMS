@@ -11,6 +11,7 @@
 #include "CanCommTask.h"
 #include "iir_f1.h"
 #include "../../../../GliderWinchCommons/embed/svn_common/trunk/db/gen_db.h"
+#include "morse.h"
 
 /* *************************************************************************
  * void bq_func_init(void);
@@ -73,6 +74,13 @@ void bq_func_init(void)
 
     // Target voltage minus target delta
     p->cellv_tmdelta = p->lc.cellv_max - p->lc.cellv_tgtdelta;
+
+    /* For external charging with ELCON use a status bit that allows for 
+     IR drop (and pulsing). */
+    p->cellv_max2 = p->lc.cellv_max + p->lc.cellv_max2_inc;
+    // Check for bogus value
+    if (p->cellv_max2 > 4150)
+    	morse_trap(659);
 
     // Clear latest reading (jic)
 	for (i = 0; i < NCELLMAX; i ++)

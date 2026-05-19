@@ -106,7 +106,6 @@ static void loadfloat(uint8_t* puc, float* pf)
 static int req_set(uint8_t idx, struct CANRCVBUF* pi)
 {	
 	struct BQFUNCTION* p = &bqfunction;
-	uint32_t tmp;
 
 	if (idx >= BQREQ_SIZE)
 		return -1; // Bogus argument
@@ -608,10 +607,14 @@ static void send_allfets(struct CANRCVBUF* po)
 static void status_group(struct CANRCVBUF* po)
 {
 /* Status bits (see BQTask.h)
-Battery extended status--
-#define BSTATUS_X_BELOTRIP  (1 << 0)  // One or more cells below (max - hysteresis) & tripped
-#define BSTATUS_X_LAUNCH_NG (1 << 1)  // One or more cells are below launch no-go threhold
-#define BSTATUS_X_PWM       (1 << 2)  // PWM is on
+Battery extended--
+#define BSTATUS_X_ABOVENTRIP (1 << 0)  // One or more cells above (max - hysteresis) & tripped
+#define BSTATUS_X_LAUNCH_NG  (1 << 1)  // One or more cells are below launch no-go threhold
+#define BSTATUS_X_ALLTOOHI   (1 << 2)  // All cells presently report over max
+#define BSTATUS_X_ALLTRIPPED (1 << 3)  // All cells have been tripped
+#define BSTATUS_X_MINLOADED  (1 << 4)  // One or more far below min even under load
+#define BSTATUS_X_CELLTOOHI2 (1 << 5)  // One of more above CELLTOOHI plus increment
+#define BSTATUS_X_CELLTOOHIa (1 << 6)  // 1 = CELLTOOHI2 implmented 
 
 Battery--
 #define BSTATUS_NOREADING (1 << 0)	// Exactly zero = no reading
